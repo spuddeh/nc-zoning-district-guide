@@ -85,16 +85,12 @@ public func NCZDG_ResolveCurrent(gi: GameInstance) -> ref<NCZDistrictName> {
 // coerces), MappinUtils.GetDistrictRecord() hands back a wref (which would not).
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_ResolveFromRecord(startRecord: wref<District_Record>) -> ref<NCZDistrictName> {
+  // Confirmed in-game: an interior carries its own district record that is absent from the
+  // map (e.g. Districts.GrandImperialMall), and one step up resolves it (Districts.Coastview).
   let record: wref<District_Record> = startRecord;
-  if !IsDefined(record) {
-    NCZDGLog("walk: start record is null");
-    return null;
-  }
   let steps: Int32 = 0;
   while IsDefined(record) && steps < NCZDG_MaxParentWalk() {
-    let rid = record.GetRecordID();
-    NCZDGLog(s"walk[\(steps)]: '\(TDBID.ToStringDEBUG(rid))'");
-    let hit = NCZDistrictMap.Lookup(rid);
+    let hit = NCZDistrictMap.Lookup(record.GetRecordID());
     if IsDefined(hit) {
       return hit;
     }

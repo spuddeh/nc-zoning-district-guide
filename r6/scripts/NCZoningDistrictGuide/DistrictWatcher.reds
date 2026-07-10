@@ -53,18 +53,36 @@ public func NCZDG_OnDistrictChanged(gi: GameInstance) -> Void {
   }
   let here = NCZDG_ResolveCurrent(gi);
   if !IsDefined(here) {
-    NCZDGLog("district changed: off-map");
-    return;
+    return;   // off-map (e.g. the Dogtown_Brooklyn flashback): say nothing
   }
 
-  // rvalue-array gotcha: bind the array return to a local before ArraySize.
-  let inDistrict = GetLocationsByDistrict(here.district);
-  let districtCount = ArraySize(inDistrict);
+  // The count that matters is the most specific one the player is standing in.
+  // Confirmed in-game that this can legitimately be 0 (NCX Spaceport / Morro Rock),
+  // so callers must treat 0 as "say nothing", never render a bare "0".
+  let count = NCZDG_CountHere(here);
+  if count <= 0 {
+    return;
+  }
 
   if UnicodeStringEqual(here.subdistrict, "") {
-    NCZDGLog(s"district changed: \(here.district) - \(districtCount) registry locations");
-    return;
+    NCZDGLog(s"district changed: \(here.district) - \(count) registry locations");
+  } else {
+    NCZDGLog(s"district changed: \(here.district) / \(here.subdistrict) - \(count) registry locations");
+  }
+}
+
+// Locations in the most specific area the player occupies: the subdistrict when there is
+// one, otherwise the district.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_CountHere(here: ref<NCZDistrictName>) -> Int32 {
+  if !IsDefined(here) {
+    return 0;
+  }
+  // rvalue-array gotcha: bind the array return to a local before ArraySize.
+  if UnicodeStringEqual(here.subdistrict, "") {
+    let inDistrict = GetLocationsByDistrict(here.district);
+    return ArraySize(inDistrict);
   }
   let inSub = GetLocationsBySubdistrict(here.subdistrict);
-  NCZDGLog(s"district changed: \(here.district) / \(here.subdistrict) - \(ArraySize(inSub)) here, \(districtCount) in district");
+  return ArraySize(inSub);
 }
