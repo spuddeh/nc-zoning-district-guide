@@ -1,0 +1,25 @@
+# WolvenKit
+# This mod ships pure redscript and builds its ink programmatically, so nothing wkit
+# produces is a build input. A wkit project may live here purely to EXPORT and read the
+# game's own ink (widget paths, fonts, atlases) while building the injection surfaces.
+# None of it is tracked; the findings are written up in docs/ink-research.md instead.
+*.cpmodproj
+layout.xml
+.projectFiles/
+packed/
+source/
+archive/
+raw/
+resources/
+custom_refs.txt
+custom_tweaks.txt
+
+# Editor
+.vscode/
+.history/
+*.log
+
+*.zip
+*.xcf
+images/
+CLAUDE.md
