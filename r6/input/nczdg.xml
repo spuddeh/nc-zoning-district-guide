@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<!--
+  NC Zoning District Guide - Input Bindings
+  Processed by: Input Loader (RED4ext plugin by jackhumbert)
+  https://github.com/jackhumbert/cyberpunk2077-input-loader
+
+  Defines NCZDG_ToggleGuide, bound to ' (IK_SingleQuote) by default. N is taken by
+  photo mode, so it is not a safe default.
+
+  MODIFIERS. Input Loader has no modifier concept: a mapping is one physical button.
+  The engine's IsShiftDown()/IsControlDown() live on inkInputEvent, a UI event, and are
+  not reachable from a gameplay ListenerAction callback. So each modifier is registered
+  as its OWN action here, and NCZDGInputListener tracks whether it is currently held by
+  watching its BUTTON_PRESSED / BUTTON_RELEASED. When the guide key fires, the listener
+  compares the held modifiers against the one chosen in settings.
+
+  The overridableUI attribute names the 'openGuideKey' field on the NCZDGConfig redscript
+  class, which lets Mod Settings write the player's chosen key back into the input system.
+  Without Mod Settings the binding stays on the default below. Without Input Loader this
+  file is never read, no action registers, and the listener is inert.
+-->
+<bindings>
+  <context name="NCZDistrictGuide">
+    <action name="NCZDG_ToggleGuide" map="NCZDG_ToggleGuideMap"/>
+    <action name="NCZDG_ModShift" map="NCZDG_ModShiftMap"/>
+    <action name="NCZDG_ModAlt" map="NCZDG_ModAltMap"/>
+    <action name="NCZDG_ModCtrl" map="NCZDG_ModCtrlMap"/>
+  </context>
+
+  <context name="Exploration" append="true">
+    <include name="NCZDistrictGuide"/>
+  </context>
+  <context name="Combat" append="true">
+    <include name="NCZDistrictGuide"/>
+  </context>
+  <context name="VehicleDriveBase" append="true">
+    <include name="NCZDistrictGuide"/>
+  </context>
+  <context name="VehiclePassenger" append="true">
+    <include name="NCZDistrictGuide"/>
+  </context>
+
+  <mapping name="NCZDG_ToggleGuideMap" type="Button">
+    <button id="IK_SingleQuote" overridableUI="openGuideKey"/>
+  </mapping>
+
+  <!--
+    Modifier probes. Not rebindable: they exist only so the listener can observe whether
+    Shift / Alt / Ctrl is held. Both sides of each key are mapped so it does not matter
+    which one the player uses. These actions do nothing on their own.
+  -->
+  <mapping name="NCZDG_ModShiftMap" type="Button">
+    <button id="IK_LShift"/>
+    <button id="IK_RShift"/>
+  </mapping>
+  <!-- Alt is a single key in EInputKey (IK_Alt = 18); there is no IK_LAlt / IK_RAlt. -->
+  <mapping name="NCZDG_ModAltMap" type="Button">
+    <button id="IK_Alt"/>
+  </mapping>
+  <mapping name="NCZDG_ModCtrlMap" type="Button">
+    <button id="IK_LControl"/>
+    <button id="IK_RControl"/>
+  </mapping>
+</bindings>

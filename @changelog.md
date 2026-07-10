@@ -17,3 +17,8 @@ Initial development. Not yet released.
   when the most specific level is not on the map.
 - District change hook, wrapping `PlayerPuppet.OnDistrictChanged`, deduplicated so one
   boundary crossing reports once.
+- Settings: toggles and sliders in the RCF (Redscript Configuration Framework) F8 overlay;
+  the open-guide key and its modifier in Mod Settings. Both frameworks are optional and the
+  mod runs on its defaults with neither installed.
+- Open-guide keybind via Input Loader (default apostrophe), with an optional Shift/Alt/Ctrl
+  modifier tracked through dedicated input actions, debounced against key-repeat.

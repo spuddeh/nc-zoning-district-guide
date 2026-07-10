@@ -21,6 +21,7 @@ import NCZoning.Api.*
 import NCZoning.Data.*
 @if(ModuleExists("NCZoning.Api"))
 import NCZoningDistrictGuide.District.*
+import NCZoningDistrictGuide.Config.*
 
 // The last district we reported on, so a single boundary crossing does not fire twice.
 // Verified in-game: stepping from an interior out to the street queues OnDistrictChanged
@@ -51,38 +52,61 @@ public func NCZDG_OnDistrictChanged(gi: GameInstance) -> Void {
   if !IsReady() {
     return;   // registry not loaded yet; nothing to report against
   }
+  let cfg = NCZDGConfig.Get();
+  if IsDefined(cfg) && !cfg.enablePopupToast {
+    return;   // nearby notice switched off in settings
+  }
+
   let here = NCZDG_ResolveCurrent(gi);
   if !IsDefined(here) {
     return;   // off-map (e.g. the Dogtown_Brooklyn flashback): say nothing
   }
 
-  // The count that matters is the most specific one the player is standing in.
   // Confirmed in-game that this can legitimately be 0 (NCX Spaceport / Morro Rock),
-  // so callers must treat 0 as "say nothing", never render a bare "0".
+  // so treat 0 as "say nothing", never render a bare "0".
   let count = NCZDG_CountHere(here);
   if count <= 0 {
     return;
   }
 
-  if UnicodeStringEqual(here.subdistrict, "") {
-    NCZDGLog(s"district changed: \(here.district) - \(count) registry locations");
-  } else {
-    NCZDGLog(s"district changed: \(here.district) / \(here.subdistrict) - \(count) registry locations");
-  }
+  NCZDGLog(s"district changed: \(NCZDG_AreaLabel(here)) - \(count) registry locations");
 }
 
-// Locations in the most specific area the player occupies: the subdistrict when there is
-// one, otherwise the district.
+// Whether to narrow to the subdistrict: only when the player is in one AND the setting
+// allows it. Centralised so the toast, guide and map panel all agree.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_UseSubdistrict(here: ref<NCZDistrictName>) -> Bool {
+  if !IsDefined(here) || UnicodeStringEqual(here.subdistrict, "") {
+    return false;
+  }
+  let cfg = NCZDGConfig.Get();
+  return !IsDefined(cfg) || cfg.matchSubdistrict;
+}
+
+// "Watson / Kabuki", or just "Dogtown" for a top-level district.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_AreaLabel(here: ref<NCZDistrictName>) -> String {
+  if !IsDefined(here) {
+    return "";
+  }
+  if NCZDG_UseSubdistrict(here) {
+    return here.district + " / " + here.subdistrict;
+  }
+  return here.district;
+}
+
+// Locations in the area the player occupies: the subdistrict when there is one and the
+// setting allows narrowing, otherwise the whole district.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_CountHere(here: ref<NCZDistrictName>) -> Int32 {
   if !IsDefined(here) {
     return 0;
   }
   // rvalue-array gotcha: bind the array return to a local before ArraySize.
-  if UnicodeStringEqual(here.subdistrict, "") {
-    let inDistrict = GetLocationsByDistrict(here.district);
-    return ArraySize(inDistrict);
+  if NCZDG_UseSubdistrict(here) {
+    let inSub = GetLocationsBySubdistrict(here.subdistrict);
+    return ArraySize(inSub);
   }
-  let inSub = GetLocationsBySubdistrict(here.subdistrict);
-  return ArraySize(inSub);
+  let inDistrict = GetLocationsByDistrict(here.district);
+  return ArraySize(inDistrict);
 }
