@@ -17,6 +17,11 @@ import NCZoning.Api.*
 @if(ModuleExists("NCZoning.Api"))
 import NCZoning.Data.*
 
+// Our Layer-2 resolver. Guarded to match: its resolve funcs return ref<NCZDistrictName>,
+// a type that only exists when the core is installed.
+@if(ModuleExists("NCZoning.Api"))
+import NCZoningDistrictGuide.District.*
+
 // The lowest core ApiVersion this mod knows how to talk to.
 public func NCZDG_RequiredApiVersion() -> Int32 { return 1; }
 
@@ -117,7 +122,13 @@ public class NCZDGCoreBridge extends ScriptableSystem {
     NCZDGLog(s"core reported a fetch error; ready=\(NCZDG_CoreReady())");
   }
 
-  // Single funnel for "the registry is usable now". M2 hangs the district resolve here.
+  // Single funnel for "the registry is usable now".
+  //
+  // Deliberately does NOT resolve the district here. Verified in-game: Session/Ready (and
+  // therefore the core's DataReady) fires roughly ten seconds BEFORE PreventionSystem's
+  // DistrictManager is seeded, so GetCurrentDistrict() returns null at this point. Every
+  // feature resolves on demand instead: the toast and guide off the district-change hook
+  // (DistrictWatcher.reds), the map panel off its own hover callback.
   private func OnCoreDataUsable(isRefresh: Bool) -> Void {
     NCZDGLog(s"registry usable (refresh=\(isRefresh))");
   }

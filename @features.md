@@ -8,7 +8,8 @@ Feature state for NC Zoning District Guide. Legend: Done, In Progress, Planned.
 | --- | --- | --- |
 | Soft dependency on NCZoningCore | Done | `ModuleExists` guards + `ApiVersion()` gate |
 | Data lifecycle events | Done | DataReady / DataRefreshed / DataError |
-| Layer 2 district resolver | Planned | `DistrictManager` read + parent stack walk |
+| Layer 2 district resolver | Done | `PreventionSystem.GetCurrentDistrict()` + `ParentDistrict()` walk |
+| District change hook | Done | Wraps `PlayerPuppet.OnDistrictChanged`, deduped |
 
 ## District guide
 
