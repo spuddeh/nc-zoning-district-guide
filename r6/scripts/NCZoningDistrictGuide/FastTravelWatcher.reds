@@ -1,0 +1,129 @@
+// ======================================================================================
+// Mod Name: NC Zoning District Guide
+// File: FastTravelWatcher.reds
+// Author: Spuddeh
+// Description: DIAGNOSTIC (for now). Listens for fast-travel arrival and logs what is
+//              available at that moment: the live district, the frozen UI_Map blackboard
+//              enum name (what a banner would show), and the FastTravelSystem blackboard.
+//              This tells us whether a cross-district fast travel already fires the district
+//              banner (so our existing hook rides it for free) or whether we need to build a
+//              standalone fast-travel panel.
+//
+//              The hook is the FastTRavelSystem blackboard bool FastTravelLoadingScreenFinished
+//              (verified from bossHealthBar.RegisterFastTravelCallback).
+// Mod Version: 0.1.0 (Pre-release)
+// Credits: Spuddeh (NCZoningCore)
+// ======================================================================================
+
+@if(ModuleExists("NCZoning.Api"))
+import NCZoning.Api.*
+@if(ModuleExists("NCZoning.Api"))
+import NCZoning.Data.*
+@if(ModuleExists("NCZoning.Api"))
+import NCZoningDistrictGuide.District.*
+@if(ModuleExists("NCZoning.Api"))
+import NCZoningDistrictGuide.Bridge.*
+@if(ModuleExists("NCZoning.Api"))
+import NCZoningDistrictGuide.Panel.*
+import NCZoningDistrictGuide.Config.*
+
+@if(ModuleExists("NCZoning.Api"))
+public class NCZDGFastTravelWatcher extends ScriptableSystem {
+  private let m_ftCallbackID: ref<CallbackHandle>;
+  private let m_ftPanel: wref<inkVerticalPanel>;   // current FT panel, removed before the next
+
+  private func OnAttach() -> Void {
+    GameInstance.GetCallbackSystem()
+      .RegisterCallback(n"Session/Ready", this, n"OnSessionReady")
+      .SetLifetime(CallbackLifetime.Forever);
+  }
+
+  protected cb func OnSessionReady(event: ref<GameSessionEvent>) -> Void {
+    let reqs = GameInstance.GetSystemRequestsHandler();
+    if IsDefined(reqs) && reqs.IsPreGame() {
+      return;
+    }
+    let bb = GameInstance.GetBlackboardSystem(this.GetGameInstance()).Get(GetAllBlackboardDefs().FastTRavelSystem);
+    if IsDefined(bb) && !IsDefined(this.m_ftCallbackID) {
+      this.m_ftCallbackID = bb.RegisterListenerBool(GetAllBlackboardDefs().FastTRavelSystem.FastTravelLoadingScreenFinished, this, n"OnFastTravelFinished");
+      NCZDGLog("ft: registered fast-travel listener");
+    }
+  }
+
+  protected cb func OnFastTravelFinished(value: Bool) -> Void {
+    if !value {
+      return;   // fires with false on start; we only care about the finished=true edge
+    }
+    this.ShowFastTravelPanel();
+  }
+
+  // Fast travel fires NO district banner (confirmed in-game across many cross-district jumps), so
+  // there is nothing to attach to. Build our standalone panel on the game's own notifications
+  // layer, at the same screen spot the banner-attached panel uses. Fast travel is a discrete
+  // settle, so the LIVE district is correct here - no frozen-value dance needed.
+  @if(ModuleExists("NCZoning.Api"))
+  private func ShowFastTravelPanel() -> Void {
+    let gi = this.GetGameInstance();
+    let cfg = NCZDGConfig.Get();
+    if !IsDefined(cfg) || !cfg.enablePopupToast || !NCZDG_CoreReady() {
+      return;
+    }
+    // Fast travel shows no game banner, so this panel is our own. Opt out to leave fast travel
+    // entirely to the game.
+    if !cfg.enableFastTravelNotice {
+      NCZDGLog("ft: fast-travel notice disabled in settings");
+      return;
+    }
+    let here = NCZDG_ResolveCurrent(gi);
+    if !IsDefined(here) {
+      NCZDGLog("ft: off-map, no panel");
+      return;   // off-map = show nothing (0-vs-null)
+    }
+
+    // The district-enter banner lives on the inkGameNotificationsLayer; its virtual window is a
+    // persistent root we can parent into. Place at the banner's usual position (4K reference).
+    let layer = GameInstance.GetInkSystem().GetLayer(n"inkGameNotificationsLayer");
+    if !IsDefined(layer) {
+      NCZDGLog("ft: no notifications layer");
+      return;
+    }
+    let root = layer.GetVirtualWindow();
+    if !IsDefined(root) {
+      NCZDGLog("ft: no virtual window");
+      return;
+    }
+
+    // Position COMPUTED, not guessed. Walking the banner panel's parent chain in-game
+    // (nczdg_panel -> New_Quest_canvas -> Root -> Root -> HUDSlotMiddleWidget -> LeftCenter ->
+    // Root -> Base Window) and summing GetChildPosition at each step gives its exact position in
+    // 'Base Window' space: (56, 653). NOTE the banner does NOT live under BracketsContainer - it
+    // hangs off the HUD slots. So parent ours on Base Window at the same coords.
+    //
+    // Base Window is the SCREEN size (2560x1440) while the content is authored at 4K, so the HUD
+    // chain scales the banner by screenH/2160 (0.667 at 1440p). We do not inherit that here, so
+    // apply it explicitly - derived live, so it stays correct at any resolution.
+    let winSize = root.GetSize();
+    let scale = winSize.Y > 1.0 ? (winSize.Y / 2160.0) : 0.667;
+
+    // Remove any previous FT panel (this system persists across fast travels; without this they
+    // stack up - an earlier dump showed 3 copies accumulating).
+    root.RemoveChildByName(n"nczdg_panel");
+    this.m_ftPanel = null;
+
+    let player = GameInstance.GetPlayerSystem(gi).GetLocalPlayerMainGameObject();
+    // The measured (56,653) is where the HUD's LeftCenter slot sits - i.e. the TOP of the banner
+    // block, which is why placing there put us where the game banner shows. Our banner-path panel
+    // sits BELOW that block: it is translated +190 within the banner canvas (4K units), which in
+    // Base Window (screen) space is 190 * scale. So add it.
+    let panelY = 653.0 + (190.0 * scale);
+    NCZDGLog(s"ft: building panel for \(here.district) at (56,\(panelY)) [slot 653 + 190*\(scale)]");
+    this.m_ftPanel = NCZDG_BuildPanel(root, 56.0, panelY, here, player, cfg.showNearest);
+    if IsDefined(this.m_ftPanel) {
+      this.m_ftPanel.SetRenderTransformPivot(new Vector2(0.0, 0.0));
+      this.m_ftPanel.SetScale(new Vector2(scale, scale));
+    }
+
+  }
+  @if(!ModuleExists("NCZoning.Api"))
+  private func ShowFastTravelPanel() -> Void {}
+}

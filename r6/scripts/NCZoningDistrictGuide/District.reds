@@ -111,3 +111,16 @@ public func NCZDG_ResolveFromEnum(district: gamedataDistrict) -> ref<NCZDistrict
   }
   return NCZDG_ResolveFromRecord(record);
 }
+
+// Resolve from a district ENUM NAME string (e.g. "Kabuki"). The district-enter banner freezes
+// this string (District_Record.EnumName(), via the UI_Map blackboard) at the moment of the
+// crossing, so resolving from it makes our count match the banner even when the player has since
+// flown on to another district. EnumValueFromString maps the name to the gamedataDistrict enum.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_ResolveFromEnumName(enumName: String) -> ref<NCZDistrictName> {
+  if UnicodeStringEqual(enumName, "") {
+    return null;
+  }
+  let value = EnumValueFromString("gamedataDistrict", enumName);
+  return NCZDG_ResolveFromEnum(IntEnum<gamedataDistrict>(Cast<Int32>(value)));
+}

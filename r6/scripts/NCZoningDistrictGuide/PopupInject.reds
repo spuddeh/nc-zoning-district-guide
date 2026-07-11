@@ -29,6 +29,8 @@ import NCZoning.Data.*
 import NCZoningDistrictGuide.District.*
 @if(ModuleExists("NCZoning.Api"))
 import NCZoningDistrictGuide.Bridge.*
+@if(ModuleExists("NCZoning.Api"))
+import NCZoningDistrictGuide.Panel.*
 import NCZoningDistrictGuide.Config.*
 // NCZDG_CountHere is a global-scope func in DistrictWatcher.reds (no module), so no import.
 
@@ -43,22 +45,59 @@ let nczdg_panel: wref<inkVerticalPanel>;
 // (flags 33032, the same shape we wrap on PlayerPuppet), so it hooks cleanly. It fires as the
 // banner widget is built, by which point the player has already crossed the boundary, so the
 // live DistrictManager (which we resolve from, not the notification data) is already current.
+// Defers the build past OnInitialize so the banner's own SetNotificationData (native, runs
+// after OnInitialize) has frozen its district into m_questNotificationData.text. We hold a
+// STRONG ref to the notification so the callback cannot be collected before it fires (an
+// earlier wref version never ran). This ties us to the banner: we read the banner's OWN frozen
+// district, not the live one, so our count always agrees with the banner text above it. And we
+// only build inside the banner's lifecycle, so the game's own debounce (it suppresses repeat
+// district banners) automatically applies to us too.
+@if(ModuleExists("NCZoning.Api"))
+public class NCZDGBuildPanel extends DelayCallback {
+  public let m_notification: ref<NewLocationNotification>;
+  public func Call() -> Void {
+    if IsDefined(this.m_notification) {
+      this.m_notification.NCZDG_UpdatePanel();
+    }
+  }
+}
+
 @if(ModuleExists("NCZoning.Api"))
 @wrapMethod(NewLocationNotification)
 protected cb func OnInitialize() -> Bool {
   let result = wrappedMethod();   // native banner first, always, untouched
-  this.NCZDG_UpdatePanel();
+  let player = this.GetPlayerControlledObject();
+  if IsDefined(player) {
+    let build = new NCZDGBuildPanel();
+    build.m_notification = this;
+    GameInstance.GetDelaySystem(player.GetGame()).DelayCallback(build, 0.1);
+  }
   return result;
+}
+
+// The notification controller instance is reused across banners, so clear our reference when
+// it tears down; the next banner rebuilds a fresh panel. (Our own fade-out already handles the
+// normal case; this covers an early teardown.)
+@if(ModuleExists("NCZoning.Api"))
+@wrapMethod(NewLocationNotification)
+protected cb func OnUninitialize() -> Bool {
+  if IsDefined(this.nczdg_panel) {
+    this.nczdg_panel = null;
+  }
+  return wrappedMethod();
 }
 
 @if(ModuleExists("NCZoning.Api"))
 @addMethod(NewLocationNotification)
-private func NCZDG_UpdatePanel() -> Void {
+public func NCZDG_UpdatePanel() -> Void {
+  NCZDGLog("popup: UpdatePanel fired");
   let cfg = NCZDGConfig.Get();
   if !IsDefined(cfg) || !cfg.enablePopupToast {
+    NCZDGLog("popup: bail - no cfg or toast off");
     return;   // feature off: add nothing
   }
   if !NCZDG_CoreReady() {
+    NCZDGLog("popup: bail - core not ready");
     return;
   }
 
@@ -66,157 +105,106 @@ private func NCZDG_UpdatePanel() -> Void {
   // is not exposed at this controller level, but GetPlayerControlledObject() is.
   let player = this.GetPlayerControlledObject();
   if !IsDefined(player) {
+    NCZDGLog("popup: bail - no player");
     return;
   }
+
+  // Resolve from the district THIS BANNER froze, not the live one. m_questNotificationData.text
+  // is the district enum name (District_Record.EnumName) captured when the banner was queued.
+  // The blackboard version can advance if the player flies on before the banner shows (the game
+  // debounces banners), so reading the banner's OWN frozen copy is what keeps our count matching
+  // the banner text above it. This is why we defer to +0.1s: the field is set in the native
+  // SetNotificationData, which runs after OnInitialize.
   let gi = player.GetGame();
+  let enumName: String = "";
+  if IsDefined(this.m_questNotificationData) {
+    enumName = this.m_questNotificationData.text;
+  }
+  NCZDGLog(s"popup: banner enumName='\(enumName)'");
 
-  // The banner fires for the district just entered. Resolve where the player now is and count
-  // the registry locations in that (sub)district. 0 is legitimate (e.g. Morro Rock) -> nothing.
-  let here = NCZDG_ResolveCurrent(gi);
+  let here = NCZDG_ResolveFromEnumName(enumName);
   if !IsDefined(here) {
+    NCZDGLog("popup: enum-name resolve missed, trying live");
+    here = NCZDG_ResolveCurrent(gi);
+  }
+  if !IsDefined(here) {
+    NCZDGLog("popup: bail - off-map");
     return;
   }
-  let count = NCZDG_CountHere(here);
-  if count <= 0 {
-    return;
-  }
-
-  this.NCZDG_EnsurePanel();
-  if !IsDefined(this.nczdg_panel) {
-    return;
-  }
-
-  let countText = this.nczdg_panel.GetWidgetByPathName(n"nczdg_count") as inkText;
-  if IsDefined(countText) {
-    let plural = count == 1 ? " location" : " locations";
-    countText.SetText(s"\(count) registered\(plural) in your area");
-  }
-
-  if cfg.showNearest {
-    this.NCZDG_SetNearestLine(player, cfg.nearestRadius);
-  }
+  NCZDGLog(s"popup: resolved \(here.district)");
+  this.NCZDG_EnsurePanel(here, player, cfg.showNearest);
 }
 
-// Builds the container once, under the notification root. Idempotent: a second banner reuses it.
+// Builds the container once. Idempotent: a second banner reuses it.
+//
+// Ink is a scene graph like HTML/CSS. The banner's district text (QuestTxt) lives inside a
+// vertical flow panel (verified live: QuestTxt -> inkVerticalPanelWidget11 -> New_Quest_canvas
+// -> ...). Reparenting our own panel into that SAME flow container makes it stack below the
+// banner automatically, with no hardcoded margins, and it stays correct across resolutions and
+// UI scale. @addMethod compiles into the class, so the private districtName ref is reachable.
+// Banner path: position by reading the banner's own block geometry, then delegate the widget
+// build to the shared NCZDG_BuildPanel. Verified tree: districtName(QuestTxt) ->
+// flow(inkVerticalPanelWidget11) -> canvas(New_Quest_canvas). Parent into the CANVAS (absolute
+// layout - children keep their translation and never reflow), positioned just below the flow
+// block. Flow-parenting was wrong: spacer content gave a gap, and the flow repacked at
+// end-of-life so we jumped. @addMethod reaches the private districtName ref.
 @if(ModuleExists("NCZoning.Api"))
 @addMethod(NewLocationNotification)
-private func NCZDG_EnsurePanel() -> Void {
+private func NCZDG_EnsurePanel(here: ref<NCZDistrictName>, player: ref<GameObject>, showNearest: Bool) -> Void {
   if IsDefined(this.nczdg_panel) {
     return;
   }
-  let root = this.GetRootCompoundWidget();
-  if !IsDefined(root) {
+  let districtWidget: wref<inkWidget> = inkWidgetRef.Get(this.districtName);
+  if !IsDefined(districtWidget) {
+    return;
+  }
+  let flow = districtWidget.parentWidget as inkCompoundWidget;
+  if !IsDefined(flow) {
+    return;
+  }
+  let canvas = flow.parentWidget as inkCompoundWidget;
+  if !IsDefined(canvas) {
     return;
   }
 
-  let panel = new inkVerticalPanel();
-  panel.SetName(n"nczdg_panel");
-  panel.SetAnchor(inkEAnchor.BottomLeft);
-  panel.SetAnchorPoint(new Vector2(0.0, 0.0));
-  panel.SetMargin(new inkMargin(60.0, 12.0, 0.0, 0.0));
-  panel.SetChildOrder(inkEChildOrder.Forward);
-  panel.SetFitToContent(true);
-  panel.Reparent(root);
-  this.nczdg_panel = panel;
+  let flowPos = canvas.GetChildPosition(flow);
+  let flowSize = flow.GetSize();
+  // The fit-to-content flow may be unmeasured at build time (text set later), so GetSize().Y can
+  // read 0. Fall back to the banner block's known height so we land below it, not on top.
+  let blockHeight = flowSize.Y > 1.0 ? flowSize.Y : 150.0;
 
-  // Header row: logo + "NC ZONING BOARD"
-  let header = new inkHorizontalPanel();
-  header.SetName(n"nczdg_header");
-  header.SetChildOrder(inkEChildOrder.Forward);
-  header.SetFitToContent(true);
-  header.Reparent(panel);
-
-  let logo = new inkImage();
-  logo.SetName(n"nczdg_logo");
-  logo.SetAtlasResource(r"base\\gameplay\\gui\\world\\adverts\\nightcorp\\nightcorp.inkatlas");
-  logo.SetTexturePart(n"logo");
-  logo.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
-  logo.BindProperty(n"tintColor", n"MainColors.Blue");
-  logo.SetSize(new Vector2(48.0, 48.0));
-  logo.SetVAlign(inkEVerticalAlign.Center);
-  logo.SetMargin(new inkMargin(0.0, 0.0, 12.0, 0.0));
-  logo.Reparent(header);
-
-  let title = new inkText();
-  title.SetName(n"nczdg_title");
-  title.SetText("NC ZONING BOARD");
-  title.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
-  title.SetFontStyle(n"Bold");
-  title.SetFontSize(30);
-  title.SetLetterCase(textLetterCase.UpperCase);
-  title.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
-  title.BindProperty(n"tintColor", n"MainColors.Blue");
-  title.SetVAlign(inkEVerticalAlign.Center);
-  title.Reparent(header);
-
-  // Count line
-  let count = new inkText();
-  count.SetName(n"nczdg_count");
-  count.SetText("");
-  count.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
-  count.SetFontStyle(n"Regular");
-  count.SetFontSize(22);
-  count.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
-  count.BindProperty(n"tintColor", n"MainColors.White");
-  count.SetMargin(new inkMargin(0.0, 2.0, 0.0, 0.0));
-  count.Reparent(panel);
-
-  // Nearest line (populated only when showNearest is on and one is in range)
-  let nearest = new inkText();
-  nearest.SetName(n"nczdg_nearest");
-  nearest.SetText("");
-  nearest.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
-  nearest.SetFontStyle(n"Regular");
-  nearest.SetFontSize(18);
-  nearest.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
-  nearest.BindProperty(n"tintColor", n"MainColors.MildBlue");
-  nearest.SetVisible(false);
-  nearest.Reparent(panel);
+  this.nczdg_panel = NCZDG_BuildPanel(canvas, flowPos.X, flowPos.Y + blockHeight + 40.0,
+                                      here, player, showNearest);
+  if IsDefined(this.nczdg_panel) {
+    NCZDGLog("popup: panel built");
+  }
 }
 
-// The single closest registry location to the player, if within radius, by name.
+// Walks up from `w` to the 'BracketsContainer' ancestor, summing GetChildPosition at each step, and
+// logs the total. Gives the widget's position in the container's 4K coordinate space.
 @if(ModuleExists("NCZoning.Api"))
 @addMethod(NewLocationNotification)
-private func NCZDG_SetNearestLine(player: ref<GameObject>, radius: Float) -> Void {
-  let nearestText = this.nczdg_panel.GetWidgetByPathName(n"nczdg_nearest") as inkText;
-  if !IsDefined(nearestText) {
-    return;
-  }
-
-  let pos = player.GetWorldPosition();
-  // rvalue-array gotcha: bind the array return before ArraySize / index.
-  let near = GetLocationsNear(pos, radius);
-  if ArraySize(near) <= 0 {
-    nearestText.SetVisible(false);
-    return;
-  }
-
-  let closest = this.NCZDG_Closest(near, pos);
-  if !IsDefined(closest) {
-    nearestText.SetVisible(false);
-    return;
-  }
-  nearestText.SetText(s"Nearest: \(closest.Name())");
-  nearestText.SetVisible(true);
-}
-
-// GetLocationsNear does not promise sort order, so pick the minimum by squared distance.
-@if(ModuleExists("NCZoning.Api"))
-@addMethod(NewLocationNotification)
-private func NCZDG_Closest(locs: array<ref<NCZLocation>>, from: Vector4) -> ref<NCZLocation> {
-  let best: ref<NCZLocation>;
-  let bestSq: Float = 0.0;
-  let i = 0;
-  while i < ArraySize(locs) {
-    let loc = locs[i];
-    if IsDefined(loc) {
-      let d = Vector4.DistanceSquared(from, loc.Pos());
-      if !IsDefined(best) || d < bestSq {
-        best = loc;
-        bestSq = d;
-      }
+private func NCZDG_LogPosInBrackets(w: wref<inkWidget>) -> Void {
+  let totalX: Float = 0.0;
+  let totalY: Float = 0.0;
+  let node: wref<inkWidget> = w;
+  let steps = 0;
+  while IsDefined(node) && steps < 12 {
+    let parent = node.parentWidget as inkCompoundWidget;
+    if !IsDefined(parent) {
+      break;
     }
-    i += 1;
+    let p = parent.GetChildPosition(node);
+    totalX += p.X;
+    totalY += p.Y;
+    let pname = NameToString(parent.GetName());
+    NCZDGLog(s"pos: step\(steps) parent='\(pname)' childPos=(\(p.X),\(p.Y)) running=(\(totalX),\(totalY))");
+    if UnicodeStringEqual(pname, "BracketsContainer") {
+      NCZDGLog(s"pos: >>> banner panel in BracketsContainer space = (\(totalX),\(totalY)) <<<");
+      return;
+    }
+    node = parent;
+    steps += 1;
   }
-  return best;
+  NCZDGLog(s"pos: did not reach BracketsContainer (ran \(steps) steps, total=(\(totalX),\(totalY)))");
 }

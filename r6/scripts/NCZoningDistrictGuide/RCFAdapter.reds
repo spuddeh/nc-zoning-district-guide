@@ -40,7 +40,7 @@ public func NCZDG_KeySubdistrict() -> String { return "matchSubdistrict"; }
 public func NCZDG_KeyMapPanel() -> String { return "enableMapPanel"; }
 public func NCZDG_KeyToast() -> String { return "enablePopupToast"; }
 public func NCZDG_KeyShowNearest() -> String { return "showNearest"; }
-public func NCZDG_KeyRadius() -> String { return "nearestRadius"; }
+public func NCZDG_KeyFastTravel() -> String { return "enableFastTravelNotice"; }
 
 @if(ModuleExists("RedscriptConfigFramework"))
 public class NCZDGRcfProvider extends DVRCF_Provider {
@@ -61,9 +61,9 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
         .Toggle(NCZDG_KeyToast(), "Enable Nearby Notice")
           .Tip("When you enter a district, add a panel to the game's district banner. Never suppresses the banner itself.")
         .Toggle(NCZDG_KeyShowNearest(), "Name the Nearest Location")
-          .Tip("Also name the closest location mod, if one is within the radius. Off shows only the count.")
-        .Slider(NCZDG_KeyRadius(), "Nearest Radius (m)", 10.0, 300.0, 10.0, false)
-          .Tip("How far to look when naming the nearest location mod.")
+          .Tip("Also name the closest location mod in the district. Off shows only the count.")
+        .Toggle(NCZDG_KeyFastTravel(), "Show on Fast Travel")
+          .Tip("Fast travel does not show the game's district banner, so we show the notice on arrival. Off leaves fast travel entirely to the game.")
       .Build();
   }
 
@@ -77,6 +77,7 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     if UnicodeStringEqual(key, NCZDG_KeyMapPanel()) { return cfg.enableMapPanel; }
     if UnicodeStringEqual(key, NCZDG_KeyToast()) { return cfg.enablePopupToast; }
     if UnicodeStringEqual(key, NCZDG_KeyShowNearest()) { return cfg.showNearest; }
+    if UnicodeStringEqual(key, NCZDG_KeyFastTravel()) { return cfg.enableFastTravelNotice; }
     return false;
   }
 
@@ -92,21 +93,7 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     else if UnicodeStringEqual(key, NCZDG_KeyMapPanel()) { cfg.enableMapPanel = value; }
     else if UnicodeStringEqual(key, NCZDG_KeyToast()) { cfg.enablePopupToast = value; }
     else if UnicodeStringEqual(key, NCZDG_KeyShowNearest()) { cfg.showNearest = value; }
-  }
-
-  public func GetFloat(key: String) -> Float {
-    let cfg = NCZDGConfig.Get();
-    if IsDefined(cfg) && UnicodeStringEqual(key, NCZDG_KeyRadius()) {
-      return cfg.nearestRadius;
-    }
-    return 0.0;
-  }
-
-  public func SetFloat(key: String, value: Float) -> Void {
-    let cfg = NCZDGConfig.Get();
-    if IsDefined(cfg) && UnicodeStringEqual(key, NCZDG_KeyRadius()) {
-      cfg.nearestRadius = value;
-    }
+    else if UnicodeStringEqual(key, NCZDG_KeyFastTravel()) { cfg.enableFastTravelNotice = value; }
   }
 }
 

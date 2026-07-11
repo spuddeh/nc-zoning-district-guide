@@ -95,18 +95,60 @@ public func NCZDG_AreaLabel(here: ref<NCZDistrictName>) -> String {
   return here.district;
 }
 
-// Locations in the area the player occupies: the subdistrict when there is one and the
-// setting allows narrowing, otherwise the whole district.
+// The single most-specific area name we counted against: the subdistrict when narrowing is on
+// and one exists, otherwise the district. This is the area the count actually describes.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_AreaName(here: ref<NCZDistrictName>) -> String {
+  if !IsDefined(here) {
+    return "";
+  }
+  if NCZDG_UseSubdistrict(here) {
+    return here.subdistrict;
+  }
+  return here.district;
+}
+
+// The registry locations in the area the player occupies: the subdistrict when there is one
+// and the setting allows narrowing, otherwise the whole district. One place so the count and
+// the nearest-location line always agree on the same set.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_LocationsHere(here: ref<NCZDistrictName>) -> array<ref<NCZLocation>> {
+  let out: array<ref<NCZLocation>>;
+  if !IsDefined(here) {
+    return out;
+  }
+  if NCZDG_UseSubdistrict(here) {
+    out = GetLocationsBySubdistrict(here.subdistrict);
+  } else {
+    out = GetLocationsByDistrict(here.district);
+  }
+  return out;
+}
+
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_CountHere(here: ref<NCZDistrictName>) -> Int32 {
-  if !IsDefined(here) {
-    return 0;
-  }
   // rvalue-array gotcha: bind the array return to a local before ArraySize.
-  if NCZDG_UseSubdistrict(here) {
-    let inSub = GetLocationsBySubdistrict(here.subdistrict);
-    return ArraySize(inSub);
+  let locs = NCZDG_LocationsHere(here);
+  return ArraySize(locs);
+}
+
+// The closest registry location to `from` among a set, by squared distance. No radius: the
+// set is already district-scoped (2-84 entries), so the scan is cheap and always names one.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_ClosestInArea(locs: array<ref<NCZLocation>>, from: Vector4) -> ref<NCZLocation> {
+  let best: ref<NCZLocation>;
+  let bestSq: Float = 0.0;
+  let i = 0;
+  while i < ArraySize(locs) {
+    let loc = locs[i];
+    if IsDefined(loc) {
+      let d = Vector4.DistanceSquared(from, loc.Pos());
+      if !IsDefined(best) || d < bestSq {
+        best = loc;
+        bestSq = d;
+      }
+    }
+    i += 1;
   }
-  let inDistrict = GetLocationsByDistrict(here.district);
-  return ArraySize(inDistrict);
+  return best;
 }

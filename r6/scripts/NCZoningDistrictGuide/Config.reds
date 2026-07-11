@@ -47,7 +47,9 @@ public class NCZDGConfig extends ScriptableService {
   // Nearby notice (the district-enter banner)
   public let enablePopupToast: Bool = true;
   public let showNearest: Bool = true;
-  public let nearestRadius: Float = 100.0;
+  // Fast travel fires no district banner, so we show a standalone panel on arrival. Off = leave
+  // fast travel entirely to the game (the notice then only appears when the game banners).
+  public let enableFastTravelNotice: Bool = true;
 
   public final static func Get() -> ref<NCZDGConfig> {
     return GameInstance.GetScriptableServiceContainer()
