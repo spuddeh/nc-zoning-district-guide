@@ -2,57 +2,44 @@
 // Mod Name: NC Zoning District Guide
 // File: MapPanelInject.reds
 // Author: Spuddeh
-// Description: Injects an NC Zoning registry section into the World Map's district info
-//              panel (the bottom-right block: time / PRIMARY GANGS / DISTRICT / SUBDISTRICT).
-//
-//              This closes a loop. The website's district info panel (district-info.js) was
-//              built as "a parity nod to the in-game world map's bottom-right district readout";
-//              this brings the website's STATS back into the game, so hovering a district in
-//              game reads the same as hovering it on nczoning.net:
+// Description: Adds an NC Zoning registry section to the World Map's district info panel (the
+//              bottom-right block: time / PRIMARY GANGS / DISTRICT / SUBDISTRICT). Mirrors the
+//              stats on the nczoning.net district panel:
 //
 //                                    NC ZONING:
 //                                  34 LOCATIONS
 //                 13 NEW LOCATIONS - 21 OVERHAULS
 //
-//              Text only, right-aligned, no logo. The brand mark WAS tried in the slot the native
-//              district icon uses (128px tall, 30px gutter, mirroring the native 'hPanel' row) and
-//              it did not work: the map's corner block is dense and text-only, and the mark just
-//              crowded it. The banner panel keeps the logo; this surface does not.
+//              Text only, right-aligned. No logo: the map's corner block is dense and text-only,
+//              and a brand mark in the native district-icon slot crowds it.
 //
-//              Font sizes are the NATIVE ones, read out of world_map.inkwidget rather than
-//              invented: districtName is 50 Semi-Bold, subdistrictName and leadingGangsLabel
-//              ("PRIMARY GANGS:") are 42 Medium, all UpperCase.
+//              STYLE. Sizes are the native map's own, from world_map.inkwidget - districtName is
+//              50 Semi-Bold; subdistrictName and leadingGangsLabel are 42 Medium; all UpperCase.
+//              Do not invent sizes here; a smaller tier reads as off-brand next to the native text.
 //
-//              The web's category colours map onto the game palette with no custom colours:
+//              Category colours map onto the game palette, so nothing is shipped:
 //                new-location      #ffb300 (amber)  -> MainColors.Gold
 //                location-overhaul #00f0ff (cyan)   -> MainColors.Blue
 //                other             #8892b0 (grey)   -> MainColors.Grey
 //
-//              Two web stats are deliberately NOT reproduced:
-//                - "% of all locations": dropped, it reads as confusing in game.
-//                - "N recently updated": the core parses updated_at but exposes no accessor, and
-//                  redscript has no wall-clock to compare a date against (verified: no real-time
-//                  global). It would need a server-side recency flag.
-//
 //              BADLANDS. The game has no district polygon for the Badlands, so hovering anywhere
-//              outside every polygon passes gamedataDistrict.Invalid for BOTH enums: the native
-//              block then hides the icon and the gangs, and falls back to LocKey#10951 ("BADLANDS")
-//              for the name. We mirror that default exactly - an unresolved hover reports the
-//              Badlands district total. There is no way to know a Badlands SUBdistrict from the
-//              map, so it is always the whole-district total.
+//              outside every polygon passes gamedataDistrict.Invalid for BOTH enums, and the native
+//              block hides the icon and the gangs and falls back to LocKey#10951 ("BADLANDS") for
+//              the name. An unresolved hover therefore reports the whole Badlands district. The map
+//              cannot report a Badlands SUBdistrict, so this is always the district total and
+//              deliberately ignores matchSubdistrict.
 //
-//              This is a DIFFERENT design to the Nearby Notice panel. That one is a big,
-//              left-aligned branded block with a logo; the map block is a tight, right-aligned
-//              caption/value stack, so we follow the map's own idiom and it reads as first-party.
+//              The web panel's "N recently updated" stat is not reproducible here: the core exposes
+//              no updated_at accessor, and redscript has no wall clock to compare a date against.
+//              It needs a server-side recency flag.
 //
-//              ADDITIVE ONLY. wrappedMethod() runs first and unconditionally in both wraps, so
-//              the vanilla map is byte-identical whether or not this mod is installed. The
-//              setting only hides OUR widget; it never suppresses the district block, the gangs
-//              list, or any native call.
+//              ADDITIVE ONLY. wrappedMethod() runs first and unconditionally in both wraps, so the
+//              vanilla map is byte-identical whether or not this mod is installed. enableMapPanel
+//              hides only this widget; it never suppresses the district block, the gangs list, or
+//              any native call.
 //
-//              No district resolver is needed here: OnUpdateHoveredDistricts hands us the
-//              district + subdistrict enums directly, so we go straight through
-//              NCZDG_ResolveFromEnum.
+//              No Layer-2 resolver is needed: OnUpdateHoveredDistricts supplies the district and
+//              subdistrict enums directly, so NCZDG_ResolveFromEnum is enough.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
@@ -68,14 +55,13 @@ import NCZoningDistrictGuide.Config.*
 
 // Sizes taken from the native world_map.inkwidget, not invented: districtName is 50 Semi-Bold,
 // subdistrictName and leadingGangsLabel ("PRIMARY GANGS:") are both 42 Medium, all UpperCase.
-// We sit one step below the district name, so the label lines match the 42 tier and the detail
-// line drops to 34.
+// This section sits one step below the district name: label lines on the native 42 tier, detail
+// line at 34.
 public func NCZDG_MapLabelSize() -> Int32 { return 42; }
 public func NCZDG_MapDetailSize() -> Int32 { return 34; }
 
 
-// Our injected section, plus the widgets we refresh per hover. Built once; only the text and
-// the breakdown row change as the player hovers a different district.
+// The injected section. Built once; a hover only changes the text and the breakdown row.
 @if(ModuleExists("NCZoning.Api"))
 @addField(WorldMapMenuGameController)
 let nczdg_mapPanel: wref<inkVerticalPanel>;
@@ -104,8 +90,8 @@ let nczdg_mapLastSub: gamedataDistrict;
 
 // --------------------------------------------------------------------------------------
 // Hook: the map's live hover callback (scripted cb func, dump flags 33032 - confirmed
-// wrappable). It hands us both enums and is the same call the game uses to drive the district
-// name, the icon and the gangs list, so our section updates in lockstep with the native block.
+// wrappable). It carries both enums and is the same call that drives the native district name,
+// icon and gangs list, so this section updates in lockstep with them.
 // --------------------------------------------------------------------------------------
 @if(ModuleExists("NCZoning.Api"))
 @wrapMethod(WorldMapMenuGameController)
@@ -115,7 +101,7 @@ protected cb func OnUpdateHoveredDistricts(district: gamedataDistrict, subdistri
   return result;
 }
 
-// Drop our refs when the map closes; the widgets die with the menu.
+// Null the refs when the map closes; the widgets die with the menu.
 @if(ModuleExists("NCZoning.Api"))
 @wrapMethod(WorldMapMenuGameController)
 protected cb func OnUninitialize() -> Bool {
@@ -135,7 +121,7 @@ protected cb func OnUninitialize() -> Bool {
 private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistrict: gamedataDistrict) -> Void {
   let cfg = NCZDGConfig.Get();
 
-  // Setting off: hide OURS only. The native block is untouched either way.
+  // Setting off: hide this widget only. The native block is untouched either way.
   if !IsDefined(cfg) || !cfg.enableMapPanel {
     if IsDefined(this.nczdg_mapPanel) {
       this.nczdg_mapPanel.SetVisible(false);
@@ -157,8 +143,8 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
   }
   this.nczdg_mapBuilt = true;
 
-  // Prefer the subdistrict (the most specific area the map is showing us); fall back to the
-  // district. NCZDG_ResolveFromEnum walks parents, so an unmapped record still resolves.
+  // Prefer the subdistrict (the most specific area the map reports); fall back to the district.
+  // NCZDG_ResolveFromEnum walks parents, so an unmapped record still resolves.
   let here: ref<NCZDistrictName>;
   if NotEquals(subdistrict, gamedataDistrict.Invalid) {
     here = NCZDG_ResolveFromEnum(subdistrict);
@@ -169,7 +155,7 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
 
   // Nothing resolved = the cursor is outside every district polygon. The game's own default for
   // that is the Badlands (which has no polygon at all), so mirror it rather than hiding: report
-  // the whole Badlands district. The map cannot tell us a Badlands SUBdistrict, so it is always
+  // the whole Badlands district. The map cannot report a Badlands SUBdistrict, so this is always
   // the district total.
   let badlandsDefault = false;
   if !IsDefined(here) {
@@ -177,7 +163,7 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
     badlandsDefault = true;
   }
 
-  // Only if even that fails (core data not ready) do we show nothing.
+  // Only if that also fails (core data not ready) does the panel hide.
   if !IsDefined(here) {
     this.nczdg_mapPanel.SetVisible(false);
     NCZDGLog(s"[MAP] hover d=\(EnumInt(district)) sub=\(EnumInt(subdistrict)) -> unresolved, hidden");
@@ -275,10 +261,10 @@ private final func NCZDG_MakeMapText(label: String, colour: CName, size: Int32) 
 // --------------------------------------------------------------------------------------
 // Build (once)
 // --------------------------------------------------------------------------------------
-// The district block is a flow stack, so we append and let it lay us out under the subdistrict
-// name - no absolute positioning needed, unlike the banner (which reflowed under us).
-// m_locationAndGangsContainer is the block the game itself shows/hides around the preloader, so
-// parenting inside it means our section inherits that visibility for free.
+// The district block is a flow stack: appending lays this section out under the subdistrict name,
+// so no absolute positioning is needed (unlike the banner, whose block reflows).
+// m_locationAndGangsContainer is the block the game shows/hides around the preloader, so parenting
+// inside it inherits that visibility.
 @if(ModuleExists("NCZoning.Api"))
 @addMethod(WorldMapMenuGameController)
 private final func NCZDG_EnsureMapSection() -> Bool {
@@ -296,9 +282,8 @@ private final func NCZDG_EnsureMapSection() -> Bool {
   NCZDGLog("[MAP] district info block tree:");
   NCZDG_DumpWidget(host, 0, 4);
 
-  // A plain right-aligned text stack. No logo: the brand mark was tried in the native district
-  // icon's slot (128px, 30px gutter) and it does not work here - the map block is dense and
-  // text-only, and the mark just crowds it. The banner panel keeps the logo; this one does not.
+  // A plain right-aligned text stack. No logo: a brand mark in the native district-icon slot
+  // crowds this block. The banner panel carries the logo instead.
   let panel = new inkVerticalPanel();
   panel.SetName(n"nczdg_map_panel");
   panel.SetChildOrder(inkEChildOrder.Forward);

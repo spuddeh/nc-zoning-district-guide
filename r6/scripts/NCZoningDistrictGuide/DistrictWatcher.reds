@@ -5,10 +5,10 @@
 // Description: District-change hook. The game queues a PlayerEnteredNewDistrictEvent at
 //              the player whenever DistrictManager.PushDistrict accepts a new district,
 //              and PlayerPuppet handles it in the scripted callback OnDistrictChanged.
-//              Wrapping that gives us a precise, poll-free district-change signal.
+//              Wrapping it yields a precise, poll-free district-change signal.
 //
 //              The event payload carries only gunshot/explosion ranges, not the district,
-//              so we re-resolve through Layer 2 (District.reds) on each fire.
+//              so each fire re-resolves through Layer 2 (District.reds).
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
@@ -23,7 +23,7 @@ import NCZoning.Data.*
 import NCZoningDistrictGuide.District.*
 import NCZoningDistrictGuide.Config.*
 
-// The last district we reported on, so a single boundary crossing does not fire twice.
+// The last district reported, so a single boundary crossing does not fire twice.
 // Verified in-game: stepping from an interior out to the street queues OnDistrictChanged
 // once per district entered, so Little China reported twice within the same second.
 @if(ModuleExists("NCZoning.Api"))
@@ -95,7 +95,7 @@ public func NCZDG_AreaLabel(here: ref<NCZDistrictName>) -> String {
   return here.district;
 }
 
-// The single most-specific area name we counted against: the subdistrict when narrowing is on
+// The most-specific area name the count is scoped to: the subdistrict when narrowing is on
 // and one exists, otherwise the district. This is the area the count actually describes.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_AreaName(here: ref<NCZDistrictName>) -> String {

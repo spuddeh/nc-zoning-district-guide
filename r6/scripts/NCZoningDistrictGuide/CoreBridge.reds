@@ -17,7 +17,7 @@ import NCZoning.Api.*
 @if(ModuleExists("NCZoning.Api"))
 import NCZoning.Data.*
 
-// Our Layer-2 resolver. Guarded to match: its resolve funcs return ref<NCZDistrictName>,
+// The Layer-2 resolver. Guarded to match: its resolve funcs return ref<NCZDistrictName>,
 // a type that only exists when the core is installed.
 @if(ModuleExists("NCZoning.Api"))
 import NCZoningDistrictGuide.District.*

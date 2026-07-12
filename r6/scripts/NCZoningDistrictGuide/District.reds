@@ -100,7 +100,7 @@ public func NCZDG_ResolveFromRecord(startRecord: wref<District_Record>) -> ref<N
   return null;   // off-map: nothing in the chain is in the registry's vocabulary
 }
 
-// The map screen hands us a gamedataDistrict ENUM, not a TweakDBID. The enum NAME and the
+// The map screen supplies a gamedataDistrict ENUM, not a TweakDBID. The enum NAME and the
 // record PATH differ in 105 of 132 records, so never string-build the path. Go through the
 // record, which knows its own id.
 @if(ModuleExists("NCZoning.Api"))
@@ -114,7 +114,7 @@ public func NCZDG_ResolveFromEnum(district: gamedataDistrict) -> ref<NCZDistrict
 
 // Resolve from a district ENUM NAME string (e.g. "Kabuki"). The district-enter banner freezes
 // this string (District_Record.EnumName(), via the UI_Map blackboard) at the moment of the
-// crossing, so resolving from it makes our count match the banner even when the player has since
+// crossing, so resolving from it keeps the count matching the banner even when the player has since
 // flown on to another district. EnumValueFromString maps the name to the gamedataDistrict enum.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_ResolveFromEnumName(enumName: String) -> ref<NCZDistrictName> {

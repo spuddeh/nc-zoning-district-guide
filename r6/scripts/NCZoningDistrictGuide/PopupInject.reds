@@ -12,7 +12,7 @@
 //
 //              ADDITIVE ONLY. wrappedMethod() runs first and unconditionally, so the vanilla
 //              banner is byte-identical whether or not this mod is installed. The setting only
-//              skips OUR widget; it never suppresses the banner.
+//              skips this widget; it never suppresses the banner.
 //
 //              Logo: the base-game NightCorp advert atlas, tinted to the NC brand colour.
 //              Nothing is shipped; SetAtlasResource references a base path. Text uses the
@@ -34,7 +34,7 @@ import NCZoningDistrictGuide.Panel.*
 import NCZoningDistrictGuide.Config.*
 // NCZDG_CountHere is a global-scope func in DistrictWatcher.reds (no module), so no import.
 
-// Our injected container, so we can find and refresh (or avoid double-adding) it.
+// The injected container. Held so it can be found, refreshed, and not added twice.
 @if(ModuleExists("NCZoning.Api"))
 @addField(NewLocationNotification)
 let nczdg_panel: wref<inkVerticalPanel>;
@@ -42,16 +42,16 @@ let nczdg_panel: wref<inkVerticalPanel>;
 // Wrap OnInitialize, NOT SetNotificationData. In the current game SetNotificationData is a
 // NATIVE method (dump flags 34304) and @wrapMethod cannot hook a native; the decompiled
 // scripts show a scripted override, but they are stale. OnInitialize is a scripted cb func
-// (flags 33032, the same shape we wrap on PlayerPuppet), so it hooks cleanly. It fires as the
+// (flags 33032, the same shape as the PlayerPuppet wraps), so it hooks cleanly. It fires as the
 // banner widget is built, by which point the player has already crossed the boundary, so the
-// live DistrictManager (which we resolve from, not the notification data) is already current.
+// live DistrictManager (the Layer-2 source, not the notification data) is already current.
 // Defers the build past OnInitialize so the banner's own SetNotificationData (native, runs
-// after OnInitialize) has frozen its district into m_questNotificationData.text. We hold a
+// after OnInitialize) has frozen its district into m_questNotificationData.text. The callback
 // STRONG ref to the notification so the callback cannot be collected before it fires (an
-// earlier wref version never ran). This ties us to the banner: we read the banner's OWN frozen
-// district, not the live one, so our count always agrees with the banner text above it. And we
+// holds a STRONG ref (a wref is collected before the delay elapses and never fires). Reading
+// the banner's OWN frozen district rather than the live one keeps the count in agreement with
 // only build inside the banner's lifecycle, so the game's own debounce (it suppresses repeat
-// district banners) automatically applies to us too.
+// the banner text above it, and inherits the game's banner debounce for free.
 @if(ModuleExists("NCZoning.Api"))
 public class NCZDGBuildPanel extends DelayCallback {
   public let m_notification: ref<NewLocationNotification>;
@@ -75,8 +75,8 @@ protected cb func OnInitialize() -> Bool {
   return result;
 }
 
-// The notification controller instance is reused across banners, so clear our reference when
-// it tears down; the next banner rebuilds a fresh panel. (Our own fade-out already handles the
+// The notification controller instance is reused across banners, so clear the reference when
+// it tears down; the next banner rebuilds a fresh panel. (The panel's own fade-out handles the
 // normal case; this covers an early teardown.)
 @if(ModuleExists("NCZoning.Api"))
 @wrapMethod(NewLocationNotification)
@@ -101,7 +101,7 @@ public func NCZDG_UpdatePanel() -> Void {
     return;
   }
 
-  // inkGameController gives us the player; the GameInstance comes off it. GetGameInstance()
+  // inkGameController exposes the player; the GameInstance comes off it. GetGameInstance()
   // is not exposed at this controller level, but GetPlayerControlledObject() is.
   let player = this.GetPlayerControlledObject();
   if !IsDefined(player) {
@@ -112,8 +112,8 @@ public func NCZDG_UpdatePanel() -> Void {
   // Resolve from the district THIS BANNER froze, not the live one. m_questNotificationData.text
   // is the district enum name (District_Record.EnumName) captured when the banner was queued.
   // The blackboard version can advance if the player flies on before the banner shows (the game
-  // debounces banners), so reading the banner's OWN frozen copy is what keeps our count matching
-  // the banner text above it. This is why we defer to +0.1s: the field is set in the native
+  // debounces banners), so reading the banner's OWN frozen copy is what keeps the count matching
+  // the banner text above it. Hence the +0.1s defer: the field is set in the native
   // SetNotificationData, which runs after OnInitialize.
   let gi = player.GetGame();
   let enumName: String = "";
@@ -139,7 +139,7 @@ public func NCZDG_UpdatePanel() -> Void {
 //
 // Ink is a scene graph like HTML/CSS. The banner's district text (QuestTxt) lives inside a
 // vertical flow panel (verified live: QuestTxt -> inkVerticalPanelWidget11 -> New_Quest_canvas
-// -> ...). Reparenting our own panel into that SAME flow container makes it stack below the
+// -> ...). Reparenting this panel into that SAME flow container makes it stack below the
 // banner automatically, with no hardcoded margins, and it stays correct across resolutions and
 // UI scale. @addMethod compiles into the class, so the private districtName ref is reachable.
 // Banner path: position by reading the banner's own block geometry, then delegate the widget
@@ -147,7 +147,7 @@ public func NCZDG_UpdatePanel() -> Void {
 // flow(inkVerticalPanelWidget11) -> canvas(New_Quest_canvas). Parent into the CANVAS (absolute
 // layout - children keep their translation and never reflow), positioned just below the flow
 // block. Flow-parenting was wrong: spacer content gave a gap, and the flow repacked at
-// end-of-life so we jumped. @addMethod reaches the private districtName ref.
+// end-of-life, which moved the panel. @addMethod reaches the private districtName ref.
 @if(ModuleExists("NCZoning.Api"))
 @addMethod(NewLocationNotification)
 private func NCZDG_EnsurePanel(here: ref<NCZDistrictName>, player: ref<GameObject>, showNearest: Bool) -> Void {
@@ -170,7 +170,7 @@ private func NCZDG_EnsurePanel(here: ref<NCZDistrictName>, player: ref<GameObjec
   let flowPos = canvas.GetChildPosition(flow);
   let flowSize = flow.GetSize();
   // The fit-to-content flow may be unmeasured at build time (text set later), so GetSize().Y can
-  // read 0. Fall back to the banner block's known height so we land below it, not on top.
+  // read 0. Fall back to the banner block's known height, or the panel lands on top of it.
   let blockHeight = flowSize.Y > 1.0 ? flowSize.Y : 150.0;
 
   this.nczdg_panel = NCZDG_BuildPanel(canvas, flowPos.X, flowPos.Y + blockHeight + 40.0,

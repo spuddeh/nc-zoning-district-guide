@@ -26,7 +26,7 @@ public class NCZDGInputListener {
 
   // Held state of each modifier, maintained from its own input action. Input Loader cannot
   // express a modifier on a mapping, and inkInputEvent.IsShiftDown() is a UI event method
-  // that a gameplay ListenerAction callback cannot reach, so we observe the keys ourselves.
+  // that a gameplay ListenerAction callback cannot reach, so the keys are observed directly.
   private let m_shiftHeld: Bool;
   private let m_altHeld: Bool;
   private let m_ctrlHeld: Bool;

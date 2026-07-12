@@ -13,7 +13,7 @@
 //                                 Dropdown/Image (DVRCF_HubPopup.reds:1476-1501), its
 //                                 provider has no EInputKey channel, and its popup only
 //                                 handles n"click". RCF binds its own F8 hotkey the same
-//                                 way we do here.
+//                                 way this file does.
 //
 //              Both frameworks are OPTIONAL. With neither installed the mod runs on the
 //              defaults below. Nothing here hard-depends on either.
@@ -47,7 +47,7 @@ public class NCZDGConfig extends ScriptableService {
   // Nearby notice (the district-enter banner)
   public let enablePopupToast: Bool = true;
   public let showNearest: Bool = true;
-  // Fast travel fires no district banner, so we show a standalone panel on arrival. Off = leave
+  // Fast travel fires no district banner, so a standalone panel shows on arrival. Off = leave
   // fast travel entirely to the game (the notice then only appears when the game banners).
   public let enableFastTravelNotice: Bool = true;
 

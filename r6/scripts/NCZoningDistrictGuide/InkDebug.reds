@@ -3,7 +3,7 @@
 // File: InkDebug.reds
 // Author: Spuddeh
 // Description: DEV ONLY. A recursive ink-widget tree dumper, used to understand the notification
-//              layer so we can position/scale our fast-travel panel to match the banner one.
+//              layer, so the fast-travel panel can be positioned and scaled to match the banner.
 //              Logs each widget's class, name, size, scale, translation, anchor, margin and child
 //              count. Strip with the rest of the logging before release.
 //

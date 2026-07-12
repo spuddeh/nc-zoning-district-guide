@@ -19,7 +19,7 @@
 //              channel, and its popup handles only n"click". RCF binds its own F8 hotkey
 //              through Mod Settings + Input Loader for exactly this reason.
 //
-//              We deliberately do NOT push values back into Mod Settings. The only commit
+//              Values are deliberately NOT pushed back into Mod Settings. The only commit
 //              call available to redscript, ModSettings.AcceptChanges(), is GLOBAL: it would
 //              apply every other mod's pending unapplied changes as a side effect.
 // Mod Version: 0.1.0 (Pre-release)

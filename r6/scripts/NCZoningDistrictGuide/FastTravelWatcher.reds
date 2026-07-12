@@ -5,8 +5,8 @@
 // Description: DIAGNOSTIC (for now). Listens for fast-travel arrival and logs what is
 //              available at that moment: the live district, the frozen UI_Map blackboard
 //              enum name (what a banner would show), and the FastTravelSystem blackboard.
-//              This tells us whether a cross-district fast travel already fires the district
-//              banner (so our existing hook rides it for free) or whether we need to build a
+//              Confirmed in-game: a cross-district fast travel fires NO district
+//              banner, so the banner hook never runs and this builds a
 //              standalone fast-travel panel.
 //
 //              The hook is the FastTRavelSystem blackboard bool FastTravelLoadingScreenFinished
@@ -52,13 +52,13 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
 
   protected cb func OnFastTravelFinished(value: Bool) -> Void {
     if !value {
-      return;   // fires with false on start; we only care about the finished=true edge
+      return;   // fires false on start; only the finished=true edge matters
     }
     this.ShowFastTravelPanel();
   }
 
   // Fast travel fires NO district banner (confirmed in-game across many cross-district jumps), so
-  // there is nothing to attach to. Build our standalone panel on the game's own notifications
+  // there is nothing to attach to. Build a standalone panel on the game's own notifications
   // layer, at the same screen spot the banner-attached panel uses. Fast travel is a discrete
   // settle, so the LIVE district is correct here - no frozen-value dance needed.
   @if(ModuleExists("NCZoning.Api"))
@@ -68,7 +68,7 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     if !IsDefined(cfg) || !cfg.enablePopupToast || !NCZDG_CoreReady() {
       return;
     }
-    // Fast travel shows no game banner, so this panel is our own. Opt out to leave fast travel
+    // Fast travel shows no game banner, so this panel stands alone. Opt out to leave fast travel
     // entirely to the game.
     if !cfg.enableFastTravelNotice {
       NCZDGLog("ft: fast-travel notice disabled in settings");
@@ -81,7 +81,7 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     }
 
     // The district-enter banner lives on the inkGameNotificationsLayer; its virtual window is a
-    // persistent root we can parent into. Place at the banner's usual position (4K reference).
+    // persistent root to parent into. Place at the banner's usual position (4K reference).
     let layer = GameInstance.GetInkSystem().GetLayer(n"inkGameNotificationsLayer");
     if !IsDefined(layer) {
       NCZDGLog("ft: no notifications layer");
@@ -97,10 +97,10 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     // (nczdg_panel -> New_Quest_canvas -> Root -> Root -> HUDSlotMiddleWidget -> LeftCenter ->
     // Root -> Base Window) and summing GetChildPosition at each step gives its exact position in
     // 'Base Window' space: (56, 653). NOTE the banner does NOT live under BracketsContainer - it
-    // hangs off the HUD slots. So parent ours on Base Window at the same coords.
+    // hangs off the HUD slots, so parent on Base Window at the same coords.
     //
     // Base Window is the SCREEN size (2560x1440) while the content is authored at 4K, so the HUD
-    // chain scales the banner by screenH/2160 (0.667 at 1440p). We do not inherit that here, so
+    // chain scales the banner by screenH/2160 (0.667 at 1440p). Base Window does not, so
     // apply it explicitly - derived live, so it stays correct at any resolution.
     let winSize = root.GetSize();
     let scale = winSize.Y > 1.0 ? (winSize.Y / 2160.0) : 0.667;
@@ -112,7 +112,7 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
 
     let player = GameInstance.GetPlayerSystem(gi).GetLocalPlayerMainGameObject();
     // The measured (56,653) is where the HUD's LeftCenter slot sits - i.e. the TOP of the banner
-    // block, which is why placing there put us where the game banner shows. Our banner-path panel
+    // block, so placing there lands where the game banner shows. The banner-path panel
     // sits BELOW that block: it is translated +190 within the banner canvas (4K units), which in
     // Base Window (screen) space is 190 * scale. So add it.
     let panelY = 653.0 + (190.0 * scale);
