@@ -143,6 +143,19 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
   }
   this.nczdg_mapBuilt = true;
 
+  // No registry data: say so. Every count below would read 0, and "NO REGISTERED LOCATIONS" for a
+  // district nothing is known about is a lie. The core's own banner carries the fix; the short
+  // label is used here because this block has no room for a sentence.
+  if !NCZDG_HasData() {
+    this.nczdg_mapPanel.SetVisible(true);
+    this.nczdg_mapCount.SetText(NCZDG_NoDataLabel());
+    this.nczdg_mapCount.BindProperty(n"tintColor", n"MainColors.Red");
+    this.nczdg_mapBreakdown.RemoveAllChildren();
+    this.nczdg_mapBreakdown.SetVisible(false);
+    NCZDGLog("[MAP] no registry data - showing the no-data label");
+    return;
+  }
+
   // Prefer the subdistrict (the most specific area the map reports); fall back to the district.
   // NCZDG_ResolveFromEnum walks parents, so an unmapped record still resolves.
   let here: ref<NCZDistrictName>;

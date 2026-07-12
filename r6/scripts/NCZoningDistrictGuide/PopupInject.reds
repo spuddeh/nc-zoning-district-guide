@@ -127,11 +127,13 @@ public func NCZDG_UpdatePanel() -> Void {
     NCZDGLog("popup: enum-name resolve missed, trying live");
     here = NCZDG_ResolveCurrent(gi);
   }
-  if !IsDefined(here) {
+  // Off-map with a live registry: say nothing. With NO registry data the panel still shows, to
+  // report that rather than let a later surface imply the district is empty.
+  if !IsDefined(here) && NCZDG_HasData() {
     NCZDGLog("popup: bail - off-map");
     return;
   }
-  NCZDGLog(s"popup: resolved \(here.district)");
+  NCZDGLog(s"popup: resolved \(IsDefined(here) ? here.district : "<none>") hasData=\(NCZDG_HasData())");
   this.NCZDG_EnsurePanel(here, player, cfg.showNearest);
 }
 

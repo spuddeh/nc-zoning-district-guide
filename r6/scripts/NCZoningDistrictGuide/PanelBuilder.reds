@@ -29,15 +29,24 @@ import NCZoningDistrictGuide.Config.*
 // Builds the panel tree under `parent` at local (posX, posY), fills it for `here`/`player`, and
 // plays the fade in/hold/out lifetime. Returns the panel root (or null if nothing to show).
 // `here` non-null is the caller's responsibility (off-map = caller shows nothing).
+//
+// When the registry has NO data the panel still renders, carrying the core's message instead of a
+// count. Rendering "no registered locations in Kabuki" in that state would be a lie: nothing is
+// known about Kabuki. District resolution is static, so `here` is still valid here - only the
+// counts are unavailable.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_BuildPanel(parent: wref<inkCompoundWidget>, posX: Float, posY: Float,
                              here: ref<NCZDistrictName>, player: ref<GameObject>,
                              showNearest: Bool) -> ref<inkVerticalPanel> {
-  if !IsDefined(parent) || !IsDefined(here) {
+  if !IsDefined(parent) {
     return null;
   }
-  let count = NCZDG_CountHere(here);
-  let area = NCZDG_AreaName(here);
+  let hasData = NCZDG_HasData();
+  if hasData && !IsDefined(here) {
+    return null;                      // off-map with a live registry: nothing to say
+  }
+  let count = hasData ? NCZDG_CountHere(here) : 0;
+  let area = IsDefined(here) ? NCZDG_AreaName(here) : "";
 
   let panel = new inkVerticalPanel();
   panel.SetName(n"nczdg_panel");
@@ -77,23 +86,46 @@ public func NCZDG_BuildPanel(parent: wref<inkCompoundWidget>, posX: Float, posY:
   title.SetVAlign(inkEVerticalAlign.Center);
   title.Reparent(header);
 
-  // Count line. 0 is a real resolved area (off-map is handled by the caller), so show it framed
-  // as an opportunity, not a bug.
+  // The headline. With no data this is an error, not a count: a district is not empty just
+  // because nothing loaded. 0 WITH data is a real resolved answer, framed as an opportunity.
   let countTxt = new inkText();
   countTxt.SetName(n"nczdg_count");
-  if count <= 0 {
-    countTxt.SetText(s"No registered locations in \(area) yet");
-  } else {
-    let plural = count == 1 ? " location" : " locations";
-    countTxt.SetText(s"\(count) registered\(plural) in \(area)");
-  }
   countTxt.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
   countTxt.SetFontStyle(n"Regular");
   countTxt.SetFontSize(32);
   countTxt.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
-  countTxt.BindProperty(n"tintColor", n"MainColors.White");
   countTxt.SetMargin(new inkMargin(0.0, 4.0, 0.0, 0.0));
+  if !hasData {
+    countTxt.SetText(NCZDG_NoDataLabel());
+    countTxt.BindProperty(n"tintColor", n"MainColors.Red");
+  } else {
+    if count <= 0 {
+      countTxt.SetText(s"No registered locations in \(area) yet");
+    } else {
+      let plural = count == 1 ? " location" : " locations";
+      countTxt.SetText(s"\(count) registered\(plural) in \(area)");
+    }
+    countTxt.BindProperty(n"tintColor", n"MainColors.White");
+  }
   countTxt.Reparent(panel);
+
+  // No data: the core owns the sentence that says how to fix it, so the panel and the core's own
+  // red banner cannot disagree. Wrapped, because it is a sentence and this panel is narrow.
+  if !hasData {
+    let why = new inkText();
+    why.SetName(n"nczdg_why");
+    why.SetText(NCZDG_StatusText());
+    why.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
+    why.SetFontStyle(n"Regular");
+    why.SetFontSize(26);
+    why.SetWrappingAtPosition(900.0);
+    why.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
+    why.BindProperty(n"tintColor", n"MainColors.Grey");
+    why.SetMargin(new inkMargin(0.0, 2.0, 0.0, 0.0));
+    why.Reparent(panel);
+    NCZDG_PlayPanelLifetime(panel);
+    return panel;
+  }
 
   // Nearest line: only when enabled and there is something to be near.
   if showNearest && count > 0 {

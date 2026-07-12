@@ -75,9 +75,11 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
       return;
     }
     let here = NCZDG_ResolveCurrent(gi);
-    if !IsDefined(here) {
+    // Off-map with a live registry: show nothing (0-vs-null). With NO registry data the panel
+    // still shows, to report that rather than imply the area is empty.
+    if !IsDefined(here) && NCZDG_HasData() {
       NCZDGLog("ft: off-map, no panel");
-      return;   // off-map = show nothing (0-vs-null)
+      return;
     }
 
     // The district-enter banner lives on the inkGameNotificationsLayer; its virtual window is a
