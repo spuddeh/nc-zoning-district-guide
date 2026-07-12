@@ -2,7 +2,7 @@
 // Mod Name: NC Zoning District Guide
 // File: MapPanelInject.reds
 // Author: Spuddeh
-// Description: M6. Injects an NC Zoning registry section into the World Map's district info
+// Description: Injects an NC Zoning registry section into the World Map's district info
 //              panel (the bottom-right block: time / PRIMARY GANGS / DISTRICT / SUBDISTRICT).
 //
 //              This closes a loop. The website's district info panel (district-info.js) was
@@ -48,10 +48,11 @@
 //              ADDITIVE ONLY. wrappedMethod() runs first and unconditionally in both wraps, so
 //              the vanilla map is byte-identical whether or not this mod is installed. The
 //              setting only hides OUR widget; it never suppresses the district block, the gangs
-//              list, or any native call (see the mod CLAUDE.md rule).
+//              list, or any native call.
 //
-//              M6 needs NO Layer 2: OnUpdateHoveredDistricts hands us the district + subdistrict
-//              enums directly, so we go straight through NCZDG_ResolveFromEnum.
+//              No district resolver is needed here: OnUpdateHoveredDistricts hands us the
+//              district + subdistrict enums directly, so we go straight through
+//              NCZDG_ResolveFromEnum.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
@@ -291,8 +292,7 @@ private final func NCZDG_EnsureMapSection() -> Bool {
     return false;
   }
 
-  // DEV: one dump of the district block so the real hierarchy is on record (see the wiki
-  // learning: dump the tree, do not guess). Strip with the rest of the logging at M7.
+  // DEV ONLY. Strip with the rest of the logging before release.
   NCZDGLog("[MAP] district info block tree:");
   NCZDG_DumpWidget(host, 0, 4);
 

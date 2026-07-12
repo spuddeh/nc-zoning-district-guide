@@ -12,7 +12,7 @@
 //
 //              ADDITIVE ONLY. wrappedMethod() runs first and unconditionally, so the vanilla
 //              banner is byte-identical whether or not this mod is installed. The setting only
-//              skips OUR widget; it never suppresses the banner (see the mod CLAUDE.md rule).
+//              skips OUR widget; it never suppresses the banner.
 //
 //              Logo: the base-game NightCorp advert atlas, tinted to the NC brand colour.
 //              Nothing is shipped; SetAtlasResource references a base path. Text uses the

@@ -123,8 +123,7 @@ public func NCZDG_ModifierName(m: NCZDGModifier) -> String {
   }
 }
 
-// M5 replaces the body of this with the ink guide. Kept separate from the listener so the
-// input plumbing and the UI stay independently testable.
+// Kept separate from the listener so the input plumbing and the UI stay independently testable.
 public func NCZDG_ToggleGuide(player: ref<PlayerPuppet>) -> Void {
   NCZDGLog("guide key: FIRED");
 }
