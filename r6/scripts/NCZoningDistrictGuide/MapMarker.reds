@@ -83,6 +83,33 @@ protected final func NCZDG_BrandIcon(width: Float) -> Void {
   inkWidgetRef.SetFitToContent(this.iconWidget, false);
   inkWidgetRef.SetSize(this.iconWidget, new Vector2(width, width / NCZDG_MarkerAspect()));
   inkWidgetRef.SetScale(this.iconWidget, new Vector2(1.0, 1.0));
+
+  this.NCZDG_BringToFront();
+}
+
+// ink has no z-order: a compound widget draws its children in order, so the LAST child is on top.
+// ReorderChild is the only lever. Without it the marker hides behind whichever mappin happens to have
+// spawned after it, and a marker the player cannot see is one they cannot hover, which is the single
+// action the whole feature depends on.
+//
+// The already-last check matters: this runs on every icon update for every mappin on screen, and
+// reordering a container the game owns on every frame would be both wasteful and a good way to fight
+// its own sorting.
+@addMethod(BaseMappinBaseController)
+protected final func NCZDG_BringToFront() -> Void {
+  let root = this.GetRootWidget();
+  if !IsDefined(root) {
+    return;
+  }
+  let parent = root.GetParentWidget() as inkCompoundWidget;
+  if !IsDefined(parent) {
+    return;
+  }
+  let last = parent.GetNumChildren() - 1;
+  if last < 0 || Equals(parent.GetWidgetByIndex(last), root) {
+    return;
+  }
+  parent.ReorderChild(root, last);
 }
 
 // One hook per SURFACE, and there are four - world map, minimap, the floating world pin, and the

@@ -50,6 +50,8 @@ public class NCZDGWorldActions extends ScriptableSystem {
   private let m_pinnedId: String;      // the NCZLocation.Id() the marker belongs to; "" = none
   private let m_pinnedPos: Vector4;
   private let m_confirmed: Bool;       // the mappin has resolved at least once; registration is async
+  private let m_watching: Bool;        // DEV
+  private let m_lastWatch: String;     // DEV
 
   public final static func Get(gi: GameInstance) -> ref<NCZDGWorldActions> {
     return GameInstance.GetScriptableSystemsContainer(gi)
@@ -131,6 +133,7 @@ public class NCZDGWorldActions extends ScriptableSystem {
       this.m_pinnedPos = pos;
 
       NCZDGLog(s"[MARK] moved the marker to '\(title)' \(pos) routing=\(this.IsRouting(gi))");
+      this.StartWatch(gi);
       return true;
     }
 
@@ -163,7 +166,51 @@ public class NCZDGWorldActions extends ScriptableSystem {
     this.m_pinnedPos = pos;
 
     NCZDGLog(s"[MARK] registered the marker on '\(title)' \(pos) id=\(this.m_mappinId.value)");
+    this.StartWatch(gi);
     return true;
+  }
+
+  // DEV ONLY. Polls the marker and reports only what CHANGED, so a flag the game clears in the middle
+  // of gameplay is timestamped instead of merely noticed later. A poll that logged every tick would
+  // bury the one line that matters.
+  public func Watch() -> Void {
+    let gi = this.GetGameInstance();
+    let ms = GameInstance.GetMappinSystem(gi);
+    if !IsDefined(ms) || this.m_mappinId.value == 0ul {
+      this.m_watching = false;
+      NCZDGLog("[WATCH] no marker - watcher stopping");
+      return;
+    }
+
+    let slot = ms.GetManuallyTrackedMappinID();
+    let mappin = ms.GetMappin(this.m_mappinId);
+
+    let now: String;
+    if IsDefined(mappin) {
+      now = s"tracked=\(mappin.IsPlayerTracked()) active=\(mappin.IsActive()) visible=\(mappin.IsVisible()) pos=\(mappin.GetWorldPosition()) slot=\(slot.value) slotIsOurs=\(slot.value == this.m_mappinId.value)";
+    } else {
+      now = s"THE MAPPIN NO LONGER RESOLVES slot=\(slot.value)";
+    }
+
+    if !UnicodeStringEqual(now, this.m_lastWatch) {
+      NCZDGLog(s"[WATCH] \(this.m_pinnedId): \(now)");
+      this.m_lastWatch = now;
+    }
+
+    let cb = new NCZDGMarkerWatchCallback();
+    cb.gi = gi;
+    GameInstance.GetDelaySystem(gi).DelayCallback(cb, 2.0);
+  }
+
+  private func StartWatch(gi: GameInstance) -> Void {
+    if this.m_watching {
+      return;
+    }
+    this.m_watching = true;
+    this.m_lastWatch = "";
+    let cb = new NCZDGMarkerWatchCallback();
+    cb.gi = gi;
+    GameInstance.GetDelaySystem(gi).DelayCallback(cb, 2.0);
   }
 
   // Deactivate, never unregister: destroying the mappin would empty the tracked slot, and only the
@@ -178,6 +225,22 @@ public class NCZDGWorldActions extends ScriptableSystem {
     }
     this.m_pinnedId = "";
     NCZDGLog("[MARK] marker cleared (deactivated, still tracked)");
+  }
+}
+
+// DEV ONLY. Strip with Logging.reds at M7.
+//
+// Only the game writes the marker's tracked flag, and it can clear it at any time with no
+// notification. A state read taken when the guide happens to be open cannot show WHEN the flag was
+// lost, and a trail that does not stay is a question about when.
+public class NCZDGMarkerWatchCallback extends DelayCallback {
+  public let gi: GameInstance;
+
+  public func Call() -> Void {
+    let actions = NCZDGWorldActions.Get(this.gi);
+    if IsDefined(actions) {
+      actions.Watch();
+    }
   }
 }
 
