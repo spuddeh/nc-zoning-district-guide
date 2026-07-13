@@ -20,7 +20,6 @@
 public class NCZDGWorldActions extends ScriptableSystem {
   private let m_mappinId: NewMappinID;
   private let m_pinnedId: String;      // the NCZLocation.Id() the pin belongs to; "" = none
-  private let m_isQuestPin: Bool;      // a journal-owned pin is retired by DeleteScriptedQuest, not UnregisterMappin
 
   public final static func Get(gi: GameInstance) -> ref<NCZDGWorldActions> {
     return GameInstance.GetScriptableSystemsContainer(gi)
@@ -43,21 +42,15 @@ public class NCZDGWorldActions extends ScriptableSystem {
 
   // The game keeps ONE custom waypoint, so setting a second must clear the first.
   //
-  // Two pins are possible and they are not equivalent. A journal-owned pin (QuestPinProbe) is the
-  // only one that can be TRACKED without the world map being opened, because tracking is a property
-  // of an owner and a bare mappin has none. It is tried first; the orphan pin below is the fallback
-  // and cannot route until the player opens the map.
-  public func SetWaypoint(gi: GameInstance, pos: Vector4, locId: String, title: String) -> Void {
+  // This pin CANNOT route itself: no breadcrumb trail appears until the player opens the world map
+  // once. Nothing in the game tracks a mappin by id - tracking is a property of an OWNER, and the
+  // only two owners are a world-map mappin controller (alive only while the map runs) and a journal
+  // entry (buildable only through the scripted-quest API, which is stubbed to return false in the
+  // shipped build). A pin registered from a script has no owner, so it cannot be nominated. Say so
+  // in the UI; do not try to work around it in script.
+  // [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]]
+  public func SetWaypoint(gi: GameInstance, pos: Vector4, locId: String) -> Void {
     this.ClearWaypoint(gi);
-
-    let questId = NCZDG_QuestPinSet(gi, pos, title);
-    if questId.value != 0ul {
-      this.m_mappinId = questId;
-      this.m_pinnedId = locId;
-      this.m_isQuestPin = true;
-      NCZDGLog(s"actions: waypoint set on '\(locId)' via the journal");
-      return;
-    }
 
     let ms = GameInstance.GetMappinSystem(gi);
     if !IsDefined(ms) {
@@ -76,45 +69,33 @@ public class NCZDGWorldActions extends ScriptableSystem {
     //
     // DO NOT set `active`. It changes nothing - the game sets it on the mappin regardless of what is
     //   passed here (measured: a pin registered with active = false comes back active = true).
+    //
+    // The ICON is overridable: GameplayRoleMappinData.m_textureID on scriptData beats the variant's
+    //   own icon (measured - a PlayerStashMappin glyph rendered in place of the waypoint arrow). A
+    //   branded pin therefore needs only a MappinIcons TweakDB record, which means a TweakXL
+    //   dependency this mod does not currently carry.
     let data: MappinData;
     data.mappinType = t"Mappins.DefaultStaticMappin";
     data.variant = gamedataMappinVariant.CustomPositionVariant;
     data.visibleThroughWalls = true;
 
-    // DEV EXPERIMENT, remove either way. Can the pin carry a CUSTOM ICON without changing the
-    // variant? The variant cannot change - CustomPositionVariant is what the map adopts - so the
-    // only candidate is scriptData. GameplayMappinController.UpdateIcon prefers m_textureID over the
-    // variant-derived icon when it is a valid TweakDBID. Whether the custom-position pin uses that
-    // controller at all is the open question. A stash glyph is unmistakable next to a waypoint.
-    let icon = new GameplayRoleMappinData();
-    icon.m_textureID = t"MappinIcons.PlayerStashMappin";
-    icon.m_visibleThroughWalls = true;
-    icon.m_showOnMiniMap = true;
-    data.scriptData = icon;
-
     this.m_mappinId = ms.RegisterMappin(data, pos);
     this.m_pinnedId = locId;
-    this.m_isQuestPin = false;
 
-    NCZDGLog(s"actions: waypoint set on '\(locId)' as an orphan pin [ICON TEST: MappinIcons.PlayerStashMappin]");
+    NCZDGLog(s"actions: waypoint set on '\(locId)'");
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {
     if !this.HasPin() {
       return;
     }
-    if this.m_isQuestPin {
-      NCZDG_QuestPinClear(gi);
-    } else {
-      let ms = GameInstance.GetMappinSystem(gi);
-      if IsDefined(ms) {
-        ms.UnregisterMappin(this.m_mappinId);
-      }
+    let ms = GameInstance.GetMappinSystem(gi);
+    if IsDefined(ms) {
+      ms.UnregisterMappin(this.m_mappinId);
     }
     let empty: NewMappinID;
     this.m_mappinId = empty;
     this.m_pinnedId = "";
-    this.m_isQuestPin = false;
     NCZDGLog("actions: waypoint cleared");
   }
 }
