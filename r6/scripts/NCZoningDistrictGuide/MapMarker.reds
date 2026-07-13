@@ -99,17 +99,25 @@ protected final func NCZDG_BrandIcon(width: Float) -> Void {
 protected final func NCZDG_BringToFront() -> Void {
   let root = this.GetRootWidget();
   if !IsDefined(root) {
+    NCZDGLog(s"[Z] \(this.GetClassName()): no root widget");
     return;
   }
   let parent = root.GetParentWidget() as inkCompoundWidget;
   if !IsDefined(parent) {
+    NCZDGLog(s"[Z] \(this.GetClassName()): root has NO COMPOUND PARENT - UpdateIcon runs before the widget is attached");
     return;
   }
   let last = parent.GetNumChildren() - 1;
-  if last < 0 || Equals(parent.GetWidgetByIndex(last), root) {
+  if last < 0 {
+    return;
+  }
+  if Equals(parent.GetWidgetByIndex(last), root) {
+    NCZDGLog(s"[Z] \(this.GetClassName()): already last of \(last + 1)");
     return;
   }
   parent.ReorderChild(root, last);
+  let ok = Equals(parent.GetWidgetByIndex(last), root);
+  NCZDGLog(s"[Z] \(this.GetClassName()): reordered to \(last) of \(last + 1) children - stuck=\(ok) parent='\(parent.GetName())'");
 }
 
 // One hook per SURFACE, and there are four - world map, minimap, the floating world pin, and the
