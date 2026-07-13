@@ -15,6 +15,8 @@
 // Credits: Spuddeh (SimpleLocationManager, the CET original)
 // ======================================================================================
 
+import NCZoningDistrictGuide.Config.*
+
 // Owns the single waypoint. A ScriptableSystem so it outlives the popup: a pin set from the guide
 // must survive the guide closing.
 public class NCZDGWorldActions extends ScriptableSystem {
@@ -48,32 +50,39 @@ public class NCZDGWorldActions extends ScriptableSystem {
     if !IsDefined(ms) {
       return;
     }
-    // MappinData is an importonly struct: declare a local, never `new`. Every line below is
-    // load-bearing and was measured, not reasoned. Changing any of them silently costs the route.
+    // MappinData is an importonly struct: declare a local, never `new`.
     //
     // TYPE = DefaultStaticMappin, not CustomPositionMappinDefinition. On paper the second is the
     //   right record and this pairing is a mismatch (DefaultStaticMappin declares possibleVariants
-    //   = [DefaultVariant]). In game only the mismatched pairing routes.
+    //   = [DefaultVariant]). In game only the mismatched pairing has ever produced a route.
     //
     // VARIANT = CustomPositionVariant, because this pin IS the player's waypoint. It is the wrong
     //   variant for a point-of-interest pin, which is a separate bug in the checklist mods
     //   (spuddeh/perk-shard-checklist#2).
     //
-    // NO `active`. With active = true the world map will not adopt the pin as the player's tracked
-    //   waypoint, and without tracking there is no route. SimpleLocationManager gets this right by
-    //   accident: `active` is a real redscript field, but CET's binding does not expose it, so a CET
-    //   mod cannot set it even by mistake.
+    // ACTIVE: UNVERIFIED, hence the dev toggle. `active` is a real redscript field that CET cannot
+    //   set at all (its binding throws), so SimpleLocationManager never sets it. Whether that is
+    //   why SLM's pin gets adopted by the map is NOT established: the one comparison that suggested
+    //   it changed the location as well as the flag, and a location with no road route to it draws
+    //   no trail whatever the flag says. Compare both settings on the SAME routable location before
+    //   drawing any conclusion.
+    let cfg = NCZDGConfig.Get();
+    let setActive = IsDefined(cfg) && cfg.devMappinActive;
+
     let data: MappinData;
     data.mappinType = t"Mappins.DefaultStaticMappin";
     data.variant = gamedataMappinVariant.CustomPositionVariant;
     data.visibleThroughWalls = true;
+    if setActive {
+      data.active = true;
+    }
 
     this.m_mappinId = ms.RegisterMappin(data, pos);
     this.m_pinnedId = locId;
 
     let tracked = ms.GetManuallyTrackedMappinID();
     let pin = ms.GetMappin(this.m_mappinId);
-    NCZDGLog(s"actions: waypoint set on '\(locId)' id=\(this.m_mappinId.value) trackedId=\(tracked.value) playerTracked=\(IsDefined(pin) ? pin.IsPlayerTracked() : false)");
+    NCZDGLog(s"actions: waypoint set on '\(locId)' active=\(setActive) id=\(this.m_mappinId.value) trackedId=\(tracked.value) playerTracked=\(IsDefined(pin) ? pin.IsPlayerTracked() : false) pos=\(pos)");
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {

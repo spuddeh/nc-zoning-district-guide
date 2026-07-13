@@ -41,6 +41,7 @@ public func NCZDG_KeyMapPanel() -> String { return "enableMapPanel"; }
 public func NCZDG_KeyToast() -> String { return "enablePopupToast"; }
 public func NCZDG_KeyShowNearest() -> String { return "showNearest"; }
 public func NCZDG_KeyFastTravel() -> String { return "enableFastTravelNotice"; }
+public func NCZDG_KeyDevMappinActive() -> String { return "devMappinActive"; }   // DEV ONLY, remove at M7
 
 @if(ModuleExists("RedscriptConfigFramework"))
 public class NCZDGRcfProvider extends DVRCF_Provider {
@@ -64,6 +65,8 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
           .Tip("Also name the closest location mod in the district. Off shows only the count.")
         .Toggle(NCZDG_KeyFastTravel(), "Show on Fast Travel")
           .Tip("Fast travel does not show the game's district banner, so we show the notice on arrival. Off leaves fast travel entirely to the game.")
+        .Toggle(NCZDG_KeyDevMappinActive(), "DEV: set mappin active")
+          .Tip("Sets MappinData.active on the waypoint pin. Toggle it to compare both settings on the SAME location. Remove before release.")
       .Build();
   }
 
@@ -78,6 +81,7 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     if UnicodeStringEqual(key, NCZDG_KeyToast()) { return cfg.enablePopupToast; }
     if UnicodeStringEqual(key, NCZDG_KeyShowNearest()) { return cfg.showNearest; }
     if UnicodeStringEqual(key, NCZDG_KeyFastTravel()) { return cfg.enableFastTravelNotice; }
+    if UnicodeStringEqual(key, NCZDG_KeyDevMappinActive()) { return cfg.devMappinActive; }
     return false;
   }
 
@@ -94,6 +98,7 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     else if UnicodeStringEqual(key, NCZDG_KeyToast()) { cfg.enablePopupToast = value; }
     else if UnicodeStringEqual(key, NCZDG_KeyShowNearest()) { cfg.showNearest = value; }
     else if UnicodeStringEqual(key, NCZDG_KeyFastTravel()) { cfg.enableFastTravelNotice = value; }
+    else if UnicodeStringEqual(key, NCZDG_KeyDevMappinActive()) { cfg.devMappinActive = value; }
   }
 }
 

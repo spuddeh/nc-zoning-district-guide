@@ -51,6 +51,11 @@ public class NCZDGConfig extends ScriptableService {
   // fast travel entirely to the game (the notice then only appears when the game banners).
   public let enableFastTravelNotice: Bool = true;
 
+  // DEV ONLY, remove at M7. Sets MappinData.active on the waypoint pin, so the two configurations
+  // can be compared on the SAME location in one session. Whether it affects the map's adoption of
+  // the pin is UNVERIFIED - the first comparison changed the location as well as the flag.
+  public let devMappinActive: Bool = false;
+
   public final static func Get() -> ref<NCZDGConfig> {
     return GameInstance.GetScriptableServiceContainer()
       .GetService(n"NCZoningDistrictGuide.Config.NCZDGConfig") as NCZDGConfig;
