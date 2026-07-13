@@ -35,14 +35,21 @@ public func NCZDG_MarkerPart() -> CName { return n"nc_logo"; }
 
 // The game's mappin icons are 64x64 and SQUARE (mappin_icons.xbm is 1120x792; each part measures
 // 0.05714 x 0.07955 UV = 64.0 x 63.0 px). The monogram is NOT square: nc_logo is 35x20 px in a 160x24
-// atlas, an aspect of 1.75:1.
+// atlas, an aspect of 1.75:1. It can never fill a square box without being stretched.
 //
-// So it cannot simply be scaled to a square icon's size - that stretches it. Matching the icons' 64px
-// WIDTH and deriving the height from the true aspect keeps the footprint right and the emblem
-// undistorted. Setting a size, not a scale, is what makes this independent of the source's own
-// dimensions.
-public func NCZDG_MarkerIconWidth() -> Float { return 64.0; }
-public func NCZDG_MarkerIconHeight() -> Float { return 64.0 / 1.75; }
+// A landscape emblem fitted to a square icon's WIDTH covers only 57% of its area, and next to square
+// icons it reads as small - measured: the world pin's icon box is 64x64, and 64 x 36.6 looked half the
+// size of everything around it. Fitting to the icons' HEIGHT instead gives it the same visual weight.
+//
+// The surfaces do not agree on this. The world map scales its own container (its icon widget measures
+// 2x2 before anything touches it), so a width fit reads correctly there. The world pin does not.
+public func NCZDG_MarkerAspect() -> Float { return 1.75; }
+
+// Fit to the icons' WIDTH. Correct where the container scales the icon - the world map and minimap.
+public func NCZDG_MarkerFitWidth() -> Float { return 64.0; }
+
+// Fit to the icons' HEIGHT. Correct in the world, where the pin sits among unscaled 64x64 icons.
+public func NCZDG_MarkerFitHeight() -> Float { return 64.0 * 1.75; }
 
 // Everything below runs inside a hot path shared with every other mappin on screen.
 @addMethod(BaseMappinBaseController)
@@ -54,29 +61,23 @@ protected final func NCZDG_IsOurMarker() -> Bool {
   return StrBeginsWith(mappin.GetDisplayName(), NCZDG_MarkerTag() + "|");
 }
 
+// `width` is the emblem's width for that surface. The height always follows the true aspect, so the
+// monogram is never stretched.
 @addMethod(BaseMappinBaseController)
-protected final func NCZDG_BrandIcon(scale: Float) -> Void {
+protected final func NCZDG_BrandIcon(width: Float) -> Void {
   if !this.NCZDG_IsOurMarker() {
     return;
   }
-  // DEV. Each surface sizes its icon widget differently, and a size that reads right on the world map
-  // reads tiny in the world. The game's own size for this widget is the only reliable reference.
-  let was = inkWidgetRef.GetSize(this.iconWidget);
-  NCZDGLog(s"[ICON] \(this.GetClassName()) icon was \(was.X) x \(was.Y)");
-
   inkImageRef.SetAtlasResource(this.iconWidget, NCZDG_MarkerAtlas());
   inkImageRef.SetTexturePart(this.iconWidget, NCZDG_MarkerPart());
   inkImageRef.SetTintColor(this.iconWidget, NCZDG_CyanColor());
 
-  // A widget sized to its 35x20 source draws at 35x20 - roughly half the footprint of the 64px icons
-  // around it. The size is set outright rather than scaled, and FitToContent is cleared first, or the
-  // widget snaps back to the source's dimensions.
+  // FitToContent is cleared first or the widget snaps back to the source's own 35x20.
   //
   // Sized from a CONSTANT, never from the widget's current size: this hook runs on every icon update,
-  // so a size derived from a size this hook already wrote would compound on itself every frame.
+  // so a size derived from a size the hook already wrote would compound on itself every frame.
   inkWidgetRef.SetFitToContent(this.iconWidget, false);
-  inkWidgetRef.SetSize(this.iconWidget,
-    new Vector2(NCZDG_MarkerIconWidth() * scale, NCZDG_MarkerIconHeight() * scale));
+  inkWidgetRef.SetSize(this.iconWidget, new Vector2(width, width / NCZDG_MarkerAspect()));
   inkWidgetRef.SetScale(this.iconWidget, new Vector2(1.0, 1.0));
 }
 
@@ -88,27 +89,28 @@ protected final func NCZDG_BrandIcon(scale: Float) -> Void {
 @wrapMethod(MinimapPOIMappinController)
 protected final func UpdateIcon() -> Void {
   wrappedMethod();
-  this.NCZDG_BrandIcon(0.8);
+  this.NCZDG_BrandIcon(NCZDG_MarkerFitWidth() * 0.8);
 }
 
 @wrapMethod(BaseWorldMapMappinController)
 protected func UpdateIcon() -> Void {
   wrappedMethod();
-  this.NCZDG_BrandIcon(1.0);
+  this.NCZDG_BrandIcon(NCZDG_MarkerFitWidth());
 }
 
 @wrapMethod(QuestMappinController)
 protected func UpdateIcon() -> Void {
   wrappedMethod();
-  this.NCZDG_BrandIcon(1.0);
+  this.NCZDG_BrandIcon(NCZDG_MarkerFitHeight());
 }
 
 // GameplayMappinController extends QuestMappinController and overrides UpdateIcon, so the parent hook
-// above does NOT run for it. It is the controller a GameplayRoleMappinData mappin actually gets.
+// above does NOT run for it. It is the controller a GameplayRoleMappinData mappin actually gets, and
+// its icon box measures 64x64 - the size the emblem has to hold its own against.
 @wrapMethod(GameplayMappinController)
 private func UpdateIcon() -> Void {
   wrappedMethod();
-  this.NCZDG_BrandIcon(1.0);
+  this.NCZDG_BrandIcon(NCZDG_MarkerFitHeight());
 }
 
 // The tooltip is what makes the marker trackable in practice. Tracking requires selecting the right
