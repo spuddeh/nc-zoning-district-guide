@@ -182,6 +182,11 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.m_container.SetWidth(NCZDG_PopupWidth());
     this.m_container.SetHeight(NCZDG_PopupHeight());
 
+    // Codeware centres the container but then lifts it with a 200-unit BOTTOM margin, which is fine
+    // for a short dialog and pushes a tall one off the top of the screen. This panel is tall, so
+    // centre it honestly.
+    this.m_container.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
+
     // The vignette defaults to MainColors.Red (Codeware's alert styling). This is not an alert.
     if IsDefined(this.m_vignette) {
       this.m_vignette.BindProperty(n"tintColor", n"MainColors.Blue");
