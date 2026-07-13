@@ -101,12 +101,17 @@ protected cb func OnUpdateHoveredDistricts(district: gamedataDistrict, subdistri
   return result;
 }
 
-// DEV ONLY. Additive: wrappedMethod() first, unconditional.
+// NEVER call TrackCustomPositionMappin() from here.
 //
-// TrackCustomPositionMappin() is native, protected, takes no arguments, and exists ONLY on this
-// controller - the RTTI has no system-level equivalent. A custom waypoint can therefore be wired
-// into the GPS route only by the world map: a pin from RegisterMappin draws but does not route.
-// @addMethod compiles into the class, so the protected native is reachable from here.
+// It does not adopt an existing pin: it CREATES A NEW custom waypoint at the current MAP CURSOR,
+// which is what its no-argument signature implies. Called on map open, before the player has moved
+// the cursor, it plants a waypoint at roughly the world origin - Charter Hill. Measured:
+//
+//   [after-TrackCustomPositionMappin] trackedId=<NEW id> pos=(881.5, -2990.4, 204.3)   <- the cursor
+//   [map-close]                       trackedId=<NEW id> pos=(2.8, 18.9, 15.1)         <- ~origin
+//
+// Neither id is the registered pin's. The route follows the waypoint this native creates, not the
+// mappin, so a pin from RegisterMappin can never be routed from script.
 @if(ModuleExists("NCZoning.Api"))
 @wrapMethod(WorldMapMenuGameController)
 protected cb func OnInitialize() -> Bool {
@@ -114,26 +119,8 @@ protected cb func OnInitialize() -> Bool {
   let player = this.GetPlayerControlledObject();
   if IsDefined(player) {
     NCZDG_LogMappinState(player.GetGame(), "map-open");
-    this.NCZDG_TryAdoptWaypoint(player.GetGame());
   }
   return result;
-}
-
-// DEV EXPERIMENT. Calls the native on an already-registered pin and logs what moves.
-//
-// The pin is already playerTracked / active / visible and still draws no route, so tracking is not
-// the missing state. If this native positions an internal waypoint from the MAP CURSOR (which its
-// no-argument signature suggests), the route will appear at the cursor rather than at the pin -
-// which would prove the route follows C++ state that RegisterMappin cannot reach.
-@if(ModuleExists("NCZoning.Api"))
-@addMethod(WorldMapMenuGameController)
-public final func NCZDG_TryAdoptWaypoint(gi: GameInstance) -> Void {
-  let actions = NCZDGWorldActions.Get(gi);
-  if !IsDefined(actions) || !actions.HasPin() {
-    return;
-  }
-  this.TrackCustomPositionMappin();
-  NCZDG_LogMappinState(gi, "after-TrackCustomPositionMappin");
 }
 
 // Nulls the refs when the map closes; the widgets die with the menu.
