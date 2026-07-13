@@ -67,11 +67,52 @@ public class NCZDGMapDiff extends ScriptableSystem {
     return -1;
   }
 
+  // GetManuallyTrackedMappinID() and IMappin.IsPlayerTracked() are NOT the same slot: a pin can come
+  // back player-tracked while the manually-tracked id names a different mappin entirely, and the
+  // manually-tracked id can be non-zero before anything is pinned. The trail follows IsPlayerTracked
+  // - the HUD's MappinsContainerController renders it into gpsPlayerTrackedPathWidget, separate from
+  // gpsQuestPathWidget, gpsDelamainPathWidget and autodrivePathWidget. Naming what sits in each slot
+  // is the point of this census.
+  public func TrackedCensus(gi: GameInstance, when: String) -> Void {
+    let ms = GameInstance.GetMappinSystem(gi);
+    if !IsDefined(ms) {
+      return;
+    }
+
+    let manualId = ms.GetManuallyTrackedMappinID();
+    let manual = ms.GetMappin(manualId);
+    if IsDefined(manual) {
+      NCZDGLog(s"[TRACK \(when)] manuallyTracked id=\(manualId.value) \(manual.GetClassName()) variant=\(EnumInt(manual.GetVariant())) playerTracked=\(manual.IsPlayerTracked()) quest=\(manual.IsQuestMappin()) name='\(manual.GetDisplayName())' pos=\(manual.GetWorldPosition())");
+    } else {
+      NCZDGLog(s"[TRACK \(when)] manuallyTracked id=\(manualId.value) -> resolves to NOTHING");
+    }
+
+    let taxiId = ms.GetDelamainTrackedMappinID();
+    NCZDGLog(s"[TRACK \(when)] delamainTracked id=\(taxiId.value)");
+
+    // Every mappin the game currently considers player-tracked. More than one would mean the flag is
+    // not a single slot at all.
+    let all: array<ref<IMappin>>;
+    ms.GetMappins(gamemappinsMappinTargetType.Map, all);
+    let hits = 0;
+    let i = 0;
+    while i < ArraySize(all) {
+      let m = all[i];
+      if IsDefined(m) && m.IsPlayerTracked() {
+        hits += 1;
+        NCZDGLog(s"[TRACK \(when)] playerTracked: id=\(m.GetNewMappinID().value) \(m.GetClassName()) variant=\(EnumInt(m.GetVariant())) quest=\(m.IsQuestMappin()) name='\(m.GetDisplayName())' pos=\(m.GetWorldPosition())");
+      }
+      i += 1;
+    }
+    NCZDGLog(s"[TRACK \(when)] \(hits) player-tracked mappin(s) out of \(ArraySize(all))");
+  }
+
   public func Snapshot(gi: GameInstance, label: String) -> Void {
     ArrayClear(this.m_ids);
     ArrayClear(this.m_desc);
     this.Census(gi, this.m_ids, this.m_desc);
     this.m_taken = true;
+    this.TrackedCensus(gi, label);
 
     let ms = GameInstance.GetMappinSystem(gi);
     let trackedId = IsDefined(ms) ? ms.GetManuallyTrackedMappinID().value : 0ul;
@@ -89,6 +130,7 @@ public class NCZDGMapDiff extends ScriptableSystem {
     let ms = GameInstance.GetMappinSystem(gi);
     let trackedId = IsDefined(ms) ? ms.GetManuallyTrackedMappinID().value : 0ul;
     NCZDGLog(s"[DIFF] === \(label): \(ArraySize(this.m_ids)) -> \(ArraySize(ids)) map mappins, manuallyTrackedId=\(trackedId) ===");
+    this.TrackedCensus(gi, label);
 
     let i = 0;
     while i < ArraySize(ids) {
