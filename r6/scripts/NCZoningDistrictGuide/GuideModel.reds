@@ -138,4 +138,89 @@ public class NCZDGGuideModel {
     }
     return -1;
   }
+
+  // The locations in an area, filtered by a free-text query, sorted A-Z by name.
+  //
+  // Search covers EVERY text field a location carries - name, description, category, tags and
+  // authors - so "watson", "interior", an author's handle and a tag all find the same thing.
+  public func Query(areaIdx: Int32, search: String) -> array<ref<NCZLocation>> {
+    let out: array<ref<NCZLocation>>;
+    let area = this.AreaAt(areaIdx);
+    if !IsDefined(area) {
+      return out;
+    }
+    let all = GetAllLocations();
+    let q = StrLower(search);
+
+    let i = 0;
+    while i < ArraySize(all) {
+      let loc = all[i];
+      if this.InArea(loc, area) && NCZDG_Matches(loc, q) {
+        ArrayPush(out, loc);
+      }
+      i += 1;
+    }
+    return NCZDG_SortByName(out);
+  }
+
+  private func InArea(loc: ref<NCZLocation>, area: ref<NCZDGArea>) -> Bool {
+    if area.isAll {
+      return true;
+    }
+    if !UnicodeStringEqual(loc.District(), area.district) {
+      return false;
+    }
+    if StrLen(area.subdistrict) == 0 {
+      return true;   // a district row includes the locations that sit in no subdistrict
+    }
+    return UnicodeStringEqual(loc.Subdistrict(), area.subdistrict);
+  }
+}
+
+// Every text field, case-insensitive. An empty query matches everything.
+//
+// Tags and authors MUST be read through TagCount()/TagAt() and AuthorCount()/AuthorAt(): applying
+// an array intrinsic straight to a method's array return reads garbage in redscript, and the core's
+// own header warns about it.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_Matches(loc: ref<NCZLocation>, lowerQuery: String) -> Bool {
+  if StrLen(lowerQuery) == 0 {
+    return true;
+  }
+  if StrContains(StrLower(loc.Name()), lowerQuery) { return true; }
+  if StrContains(StrLower(loc.Description()), lowerQuery) { return true; }
+  if StrContains(StrLower(loc.Category()), lowerQuery) { return true; }
+  if StrContains(StrLower(loc.District()), lowerQuery) { return true; }
+  if StrContains(StrLower(loc.Subdistrict()), lowerQuery) { return true; }
+
+  let i = 0;
+  while i < loc.TagCount() {
+    if StrContains(StrLower(loc.TagAt(i)), lowerQuery) { return true; }
+    i += 1;
+  }
+  i = 0;
+  while i < loc.AuthorCount() {
+    if StrContains(StrLower(loc.AuthorAt(i)), lowerQuery) { return true; }
+    i += 1;
+  }
+  return false;
+}
+
+// Insertion sort by lowercased name. redscript has no comparator sort, and the sets here are small
+// (295 worst case, once per selection, on a paused frame).
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_SortByName(locs: array<ref<NCZLocation>>) -> array<ref<NCZLocation>> {
+  let out: array<ref<NCZLocation>>;
+  let i = 0;
+  while i < ArraySize(locs) {
+    let loc = locs[i];
+    let key = StrLower(loc.Name());
+    let j = ArraySize(out);
+    while j > 0 && UnicodeStringLessThan(key, StrLower(out[j - 1].Name())) {
+      j -= 1;
+    }
+    ArrayInsert(out, j, loc);
+    i += 1;
+  }
+  return out;
 }

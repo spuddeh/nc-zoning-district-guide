@@ -100,6 +100,19 @@ public func NCZDG_CardWidth() -> Float {
   return (NCZDG_CardsWidth() - NCZDG_ScrollBarStrip() - NCZDG_CardGap()) / 2.0;
 }
 
+public func NCZDG_CardHeight() -> Float { return 240.0; }
+
+// The card POOL is built once and re-bound; cards are never created or destroyed while the popup
+// lives. 295 cards would be ~3000 widgets in one scroll area, and ink does not cull offscreen
+// children - every one is laid out and submitted every frame. So: a fixed pool, and pages.
+public func NCZDG_PageSize() -> Int32 { return 30; }
+public func NCZDG_CardsPerRow() -> Int32 { return 2; }
+
+// Proxy index ranges. One click sink, routed by range, because redscript has no closures.
+public func NCZDG_IdxCardBase() -> Int32 { return 1000; }
+public func NCZDG_IdxPrevPage() -> Int32 { return -2; }
+public func NCZDG_IdxNextPage() -> Int32 { return -3; }
+
 // The entry point Input.reds calls. Declared in this module so the import there resolves.
 //
 // The twin matters: with the core absent EVERY other item in this module compiles away (they all
@@ -187,6 +200,12 @@ public class NCZDGGuidePopup extends InGamePopup {
   private let m_navRows: array<wref<inkCanvas>>;
   private let m_selected: Int32;   // set to -1 in OnCreate; a negative field default is INVALID_CONSTANT
   private let m_model: ref<NCZDGGuideModel>;
+
+  private let m_cards: array<ref<NCZDGCardSlot>>;
+  private let m_cardRows: array<wref<inkHorizontalPanel>>;
+  private let m_shown: array<ref<NCZLocation>>;   // the current query result
+  private let m_query: String;
+  private let m_page: Int32;
 
   public static func Show(gi: GameInstance) -> ref<NCZDGGuidePopup> {
     let self = new NCZDGGuidePopup();
@@ -308,6 +327,20 @@ public class NCZDGGuidePopup extends InGamePopup {
     count.Reparent(body);
     this.m_status = count;
 
+    // Paging. The card column scrolls, but a pool of 30 cannot show 295 locations, so ALL needs a
+    // way through. Sits under the count, right-aligned with it.
+    let pager = new inkHorizontalPanel();
+    pager.SetName(n"nczdg_pager");
+    pager.SetChildOrder(inkEChildOrder.Forward);
+    pager.SetFitToContent(true);
+    pager.SetAnchor(inkEAnchor.TopRight);
+    pager.SetAnchorPoint(new Vector2(1.0, 0.0));
+    pager.SetHAlign(inkEHorizontalAlign.Right);
+    pager.SetMargin(new inkMargin(0.0, 68.0, 0.0, 0.0));
+    pager.Reparent(body);
+    this.MakeButton(pager, "< PREV", NCZDG_IdxPrevPage());
+    this.MakeButton(pager, "NEXT >", NCZDG_IdxNextPage());
+
     // --- body: districts | cards ----------------------------------------------------------
     this.m_navCol = this.MakeScrollColumn(body, 0.0, NCZDG_TopStripHeight(),
                                           NCZDG_NavWidth(), NCZDG_BodyHeight(), true);
@@ -330,12 +363,17 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     NCZDGLog(s"guide: usable \(NCZDG_UsableWidth())x\(NCZDG_UsableHeight()), nav \(NCZDG_NavWidth()), cards \(NCZDG_CardsWidth()), card \(NCZDG_CardWidth())");
 
+    this.BuildCardPool();
     this.BuildNav();
     NCZDGLog("guide: popup created");
   }
 
+  // Every keystroke re-queries and re-binds the pool. No debounce is needed: nothing is allocated,
+  // 295 string compares are trivial, and the game is paused anyway.
   protected cb func OnSearchChanged(widget: ref<inkWidget>) -> Bool {
-    NCZDGLog(s"guide: search='\(this.m_search.GetText())'");
+    this.m_query = this.m_search.GetText();
+    this.m_page = 0;
+    this.Refresh();
     return true;
   }
 
@@ -396,8 +434,12 @@ public class NCZDGGuidePopup extends InGamePopup {
     sel.SetOpacity(0.0);
     sel.Reparent(row);
 
-    // A district is a heading; a subdistrict is indented under it; All is the pinned accent.
-    let colour = area.isAll ? NCZDG_Amber() : (area.isSub ? NCZDG_Gray() : NCZDG_Cyan());
+    // Cyan is "this area has something in it". An EMPTY area drops to grey - label and count both -
+    // so the eye skips it, but it is still listed and still countable. Counts are amber.
+    // Hierarchy comes from size and indent, not from colour.
+    let empty = area.count <= 0;
+    let colour = empty ? NCZDG_Gray() : NCZDG_Cyan();
+    let countColour = empty ? NCZDG_Gray() : NCZDG_Amber();
     let size = area.isSub ? 30 : 34;
 
     let label = this.MakeText(area.Label(), colour, size);
@@ -410,7 +452,7 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     // An empty area still shows its zero. That is the point of building the nav from the
     // vocabulary rather than from the locations.
-    let cnt = this.MakeText(s"\(area.count)", area.count > 0 ? NCZDG_Gray() : NCZDG_Amber(), 28);
+    let cnt = this.MakeText(s"\(area.count)", countColour, 28);
     cnt.SetName(n"count");
     cnt.SetAnchor(inkEAnchor.CenterRight);
     cnt.SetAnchorPoint(new Vector2(1.0, 0.5));
@@ -435,12 +477,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
     this.m_selected = index;
     this.SetRowSelected(this.m_navRows[index], true);
-
-    let area = this.m_model.AreaAt(index);
-    if IsDefined(area) {
-      this.m_status.SetText(s"\(area.count) IN \(area.Label())");
-      NCZDGLog(s"guide: selected '\(area.Label())' (\(area.count))");
-    }
+    this.m_page = 0;
+    this.Refresh();
   }
 
   private func SetRowSelected(row: wref<inkCanvas>, on: Bool) -> Void {
@@ -450,9 +488,217 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
   }
 
+  // --------------------------------------------------------------------------------------
+  // Cards
+  // --------------------------------------------------------------------------------------
+  // Re-query and re-bind. Called on selection, on every keystroke, and on a page change. No widget
+  // is created here: the cost is a few hundred property writes, on a frame the game has paused.
+  private func Refresh() -> Void {
+    let area = this.m_model.AreaAt(this.m_selected);
+    if !IsDefined(area) {
+      return;
+    }
+    this.m_shown = this.m_model.Query(this.m_selected, this.m_query);
+
+    let n = ArraySize(this.m_shown);
+    let pages = (n + NCZDG_PageSize() - 1) / NCZDG_PageSize();
+    if this.m_page >= pages {
+      this.m_page = pages > 0 ? pages - 1 : 0;
+    }
+    let start = this.m_page * NCZDG_PageSize();
+
+    let slot = 0;
+    while slot < ArraySize(this.m_cards) {
+      let f = start + slot;
+      if f < n {
+        this.BindCard(this.m_cards[slot], this.m_shown[f]);
+        this.m_cards[slot].root.SetVisible(true);
+      } else {
+        this.m_cards[slot].root.SetVisible(false);
+      }
+      slot += 1;
+    }
+    // A row with both cards hidden still occupies its height in the flow, so hide the row too.
+    let r = 0;
+    while r < ArraySize(this.m_cardRows) {
+      let firstOfRow = start + (r * NCZDG_CardsPerRow());
+      this.m_cardRows[r].SetVisible(firstOfRow < n);
+      r += 1;
+    }
+
+    let shownFrom = n > 0 ? start + 1 : 0;
+    let shownTo = start + NCZDG_PageSize() < n ? start + NCZDG_PageSize() : n;
+    if StrLen(this.m_query) > 0 {
+      this.m_status.SetText(s"\(n) OF \(area.count) IN \(area.Label())");
+    } else {
+      if n > NCZDG_PageSize() {
+        this.m_status.SetText(s"\(shownFrom)-\(shownTo) OF \(n) IN \(area.Label())");
+      } else {
+        this.m_status.SetText(s"\(n) IN \(area.Label())");
+      }
+    }
+    NCZDGLog(s"guide: '\(area.Label())' q='\(this.m_query)' -> \(n) results, page \(this.m_page + 1)/\(pages)");
+  }
+
+  private func BindCard(slot: ref<NCZDGCardSlot>, loc: ref<NCZLocation>) -> Void {
+    slot.name.SetText(loc.Name());
+
+    let authors = "";
+    let a = 0;
+    while a < loc.AuthorCount() {
+      authors += (a > 0 ? ", " : "") + loc.AuthorAt(a);
+      a += 1;
+    }
+    let cat = NCZDG_CategoryLabel(loc.Category());
+    slot.meta.SetText(StrLen(authors) > 0 ? s"\(cat)  -  \(authors)" : cat);
+    slot.meta.BindProperty(n"tintColor", NCZDG_CategoryColor(loc.Category()));
+    slot.accent.BindProperty(n"tintColor", NCZDG_CategoryColor(loc.Category()));
+
+    // There is no way to query a wrapped text's height, so the card height is fixed and the
+    // description is hard-truncated. Without the cap a long entry pushes past the card frame.
+    let d = loc.Description();
+    slot.desc.SetText(StrLen(d) > 150 ? StrLeft(d, 147) + "..." : d);
+
+    let tags = "";
+    let t = 0;
+    while t < loc.TagCount() && t < 5 {
+      tags += (t > 0 ? "  " : "") + "#" + loc.TagAt(t);
+      t += 1;
+    }
+    slot.tags.SetText(tags);
+  }
+
+  private func BuildCardPool() -> Void {
+    let rows = NCZDG_PageSize() / NCZDG_CardsPerRow();
+    let r = 0;
+    while r < rows {
+      let row = new inkHorizontalPanel();
+      row.SetName(n"nczdg_card_row");
+      row.SetChildOrder(inkEChildOrder.Forward);
+      row.SetFitToContent(true);
+      row.SetHAlign(inkEHorizontalAlign.Left);
+      row.SetMargin(new inkMargin(0.0, 0.0, 0.0, NCZDG_CardGap()));
+      row.Reparent(this.m_cardCol);
+      ArrayPush(this.m_cardRows, row);
+
+      let c = 0;
+      while c < NCZDG_CardsPerRow() {
+        let slotIdx = (r * NCZDG_CardsPerRow()) + c;
+        ArrayPush(this.m_cards, this.MakeCard(row, slotIdx, c > 0));
+        c += 1;
+      }
+      r += 1;
+    }
+    NCZDGLog(s"guide: card pool built - \(ArraySize(this.m_cards)) slots in \(rows) rows");
+  }
+
+  private func MakeCard(parent: wref<inkCompoundWidget>, slotIdx: Int32, gapLeft: Bool) -> ref<NCZDGCardSlot> {
+    let card = new inkCanvas();
+    card.SetName(n"nczdg_card");
+    card.SetSize(new Vector2(NCZDG_CardWidth(), NCZDG_CardHeight()));
+    card.SetInteractive(true);
+    card.SetMargin(new inkMargin(gapLeft ? NCZDG_CardGap() : 0.0, 0.0, 0.0, 0.0));
+    card.Reparent(parent);
+
+    // Corporate Navy surface, at the same 0.95 the site uses so the world stays faintly visible.
+    let bg = new inkRectangle();
+    bg.SetAnchor(inkEAnchor.Fill);
+    bg.SetTintColor(NCZDG_CardBgColor());
+    bg.SetOpacity(NCZDG_PanelOpacity());
+    bg.Reparent(card);
+
+    let frame = new inkImage();
+    frame.SetName(n"frame");
+    frame.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    frame.SetTexturePart(n"cell_fg");
+    frame.SetNineSliceScale(true);
+    frame.SetAnchor(inkEAnchor.Fill);
+    frame.SetStyle(NCZDG_StylePath());
+    frame.BindProperty(n"tintColor", NCZDG_Cyan());
+    frame.SetOpacity(0.35);
+    frame.Reparent(card);
+
+    // The category chip, as a colour bar down the left edge. Same mapping as the map panel.
+    let accent = new inkRectangle();
+    accent.SetName(n"accent");
+    accent.SetSize(new Vector2(6.0, NCZDG_CardHeight()));
+    accent.SetAnchor(inkEAnchor.LeftFillVerticaly);
+    accent.SetStyle(NCZDG_StylePath());
+    accent.BindProperty(n"tintColor", NCZDG_Cyan());
+    accent.Reparent(card);
+
+    let stack = new inkVerticalPanel();
+    stack.SetChildOrder(inkEChildOrder.Forward);
+    stack.SetFitToContent(true);
+    stack.SetAnchor(inkEAnchor.TopLeft);
+    stack.SetAnchorPoint(new Vector2(0.0, 0.0));
+    stack.SetMargin(new inkMargin(28.0, 18.0, 20.0, 0.0));
+    stack.Reparent(card);
+
+    let name = this.MakeText("", NCZDG_White(), 34);
+    name.SetFontStyle(n"Semi-Bold");
+    name.SetWrappingAtPosition(NCZDG_CardWidth() - 60.0);
+    name.SetMargin(new inkMargin(0.0, 0.0, 0.0, 6.0));
+    name.Reparent(stack);
+
+    let meta = this.MakeText("", NCZDG_Cyan(), 26);
+    meta.SetLetterCase(textLetterCase.UpperCase);
+    meta.SetMargin(new inkMargin(0.0, 0.0, 0.0, 10.0));
+    meta.Reparent(stack);
+
+    let desc = this.MakeText("", NCZDG_Gray(), 26);
+    desc.SetWrappingAtPosition(NCZDG_CardWidth() - 60.0);
+    desc.SetMargin(new inkMargin(0.0, 0.0, 0.0, 8.0));
+    desc.Reparent(stack);
+
+    let tags = this.MakeText("", NCZDG_Cyan(), 22);
+    tags.SetOpacity(0.7);
+    tags.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
+    tags.Reparent(stack);
+
+    let proxy = new NCZDGGuideProxy();
+    proxy.popup = this;
+    proxy.index = NCZDG_IdxCardBase() + slotIdx;
+    ArrayPush(this.m_proxies, proxy);
+    card.RegisterToCallback(n"OnRelease", proxy, n"OnRelease");
+
+    let slot = new NCZDGCardSlot();
+    slot.root = card;
+    slot.accent = accent;
+    slot.frame = frame;
+    slot.name = name;
+    slot.meta = meta;
+    slot.desc = desc;
+    slot.tags = tags;
+    return slot;
+  }
+
   // Redscript has no closures, so a click needs a proxy object holding a back-reference and an
   // index. The widget does not own the proxy: keep it alive in m_proxies or the callback dies.
+  //
+  // A card knows its POOL SLOT, not its location: the slot maps to whatever is bound to it right
+  // now, so filtering never touches a proxy.
   public func OnProxyClick(index: Int32) -> Void {
+    if index == NCZDG_IdxPrevPage() {
+      if this.m_page > 0 {
+        this.m_page -= 1;
+        this.Refresh();
+      }
+      return;
+    }
+    if index == NCZDG_IdxNextPage() {
+      this.m_page += 1;
+      this.Refresh();
+      return;
+    }
+    if index >= NCZDG_IdxCardBase() {
+      let slot = index - NCZDG_IdxCardBase();
+      let f = (this.m_page * NCZDG_PageSize()) + slot;
+      if f < ArraySize(this.m_shown) {
+        NCZDGLog(s"guide: card '\(this.m_shown[f].Name())'");
+      }
+      return;
+    }
     this.SelectArea(index);
   }
 
@@ -550,9 +796,10 @@ public class NCZDGGuidePopup extends InGamePopup {
   private func MakeButton(parent: wref<inkCompoundWidget>, label: String, index: Int32) -> Void {
     let box = new inkCanvas();
     box.SetName(n"nczdg_btn");
-    box.SetSize(new Vector2(260.0, 64.0));
+    box.SetSize(new Vector2(180.0, 52.0));
     box.SetHAlign(inkEHorizontalAlign.Left);   // or the panel fills it to the frame edge
-    box.SetMargin(new inkMargin(0.0, 32.0, 0.0, 0.0));
+    box.SetVAlign(inkEVerticalAlign.Top);
+    box.SetMargin(new inkMargin(16.0, 0.0, 0.0, 0.0));
     box.SetInteractive(true);
     box.Reparent(parent);
 
@@ -579,6 +826,19 @@ public class NCZDGGuidePopup extends InGamePopup {
     ArrayPush(this.m_proxies, proxy);   // the widget does not keep the proxy alive
     box.RegisterToCallback(n"OnRelease", proxy, n"OnRelease");
   }
+}
+
+// The widgets of one pooled card. Held so a re-bind is a handful of SetText calls, with no
+// allocation and no proxy churn.
+@if(ModuleExists("NCZoning.Api"))
+public class NCZDGCardSlot {
+  public let root: wref<inkCanvas>;
+  public let accent: wref<inkRectangle>;
+  public let frame: wref<inkImage>;
+  public let name: wref<inkText>;
+  public let meta: wref<inkText>;
+  public let desc: wref<inkText>;
+  public let tags: wref<inkText>;
 }
 
 @if(ModuleExists("NCZoning.Api"))

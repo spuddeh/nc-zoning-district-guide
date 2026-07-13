@@ -90,6 +90,17 @@ public func NCZDG_CategoryColor(category: String) -> CName {
   return NCZDG_Gray();
 }
 
+// The website's own labels for the same three categories.
+public func NCZDG_CategoryLabel(category: String) -> String {
+  if UnicodeStringEqual(category, "new-location") {
+    return "NEW LOCATION";
+  }
+  if UnicodeStringEqual(category, "location-overhaul") {
+    return "OVERHAUL";
+  }
+  return "OTHER";
+}
+
 // --- re-skinning a Codeware popup -------------------------------------------------------
 // InGamePopupHeader and InGamePopupFooter bind their chrome to MainColors.Red / PanelDarkRed:
 // that is Codeware's alert styling, and this panel is not an alert. The parts are named, so they
@@ -111,12 +122,21 @@ public func NCZDG_Rebrand(root: wref<inkWidget>) -> Void {
   NCZDG_Retint(root, n"fluffText", NCZDG_Cyan());
 }
 
-// Codeware's HubTextInput paints its HOVER frame MainColors.Red, which reads as an error state on
-// an idle search box. Idle stays grey, hover goes amber, focus stays cyan.
+// Codeware's HubTextInput is red in three places, and all three read as an error state on an idle
+// search box:
+//   frame  MainColors.Fullscreen_SecondaryBackground4, which measures raw(0.41, 0.09, 0.09) - a
+//          dark red despite the neutral-sounding name. Do not trust a style name; measure it.
+//   hover  MainColors.Red
+//   text   MainColors.Red - the TYPED TEXT itself (Parts/TextFlow.reds)
+//
+// Idle grey, hover amber, focus cyan, text Archival White.
 public func NCZDG_RebrandInput(root: wref<inkWidget>) -> Void {
+  NCZDG_Retint(root, n"frame", NCZDG_Gray());
   NCZDG_Retint(root, n"hover", NCZDG_Amber());
   NCZDG_Retint(root, n"focus", NCZDG_Cyan());
   NCZDG_Retint(root, n"fill", NCZDG_Cyan());
+  NCZDG_Retint(root, n"text", NCZDG_White());
+  NCZDG_Retint(root, n"caret", NCZDG_White());
 }
 
 public func NCZDG_Retint(root: wref<inkWidget>, name: CName, colour: CName) -> Void {
