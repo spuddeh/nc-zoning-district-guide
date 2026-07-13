@@ -54,10 +54,11 @@ public class NCZDGGuideSystem extends ScriptableSystem {
   }
 
   public func Toggle() -> Void {
-    // R1: a key that still fires while the popup is open closes it, making the feature a real
-    // toggle. If ModalPopup swallows the key this branch never runs, and ESC is the only way out.
+    let defined = IsDefined(this.m_popup);
+    let closed = defined ? this.m_popup.IsClosed() : true;
+    NCZDGLog(s"guide: toggle - popup defined=\(defined) closed=\(closed)");
     if this.IsOpen() {
-      NCZDGLog("guide: key FIRED WHILE OPEN -> closing (R1: the keybind is a real toggle)");
+      NCZDGLog("guide: closing (the keybind is a real toggle)");
       this.m_popup.Close();
       this.m_popup = null;
       return;
@@ -137,6 +138,7 @@ public class NCZDGGuidePopup extends InGamePopup {
 
   protected cb func OnDetach() -> Void {
     this.m_isClosed = true;
+    NCZDGLog("guide: popup detached (ESC, right-click, CLOSE, or the queue)");
     super.OnDetach();   // must chain: this is what un-pauses and pops the game context
   }
 
@@ -148,8 +150,15 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.m_container.SetWidth(1750.0);
     this.m_container.SetHeight(1150.0);
 
+    // The vignette defaults to MainColors.Red (Codeware's alert styling). This is not an alert.
+    if IsDefined(this.m_vignette) {
+      this.m_vignette.BindProperty(n"tintColor", n"MainColors.Blue");
+    }
+
     this.m_header = InGamePopupHeader.Create();
     this.m_header.SetTitle("NC ZONING BOARD");
+    // Both fluff slots default to an unresolved LocKey (TRN_TCLAS_*), which renders as raw key text.
+    this.m_header.SetFluffLeft("NC ZONING REGISTRY");
     this.m_header.SetFluffRight("M5.0 SCAFFOLD");
     this.m_header.Reparent(this);
 
@@ -167,13 +176,16 @@ public class NCZDGGuidePopup extends InGamePopup {
     root.SetName(n"nczdg_guide_root");
     root.SetChildOrder(inkEChildOrder.Forward);
     root.SetFitToContent(true);
+    root.SetHAlign(inkEHorizontalAlign.Left);
     root.SetMargin(new inkMargin(40.0, 40.0, 0.0, 0.0));
     root.Reparent(content);
 
-    this.m_status = this.MakeText(
-      "R1: press the guide key (') now.   R3: type below, click this text, click back. ESC must close.",
-      n"MainColors.Grey", 32);
-    this.m_status.Reparent(root);
+    // Hold a STRONG local ref while reparenting. Assigning `new inkText()` straight into a wref
+    // field leaves nothing owning the widget, so it is collected before Reparent and never appears.
+    let status = this.MakeText(
+      "Press the guide key again to close, or ESC / right-click / CLOSE.", n"MainColors.Grey", 32);
+    status.Reparent(root);
+    this.m_status = status;
 
     this.m_search = HubTextInput.Create();
     this.m_search.SetName(n"nczdg_search");
@@ -182,6 +194,9 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.m_search.SetLetterCase(textLetterCase.OriginalCase);
     this.m_search.Reparent(root);
     this.m_search.RegisterToCallback(n"OnInput", this, n"OnSearchChanged");
+    // A vertical panel FILLS its children horizontally by default, which overrides SetWidth/SetSize
+    // and stretches them into the frame edge. Every child needs an explicit alignment.
+    this.m_search.GetRootWidget().SetHAlign(inkEHorizontalAlign.Left);
 
     this.MakeButton(root, "CLOSE", -1);
 
@@ -210,6 +225,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     t.SetFontSize(size);
     t.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
     t.BindProperty(n"tintColor", colour);
+    t.SetHAlign(inkEHorizontalAlign.Left);
     t.SetMargin(new inkMargin(0.0, 0.0, 0.0, 24.0));
     return t;
   }
@@ -218,6 +234,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     let box = new inkCanvas();
     box.SetName(n"nczdg_btn");
     box.SetSize(new Vector2(260.0, 64.0));
+    box.SetHAlign(inkEHorizontalAlign.Left);   // or the panel fills it to the frame edge
     box.SetMargin(new inkMargin(0.0, 32.0, 0.0, 0.0));
     box.SetInteractive(true);
     box.Reparent(parent);
