@@ -83,6 +83,13 @@ public class NCZDGWorldActions extends ScriptableSystem {
     this.m_pinnedId = locId;
 
     NCZDGLog(s"actions: waypoint set on '\(locId)'");
+
+    NCZDG_MapWake(gi, this.m_mappinId, "immediate");
+
+    let wake = new NCZDGMapWakeCallback();
+    wake.gi = gi;
+    wake.pin = this.m_mappinId;
+    GameInstance.GetDelaySystem(gi).DelayCallback(wake, 1.0);
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {
