@@ -122,7 +122,12 @@ public class NCZDGMapCycleClose extends DelayCallback {
   }
 }
 
-// DEV ONLY. Dumps the tracking state that decides whether a GPS route is drawn.
+// DEV ONLY. Dumps the tracking state that decides whether a route is drawn.
+//
+// Autodrive (2.3) is the useful witness here. Its destination type enum is None / PlayerTracked /
+// Quest, so PlayerTracked means the game already derives a ROUTABLE ROAD DESTINATION from a
+// player-tracked mappin. If GetAutodriveDestinationMappinID() ever comes back as the registered
+// pin's id, the game considers it a real destination and the route machinery is reachable.
 public func NCZDG_LogMappinState(gi: GameInstance, when: String) -> Void {
   let ms = GameInstance.GetMappinSystem(gi);
   if !IsDefined(ms) {
@@ -134,6 +139,13 @@ public func NCZDG_LogMappinState(gi: GameInstance, when: String) -> Void {
     NCZDGLog(s"[PIN \(when)] trackedId=\(trackedId.value) variant=\(EnumInt(tracked.GetVariant())) playerTracked=\(tracked.IsPlayerTracked()) active=\(tracked.IsActive()) visible=\(tracked.IsVisible()) pos=\(tracked.GetWorldPosition())");
   } else {
     NCZDGLog(s"[PIN \(when)] trackedId=\(trackedId.value) - NO manually-tracked mappin");
+  }
+
+  let ad = GameInstance.GetScriptableSystemsContainer(gi).Get(n"AutoDriveSystem") as AutoDriveSystem;
+  if IsDefined(ad) {
+    NCZDGLog(s"[AUTODRIVE \(when)] destType=\(EnumInt(ad.GetAutodriveDestinationType())) destMappin=\(ad.GetAutodriveDestinationMappinID().value) dest=\(ad.GetAutodriveDestination()) enabled=\(ad.GetAutodriveEnabled())");
+  } else {
+    NCZDGLog(s"[AUTODRIVE \(when)] system not found");
   }
 }
 
