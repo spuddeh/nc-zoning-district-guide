@@ -59,6 +59,11 @@ protected final func NCZDG_BrandIcon(scale: Float) -> Void {
   if !this.NCZDG_IsOurMarker() {
     return;
   }
+  // DEV. Each surface sizes its icon widget differently, and a size that reads right on the world map
+  // reads tiny in the world. The game's own size for this widget is the only reliable reference.
+  let was = inkWidgetRef.GetSize(this.iconWidget);
+  NCZDGLog(s"[ICON] \(this.GetClassName()) icon was \(was.X) x \(was.Y)");
+
   inkImageRef.SetAtlasResource(this.iconWidget, NCZDG_MarkerAtlas());
   inkImageRef.SetTexturePart(this.iconWidget, NCZDG_MarkerPart());
   inkImageRef.SetTintColor(this.iconWidget, NCZDG_CyanColor());
@@ -66,6 +71,9 @@ protected final func NCZDG_BrandIcon(scale: Float) -> Void {
   // A widget sized to its 35x20 source draws at 35x20 - roughly half the footprint of the 64px icons
   // around it. The size is set outright rather than scaled, and FitToContent is cleared first, or the
   // widget snaps back to the source's dimensions.
+  //
+  // Sized from a CONSTANT, never from the widget's current size: this hook runs on every icon update,
+  // so a size derived from a size this hook already wrote would compound on itself every frame.
   inkWidgetRef.SetFitToContent(this.iconWidget, false);
   inkWidgetRef.SetSize(this.iconWidget,
     new Vector2(NCZDG_MarkerIconWidth() * scale, NCZDG_MarkerIconHeight() * scale));
