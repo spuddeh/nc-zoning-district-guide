@@ -66,6 +66,10 @@ public class NCZDGWorldActions extends ScriptableSystem {
     let tracked = ms.GetManuallyTrackedMappinID();
     let pin = ms.GetMappin(this.m_mappinId);
     NCZDGLog(s"actions: waypoint set on '\(locId)' id=\(this.m_mappinId.value) trackedId=\(tracked.value) playerTracked=\(IsDefined(pin) ? pin.IsPlayerTracked() : false)");
+
+    // The route is wired by whatever consumes the map's open/close state. Ask for it here rather
+    // than making the player open the map.
+    NCZDG_AnnounceMapCycle(gi);
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {
@@ -80,6 +84,41 @@ public class NCZDGWorldActions extends ScriptableSystem {
     this.m_mappinId = empty;
     this.m_pinnedId = "";
     NCZDGLog("actions: waypoint cleared");
+  }
+}
+
+// Announce a world-map open/close on the UI_Map blackboard, without opening the map.
+//
+// The map's OnInitialize / OnUninitialize write exactly this, and nothing in SCRIPT ever reads
+// currentState - so whatever consumes it is native, and that is the same layer that wires a custom
+// waypoint into the GPS route. Replaying the two writes asks that layer to do its work while the
+// player stays in the world.
+//
+// The two writes must land on separate frames: a system that reacts to the transition needs to see
+// "Initialized" before it sees "Uninitialized".
+public func NCZDG_AnnounceMapCycle(gi: GameInstance) -> Void {
+  let bb = GameInstance.GetBlackboardSystem(gi).Get(GetAllBlackboardDefs().UI_Map);
+  if !IsDefined(bb) {
+    return;
+  }
+  bb.SetString(GetAllBlackboardDefs().UI_Map.currentState, "Initialized", true);
+
+  let close = new NCZDGMapCycleClose();
+  close.gi = gi;
+  GameInstance.GetDelaySystem(gi).DelayCallback(close, 0.1);
+  NCZDGLog("[PIN] announced map Initialized; Uninitialized queued");
+}
+
+public class NCZDGMapCycleClose extends DelayCallback {
+  public let gi: GameInstance;
+
+  public func Call() -> Void {
+    let bb = GameInstance.GetBlackboardSystem(this.gi).Get(GetAllBlackboardDefs().UI_Map);
+    if !IsDefined(bb) {
+      return;
+    }
+    bb.SetString(GetAllBlackboardDefs().UI_Map.currentState, "Uninitialized", true);
+    NCZDG_LogMappinState(this.gi, "after-announced-map-close");
   }
 }
 
