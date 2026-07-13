@@ -189,19 +189,24 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     // The vignette defaults to MainColors.Red (Codeware's alert styling). This is not an alert.
     if IsDefined(this.m_vignette) {
-      this.m_vignette.BindProperty(n"tintColor", n"MainColors.Blue");
+      this.m_vignette.BindProperty(n"tintColor", NCZDG_Cyan());
     }
 
     this.m_header = InGamePopupHeader.Create();
     this.m_header.SetTitle("NC ZONING BOARD");
     // Both fluff slots default to an unresolved LocKey (TRN_TCLAS_*), which renders as raw key text.
-    this.m_header.SetFluffLeft("NC ZONING REGISTRY");
-    this.m_header.SetFluffRight("M5.0 SCAFFOLD");
+    // The voice is Night Corp: official, authoritative, slightly sterile.
+    this.m_header.SetFluffLeft("NIGHT CORP // URBAN PLANNING DIVISION");
+    this.m_header.SetFluffRight("NC-ZB-01");
     this.m_header.Reparent(this);
 
     this.m_footer = InGamePopupFooter.Create();
     this.m_footer.SetFluffText("NC ZONING BOARD");
     this.m_footer.Reparent(this);
+
+    // Codeware's chrome is bound to MainColors.Red - its alert styling. Rebrand it to Zoning Cyan.
+    NCZDG_Rebrand(this.m_header.GetRootWidget());
+    NCZDG_Rebrand(this.m_footer.GetRootWidget());
 
     this.m_content = InGamePopupContent.Create();
     this.m_content.Reparent(this);
@@ -223,7 +228,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     // Hold a STRONG local ref while reparenting. Assigning `new inkText()` straight into a wref
     // field leaves nothing owning the widget, so it is collected before Reparent and never appears.
     let status = this.MakeText(
-      "ESC, right-click or CLOSE to dismiss.", n"MainColors.Grey", 32);
+      "Welcome to the NC Zoning Board internal repository.", NCZDG_Gray(), 32);
     status.Reparent(root);
     this.m_status = status;
 
@@ -238,7 +243,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     // and stretches them into the frame edge. Every child needs an explicit alignment.
     this.m_search.GetRootWidget().SetHAlign(inkEHorizontalAlign.Left);
 
-    this.MakeButton(root, "CLOSE", -1);
+    // No CLOSE button: ESC and right-click both dismiss, and the footer already carries the hint.
+    // A button that duplicates two working affordances is just a card slot given away.
 
     NCZDGLog("guide: popup created");
     // DEV: the panel's right edge reads as clipped. Dump the live tree rather than guessing which
@@ -264,10 +270,10 @@ public class NCZDGGuidePopup extends InGamePopup {
   private func MakeText(label: String, colour: CName, size: Int32) -> ref<inkText> {
     let t = new inkText();
     t.SetText(label);
-    t.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
+    t.SetFontFamily(NCZDG_Font());   // raj IS Rajdhani, the brand's body face
     t.SetFontStyle(n"Medium");
     t.SetFontSize(size);
-    t.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
+    t.SetStyle(NCZDG_StylePath());
     t.BindProperty(n"tintColor", colour);
     t.SetHAlign(inkEHorizontalAlign.Left);
     t.SetMargin(new inkMargin(0.0, 0.0, 0.0, 24.0));
@@ -288,11 +294,11 @@ public class NCZDGGuidePopup extends InGamePopup {
     frame.SetTexturePart(n"cell_fg");
     frame.SetNineSliceScale(true);
     frame.SetAnchor(inkEAnchor.Fill);
-    frame.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
-    frame.BindProperty(n"tintColor", n"MainColors.Blue");
+    frame.SetStyle(NCZDG_StylePath());
+    frame.BindProperty(n"tintColor", NCZDG_Cyan());
     frame.Reparent(box);
 
-    let txt = this.MakeText(label, n"MainColors.Blue", 34);
+    let txt = this.MakeText(label, NCZDG_Cyan(), 34);
     txt.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
     txt.SetHAlign(inkEHorizontalAlign.Center);
     txt.SetVAlign(inkEVerticalAlign.Center);
