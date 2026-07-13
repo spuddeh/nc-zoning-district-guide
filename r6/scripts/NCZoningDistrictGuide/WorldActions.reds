@@ -185,11 +185,22 @@ public class NCZDGWorldActions extends ScriptableSystem {
     let slot = ms.GetManuallyTrackedMappinID();
     let mappin = ms.GetMappin(this.m_mappinId);
 
+    // Autodrive is the only witness to the ROUTE. Its destination type is None / PlayerTracked /
+    // Quest, so PlayerTracked means the game has derived a routable road destination from the tracked
+    // mappin - and None, on a mappin that IS tracked, means the position cannot be routed to at all.
+    // Tracking and routing fail separately and look identical on screen.
+    let road = "no autodrive system";
+    let ad = GameInstance.GetScriptableSystemsContainer(gi).Get(n"AutoDriveSystem") as AutoDriveSystem;
+    if IsDefined(ad) {
+      let dest = ad.GetAutodriveDestinationMappinID();
+      road = s"destType=\(EnumInt(ad.GetAutodriveDestinationType())) destMappin=\(dest.value) dest=\(ad.GetAutodriveDestination())";
+    }
+
     let now: String;
     if IsDefined(mappin) {
-      now = s"tracked=\(mappin.IsPlayerTracked()) active=\(mappin.IsActive()) visible=\(mappin.IsVisible()) pos=\(mappin.GetWorldPosition()) slot=\(slot.value) slotIsOurs=\(slot.value == this.m_mappinId.value)";
+      now = s"tracked=\(mappin.IsPlayerTracked()) active=\(mappin.IsActive()) visible=\(mappin.IsVisible()) pos=\(mappin.GetWorldPosition()) slot=\(slot.value) slotIsOurs=\(slot.value == this.m_mappinId.value) | \(road)";
     } else {
-      now = s"THE MAPPIN NO LONGER RESOLVES slot=\(slot.value)";
+      now = s"THE MAPPIN NO LONGER RESOLVES slot=\(slot.value) | \(road)";
     }
 
     if !UnicodeStringEqual(now, this.m_lastWatch) {
