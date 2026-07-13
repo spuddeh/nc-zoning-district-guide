@@ -136,12 +136,38 @@ public func CreateMappinUIProfile(mappin: wref<IMappin>, mappinVariant: gamedata
   if !IsDefined(mappin) || !StrBeginsWith(mappin.GetDisplayName(), NCZDG_MarkerTag() + "|") {
     return profile;
   }
-  // RemoteControlDriving is the runtime profile that behaves like a destination rather than a POI:
-  // it clamps to the screen edge, shows the distance in metres, and outranks the default priority.
+  // The RUNTIME profile decides where the pin survives. Nearly every world profile is
+  // visibleInTier [1,0,0,0,0] - open world only - so the pin blinks out the moment gameplay leaves tier
+  // 1: a doorway, a staircase, a scripted beat. Quest is [1,1,0,0,0], visible in braindance and
+  // scanning, clamped to the screen edge, and carries a 120 hover radius.
+  //
+  // A UI profile is not a mappin group: it does not make the mappin quest-TRACKABLE. The player can
+  // still track it, which the feature depends on.
   return MappinUIProfile.Create(
     r"base\\gameplay\\gui\\widgets\\mappins\\quest\\default_mappin.inkwidget",
     t"MappinUISpawnProfile.Always",
-    t"WorldMappinUIProfile.RemoteControlDriving");
+    t"WorldMappinUIProfile.Quest");
+}
+
+// DEV ONLY. Strip with Logging.reds at M7.
+//
+// The map tracks the mappin it has SELECTED, and drops a fresh custom waypoint at the cursor when
+// nothing is selected. A track press that lands on the marker and still spawns a waypoint means the map
+// did not consider it selected, and only the map can say which. Read-only; wrappedMethod is called
+// unconditionally.
+@wrapMethod(WorldMapMenuGameController)
+private final func TryTrackQuestOrSetWaypoint() -> Void {
+  if !IsDefined(this.selectedMappin) {
+    NCZDGLog("[PRESS] nothing selected - the map will create a custom waypoint at the cursor");
+  } else {
+    let mappin = this.selectedMappin.GetMappin();
+    if IsDefined(mappin) {
+      NCZDGLog(s"[PRESS] selected '\(mappin.GetDisplayName())' variant=\(EnumInt(mappin.GetVariant())) tracked=\(mappin.IsPlayerTracked()) canPlayerTrack=\(this.CanPlayerTrackMappin(mappin)) canQuestTrack=\(this.CanQuestTrackMappin(mappin))");
+    } else {
+      NCZDGLog("[PRESS] a controller is selected but it holds no mappin");
+    }
+  }
+  wrappedMethod();
 }
 
 // The tooltip is what makes the marker trackable in practice. Tracking requires selecting the right

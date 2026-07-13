@@ -43,6 +43,10 @@ public func NCZDG_MarkerCaption(title: String) -> String {
   return NCZDG_MarkerTag() + "|" + title;
 }
 
+// Close enough to count as arrived. Registry coordinates sit at a door, on a roof or inside a room, so
+// this has to tolerate the last few metres the player cannot walk in a straight line.
+public func NCZDG_ArrivalRadius() -> Float { return 20.0; }
+
 // Owns the single marker. A ScriptableSystem so it outlives the popup: a marker set from the guide
 // must survive the guide closing.
 public class NCZDGWorldActions extends ScriptableSystem {
@@ -203,6 +207,16 @@ public class NCZDGWorldActions extends ScriptableSystem {
     if IsDefined(ad) {
       let dest = ad.GetAutodriveDestinationMappinID();
       road = s"destType=\(EnumInt(ad.GetAutodriveDestinationType())) destMappin=\(dest.value) dest=\(ad.GetAutodriveDestination())";
+    }
+
+    // A waypoint the player has reached is clutter. The game's own custom waypoint clears itself on
+    // arrival; a POI marker does not, so the arrival has to be detected here.
+    if IsDefined(mappin) && !UnicodeStringEqual(this.m_pinnedId, "")
+      && mappin.GetDistanceToPlayer() < NCZDG_ArrivalRadius() {
+      NCZDGLog(s"[MARK] arrived at '\(this.m_pinnedId)' - clearing the marker");
+      this.ClearWaypoint(gi);
+      this.m_watching = false;
+      return;
     }
 
     let now: String;
