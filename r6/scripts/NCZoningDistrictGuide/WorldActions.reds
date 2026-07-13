@@ -29,7 +29,14 @@ public class NCZDGWorldActions extends ScriptableSystem {
 
   // A NewMappinID is a runtime handle: value == 0 means no pin, and it does not survive a save
   // load. The system is per-session and the pin goes with it.
+  // A waypoint is SET when a location owns it. The mappin can outlive that - it is kept alive and
+  // deactivated across a clear, because only the world map can put one in the tracked slot and a
+  // tracked mappin can be repositioned forever.
   public func HasPin() -> Bool {
+    return this.m_mappinId.value != 0ul && !UnicodeStringEqual(this.m_pinnedId, "");
+  }
+
+  private func HasMappin() -> Bool {
     return this.m_mappinId.value != 0ul;
   }
 
@@ -39,6 +46,24 @@ public class NCZDGWorldActions extends ScriptableSystem {
 
   public func PinId() -> NewMappinID {
     return this.m_mappinId;
+  }
+
+  // Reactivate, reposition, and take ownership of an existing mappin. No mappin is created.
+  private func Adopt(gi: GameInstance, id: NewMappinID, pos: Vector4, locId: String,
+                     borrowed: Bool, what: String) -> Void {
+    let ms = GameInstance.GetMappinSystem(gi);
+    ms.SetMappinActive(id, true);
+    ms.SetMappinPosition(id, pos);
+
+    this.m_mappinId = id;
+    this.m_pinnedId = locId;
+    this.m_borrowed = borrowed;
+
+    NCZDGLog(s"[MOVE] reused \(what) id=\(id.value) -> \(pos)");
+    let readback = ms.GetMappin(id);
+    if IsDefined(readback) {
+      NCZDGLog(s"[MOVE] readback: tracked=\(readback.IsPlayerTracked()) active=\(readback.IsActive()) visible=\(readback.IsVisible()) pos=\(readback.GetWorldPosition())");
+    }
   }
 
   // CustomPositionVariant (21) is a ROLE, not a look. The game's own waypoint is a RuntimeMappin with
@@ -63,30 +88,26 @@ public class NCZDGWorldActions extends ScriptableSystem {
 
     // A NewMappinID read inline off the call yields a heap pointer, not the id. Bind it first.
     let trackedId = ms.GetManuallyTrackedMappinID();
-    if trackedId.value != 0ul {
-      let tracked = ms.GetMappin(trackedId);
-      if IsDefined(tracked) {
-        // Only a pin this system REGISTERED may be unregistered here. A borrowed one is the mappin
-        // about to be repositioned, and destroying it first would leave a dead id.
-        if this.HasPin() && !this.m_borrowed {
-          this.ClearWaypoint(gi);
-        }
-        ms.SetMappinPosition(trackedId, pos);
-        this.m_mappinId = trackedId;
-        this.m_pinnedId = locId;
-        this.m_borrowed = true;
 
-        let readback = ms.GetMappin(trackedId);
-        NCZDGLog(s"[MOVE] repositioned the game's own waypoint id=\(trackedId.value) to \(pos)");
-        if IsDefined(readback) {
-          NCZDGLog(s"[MOVE] readback: tracked=\(readback.IsPlayerTracked()) pos=\(readback.GetWorldPosition())");
-        }
-        return;
+    // BEST CASE: a waypoint is tracked. Move it. The GPS reads a tracked mappin's position live, so
+    // the trail redraws with no map open - measured.
+    if trackedId.value != 0ul && IsDefined(ms.GetMappin(trackedId)) {
+      // A pin this system registered earlier must not survive alongside the tracked one.
+      if this.HasMappin() && this.m_mappinId.value != trackedId.value && !this.m_borrowed {
+        ms.UnregisterMappin(this.m_mappinId);
       }
+      this.Adopt(gi, trackedId, pos, locId, true, "the game's tracked waypoint");
+      return;
     }
 
-    this.ClearWaypoint(gi);
-    NCZDGLog("[MOVE] no waypoint to reposition - registering a new pin");
+    // A mappin from earlier this session, deactivated by a clear. Reuse it rather than registering a
+    // second one, which is what corrupts the game's waypoint state.
+    if this.HasMappin() && IsDefined(ms.GetMappin(this.m_mappinId)) {
+      this.Adopt(gi, this.m_mappinId, pos, locId, this.m_borrowed, "a dormant mappin");
+      return;
+    }
+
+    NCZDGLog("[MOVE] nothing to reposition - registering a new pin");
     // MappinData is an importonly struct: declare a local, never `new`.
     //
     // TYPE = DefaultStaticMappin. On paper CustomPositionMappinDefinition is the right record and
@@ -122,21 +143,30 @@ public class NCZDGWorldActions extends ScriptableSystem {
     GameInstance.GetDelaySystem(gi).DelayCallback(snap, 2.0);
   }
 
-  // A borrowed waypoint belongs to the game, so clearing it must do what the map does when the player
-  // clears a waypoint: destroy the mappin. It must NOT be left behind untracked, or it becomes a
-  // second variant-21 mappin the moment another is set.
+  // Destroying the mappin also empties the tracked slot, and the slot is the scarce thing: only the
+  // world map can fill it. A tracked mappin can be repositioned forever, so it is kept alive and
+  // merely deactivated - the trail must go with it.
+  //
+  // PROBE. If an inactive mappin keeps routing, this is a GHOST TRAIL - an invisible waypoint still
+  // drawing a line - which is worse than the bug it replaces. Unregister is the fallback.
   public func ClearWaypoint(gi: GameInstance) -> Void {
     if !this.HasPin() {
       return;
     }
     let ms = GameInstance.GetMappinSystem(gi);
     if IsDefined(ms) {
-      ms.UnregisterMappin(this.m_mappinId);
+      ms.SetMappinActive(this.m_mappinId, false);
+
+      let readback = ms.GetMappin(this.m_mappinId);
+      if IsDefined(readback) {
+        NCZDGLog(s"[CLEAR] deactivated id=\(this.m_mappinId.value) active=\(readback.IsActive()) visible=\(readback.IsVisible()) tracked=\(readback.IsPlayerTracked())");
+      } else {
+        NCZDGLog(s"[CLEAR] deactivated id=\(this.m_mappinId.value) - the mappin no longer resolves");
+      }
+      let stillTracked = ms.GetManuallyTrackedMappinID();
+      NCZDGLog(s"[CLEAR] tracked slot after deactivate: \(stillTracked.value)");
     }
-    let empty: NewMappinID;
-    this.m_mappinId = empty;
     this.m_pinnedId = "";
-    this.m_borrowed = false;
     NCZDGLog("actions: waypoint cleared");
   }
 }
