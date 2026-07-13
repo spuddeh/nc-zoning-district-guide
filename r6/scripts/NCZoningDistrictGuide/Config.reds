@@ -37,9 +37,12 @@ public enum NCZDGModifier {
 // writes them through NCZDGRcfProvider, and reads live state on every panel open.
 
 public class NCZDGConfig extends ScriptableService {
+  // Applies to EVERY surface - the guide, the banner and the map panel all scope their counts
+  // through NCZDG_UseSubdistrict. It is not a guide setting, so it does not live in that section.
+  public let matchSubdistrict: Bool = true;
+
   // District guide
   public let enableStandaloneGuide: Bool = true;
-  public let matchSubdistrict: Bool = true;
 
   // World map panel
   public let enableMapPanel: Bool = true;
@@ -50,11 +53,6 @@ public class NCZDGConfig extends ScriptableService {
   // Fast travel fires no district banner, so a standalone panel shows on arrival. Off = leave
   // fast travel entirely to the game (the notice then only appears when the game banners).
   public let enableFastTravelNotice: Bool = true;
-
-  // DEV ONLY, remove at M7. Sets MappinData.active on the waypoint pin, so the two configurations
-  // can be compared on the SAME location in one session. Whether it affects the map's adoption of
-  // the pin is UNVERIFIED - the first comparison changed the location as well as the flag.
-  public let devMappinActive: Bool = false;
 
   public final static func Get() -> ref<NCZDGConfig> {
     return GameInstance.GetScriptableServiceContainer()

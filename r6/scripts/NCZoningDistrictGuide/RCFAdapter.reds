@@ -41,7 +41,6 @@ public func NCZDG_KeyMapPanel() -> String { return "enableMapPanel"; }
 public func NCZDG_KeyToast() -> String { return "enablePopupToast"; }
 public func NCZDG_KeyShowNearest() -> String { return "showNearest"; }
 public func NCZDG_KeyFastTravel() -> String { return "enableFastTravelNotice"; }
-public func NCZDG_KeyDevMappinActive() -> String { return "devMappinActive"; }   // DEV ONLY, remove at M7
 
 @if(ModuleExists("RedscriptConfigFramework"))
 public class NCZDGRcfProvider extends DVRCF_Provider {
@@ -49,24 +48,24 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
   // Rebuilt on every panel open, so it always reflects the live config.
   public func BuildSchema() -> ref<DVRCF_Schema> {
     return DVRCF_SchemaBuilder.New("NC Zoning District Guide")
+      .Section("Locations")
+        .Toggle(NCZDG_KeySubdistrict(), "Narrow to Subdistrict")
+          .Tip("Scope every count to your subdistrict when you are in one, rather than the whole district. Applies to the guide, the map panel and the district notice.")
       .Section("District Guide")
         .Toggle(NCZDG_KeyGuide(), "Enable District Guide")
-          .Tip("Open a guide to the location mods in your current district with a keybind.")
-        .Toggle(NCZDG_KeySubdistrict(), "Narrow to Subdistrict")
-          .Tip("List only the locations in your subdistrict when you are in one, rather than the whole district.")
-        .Label("The open key and its modifier are set in Mod Settings. Default is the apostrophe.")
+          .Tip("Browse the location mods in any district, with search, a map waypoint and a teleport.")
+        .Label("Opens with the apostrophe key by default. The key and its modifier are set in Mod Settings.")
+        .Label("A waypoint set from the guide only draws its route once you open the world map. That is a game limitation, not a setting.")
       .Section("World Map")
         .Toggle(NCZDG_KeyMapPanel(), "Show on World Map")
-          .Tip("Add a location mod count to the map's district info panel.")
-      .Section("Nearby Notice")
-        .Toggle(NCZDG_KeyToast(), "Enable Nearby Notice")
-          .Tip("When you enter a district, add a panel to the game's district banner. Never suppresses the banner itself.")
+          .Tip("Add a location mod count and category breakdown to the map's district info panel.")
+      .Section("District Notice")
+        .Toggle(NCZDG_KeyToast(), "Enable District Notice")
+          .Tip("When you enter a district, add a panel below the game's district banner. Never suppresses the banner itself.")
         .Toggle(NCZDG_KeyShowNearest(), "Name the Nearest Location")
-          .Tip("Also name the closest location mod in the district. Off shows only the count.")
+          .Tip("Also name the closest location mod in the area. Off shows only the count.")
         .Toggle(NCZDG_KeyFastTravel(), "Show on Fast Travel")
-          .Tip("Fast travel does not show the game's district banner, so we show the notice on arrival. Off leaves fast travel entirely to the game.")
-        .Toggle(NCZDG_KeyDevMappinActive(), "DEV: set mappin active")
-          .Tip("Sets MappinData.active on the waypoint pin. Toggle it to compare both settings on the SAME location. Remove before release.")
+          .Tip("Fast travel fires no district banner, so the notice appears on arrival instead. Off leaves fast travel entirely to the game.")
       .Build();
   }
 
@@ -81,7 +80,6 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     if UnicodeStringEqual(key, NCZDG_KeyToast()) { return cfg.enablePopupToast; }
     if UnicodeStringEqual(key, NCZDG_KeyShowNearest()) { return cfg.showNearest; }
     if UnicodeStringEqual(key, NCZDG_KeyFastTravel()) { return cfg.enableFastTravelNotice; }
-    if UnicodeStringEqual(key, NCZDG_KeyDevMappinActive()) { return cfg.devMappinActive; }
     return false;
   }
 
@@ -98,7 +96,6 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     else if UnicodeStringEqual(key, NCZDG_KeyToast()) { cfg.enablePopupToast = value; }
     else if UnicodeStringEqual(key, NCZDG_KeyShowNearest()) { cfg.showNearest = value; }
     else if UnicodeStringEqual(key, NCZDG_KeyFastTravel()) { cfg.enableFastTravelNotice = value; }
-    else if UnicodeStringEqual(key, NCZDG_KeyDevMappinActive()) { cfg.devMappinActive = value; }
   }
 }
 

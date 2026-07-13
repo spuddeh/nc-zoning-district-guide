@@ -15,8 +15,6 @@
 // Credits: Spuddeh (SimpleLocationManager, the CET original)
 // ======================================================================================
 
-import NCZoningDistrictGuide.Config.*
-
 // Owns the single waypoint. A ScriptableSystem so it outlives the popup: a pin set from the guide
 // must survive the guide closing.
 public class NCZDGWorldActions extends ScriptableSystem {
@@ -52,38 +50,27 @@ public class NCZDGWorldActions extends ScriptableSystem {
     }
     // MappinData is an importonly struct: declare a local, never `new`.
     //
-    // TYPE = DefaultStaticMappin, not CustomPositionMappinDefinition. On paper the second is the
-    //   right record and this pairing is a mismatch (DefaultStaticMappin declares possibleVariants
-    //   = [DefaultVariant]). In game only the mismatched pairing has ever produced a route.
+    // TYPE = DefaultStaticMappin. On paper CustomPositionMappinDefinition is the right record and
+    //   this pairing is a mismatch (DefaultStaticMappin declares possibleVariants = [DefaultVariant]).
+    //   In game only this pairing has ever produced a route.
     //
-    // VARIANT = CustomPositionVariant, because this pin IS the player's waypoint. It is the wrong
+    // VARIANT = CustomPositionVariant, because this pin IS the player's waypoint. It is the WRONG
     //   variant for a point-of-interest pin, which is a separate bug in the checklist mods
-    //   (spuddeh/perk-shard-checklist#2).
+    //   (spuddeh/perk-shard-checklist#2): the game adopts any such mappin as the player's waypoint,
+    //   so registering many of them produces waypoints the player never asked for.
     //
-    // ACTIVE: UNVERIFIED, hence the dev toggle. `active` is a real redscript field that CET cannot
-    //   set at all (its binding throws), so SimpleLocationManager never sets it. Whether that is
-    //   why SLM's pin gets adopted by the map is NOT established: the one comparison that suggested
-    //   it changed the location as well as the flag, and a location with no road route to it draws
-    //   no trail whatever the flag says. Compare both settings on the SAME routable location before
-    //   drawing any conclusion.
-    let cfg = NCZDGConfig.Get();
-    let setActive = IsDefined(cfg) && cfg.devMappinActive;
-
+    // DO NOT set `active`. It changes nothing - the game sets it on the mappin regardless of what is
+    //   passed here (measured: a pin registered with active = false comes back active = true), and
+    //   an A/B on one location produced identical tracking either way.
     let data: MappinData;
     data.mappinType = t"Mappins.DefaultStaticMappin";
     data.variant = gamedataMappinVariant.CustomPositionVariant;
     data.visibleThroughWalls = true;
-    if setActive {
-      data.active = true;
-    }
 
     this.m_mappinId = ms.RegisterMappin(data, pos);
     this.m_pinnedId = locId;
 
-    let tracked = ms.GetManuallyTrackedMappinID();
-    let pin = ms.GetMappin(this.m_mappinId);
-    NCZDGLog(s"actions: waypoint set on '\(locId)' active=\(setActive) id=\(this.m_mappinId.value) trackedId=\(tracked.value) playerTracked=\(IsDefined(pin) ? pin.IsPlayerTracked() : false) pos=\(pos)");
-    NCZDG_LogNavState(gi, pos, locId);
+    NCZDGLog(s"actions: waypoint set on '\(locId)'");
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {
@@ -98,45 +85,6 @@ public class NCZDGWorldActions extends ScriptableSystem {
     this.m_mappinId = empty;
     this.m_pinnedId = "";
     NCZDGLog("actions: waypoint cleared");
-  }
-}
-
-// DEV ONLY. Asks the navigation system whether a pin's position can actually be reached.
-//
-// A pin inside a building, down a flight of stairs, floating in the air still produces a trail, so
-// the criterion is not "on a road". The candidate criterion is NAVMESH REACHABILITY: the game
-// pathfinds to the target and draws nothing when it cannot.
-//
-// Both answers are available:
-//   HasPathFromAtoB    is there a path from the player to this point at all
-//   IsPointOnNavmesh   is the point itself navigable, and if not, what is the nearest point that is
-//
-// If the unroutable pins come back off-navmesh, snapping to navmeshPoint is a real fix.
-public func NCZDG_LogNavState(gi: GameInstance, pos: Vector4, label: String) -> Void {
-  let player = GameInstance.GetPlayerSystem(gi).GetLocalPlayerMainGameObject();
-  if !IsDefined(player) {
-    return;
-  }
-  let nav = GameInstance.GetAINavigationSystem(gi);
-  if !IsDefined(nav) {
-    NCZDGLog("[NAV] navigation system not found");
-    return;
-  }
-
-  let tolerance = new Vector4(2.0, 2.0, 2.0, 0.0);
-  let snapped: Vector4;
-  let onMesh = nav.IsPointOnNavmesh(player, pos, tolerance, snapped);
-  let hasPath = AINavigationSystem.HasPathFromAtoB(player, gi, player.GetWorldPosition(), pos);
-
-  NCZDGLog(s"[NAV \(label)] onNavmesh=\(onMesh) hasPath=\(hasPath) pos=\(pos) snapped=\(snapped)");
-
-  // A wider probe, for a pin that sits above or below the walkable surface.
-  let wide = new Vector4(10.0, 10.0, 20.0, 0.0);
-  let snappedWide: Vector4;
-  let onMeshWide = nav.IsPointOnNavmesh(player, pos, wide, snappedWide);
-  if !onMesh && onMeshWide {
-    let hasPathSnapped = AINavigationSystem.HasPathFromAtoB(player, gi, player.GetWorldPosition(), snappedWide);
-    NCZDGLog(s"[NAV \(label)] wide probe found navmesh at \(snappedWide), hasPath=\(hasPathSnapped)");
   }
 }
 

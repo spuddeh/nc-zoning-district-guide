@@ -101,38 +101,19 @@ protected cb func OnUpdateHoveredDistricts(district: gamedataDistrict, subdistri
   return result;
 }
 
-// NEVER call TrackCustomPositionMappin() from here.
+// The world map is the ONLY thing that can adopt a script-registered pin as the player's tracked
+// waypoint, so a waypoint set from the guide draws no route until the map has been opened. That is
+// a game limitation, and every script-side workaround has been tried and measured:
+// [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]].
 //
-// It does not adopt an existing pin: it CREATES A NEW custom waypoint at the current MAP CURSOR,
-// which is what its no-argument signature implies. Called on map open, before the player has moved
-// the cursor, it plants a waypoint at roughly the world origin - Charter Hill. Measured:
-//
-//   [after-TrackCustomPositionMappin] trackedId=<NEW id> pos=(881.5, -2990.4, 204.3)   <- the cursor
-//   [map-close]                       trackedId=<NEW id> pos=(2.8, 18.9, 15.1)         <- ~origin
-//
-// Neither id is the registered pin's. The route follows the waypoint this native creates, not the
-// mappin, so a pin from RegisterMappin can never be routed from script.
-@if(ModuleExists("NCZoning.Api"))
-@wrapMethod(WorldMapMenuGameController)
-protected cb func OnInitialize() -> Bool {
-  let result = wrappedMethod();
-  let player = this.GetPlayerControlledObject();
-  if IsDefined(player) {
-    NCZDG_LogMappinState(player.GetGame(), "map-open");
-  }
-  return result;
-}
+// NEVER call TrackCustomPositionMappin() from a hook here. It does not adopt an existing pin - it
+// CREATES a new waypoint at the current MAP CURSOR, so on map open it plants one at roughly the
+// world origin (Charter Hill).
 
 // Nulls the refs when the map closes; the widgets die with the menu.
 @if(ModuleExists("NCZoning.Api"))
 @wrapMethod(WorldMapMenuGameController)
 protected cb func OnUninitialize() -> Bool {
-  // DEV ONLY. The map builds a custom waypoint's GPS route on open/close, so its tracking state is
-  // logged on both edges.
-  let player = this.GetPlayerControlledObject();
-  if IsDefined(player) {
-    NCZDG_LogMappinState(player.GetGame(), "map-close");
-  }
   let result = wrappedMethod();
   this.nczdg_mapPanel = null;
   this.nczdg_mapCount = null;
