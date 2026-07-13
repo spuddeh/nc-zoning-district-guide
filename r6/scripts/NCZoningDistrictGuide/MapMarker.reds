@@ -83,42 +83,17 @@ protected final func NCZDG_BrandIcon(width: Float) -> Void {
   inkWidgetRef.SetFitToContent(this.iconWidget, false);
   inkWidgetRef.SetSize(this.iconWidget, new Vector2(width, width / NCZDG_MarkerAspect()));
   inkWidgetRef.SetScale(this.iconWidget, new Vector2(1.0, 1.0));
-
-  this.NCZDG_BringToFront();
 }
 
-// ink has no z-order: a compound widget draws its children in order, so the LAST child is on top.
-// ReorderChild is the only lever. Without it the marker hides behind whichever mappin happens to have
-// spawned after it, and a marker the player cannot see is one they cannot hover, which is the single
-// action the whole feature depends on.
+// NO Z-ORDER CONTROL HERE, and adding one back does not work.
 //
-// The already-last check matters: this runs on every icon update for every mappin on screen, and
-// reordering a container the game owns on every frame would be both wasteful and a good way to fight
-// its own sorting.
-@addMethod(BaseMappinBaseController)
-protected final func NCZDG_BringToFront() -> Void {
-  let root = this.GetRootWidget();
-  if !IsDefined(root) {
-    NCZDGLog(s"[Z] \(this.GetClassName()): no root widget");
-    return;
-  }
-  let parent = root.GetParentWidget() as inkCompoundWidget;
-  if !IsDefined(parent) {
-    NCZDGLog(s"[Z] \(this.GetClassName()): root has NO COMPOUND PARENT - UpdateIcon runs before the widget is attached");
-    return;
-  }
-  let last = parent.GetNumChildren() - 1;
-  if last < 0 {
-    return;
-  }
-  if Equals(parent.GetWidgetByIndex(last), root) {
-    NCZDGLog(s"[Z] \(this.GetClassName()): already last of \(last + 1)");
-    return;
-  }
-  parent.ReorderChild(root, last);
-  let ok = Equals(parent.GetWidgetByIndex(last), root);
-  NCZDGLog(s"[Z] \(this.GetClassName()): reordered to \(last) of \(last + 1) children - stuck=\(ok) parent='\(parent.GetName())'");
-}
+// ink has no z-order: a compound widget draws its children in array order and the last one is on top,
+// so ReorderChild is the only lever the API offers. It does land - measured stuck=true, on the minimap
+// ('unclampedMappinContainer') and on the world pin ('Root'). It just does not help: on the world map
+// the marker sits ALREADY LAST of 107 children and still draws behind the game's apartment pins.
+//
+// Child order therefore does not decide draw order on the world map. Re-sorting a container the game
+// owns, on every icon update of every mappin on screen, buys nothing.
 
 // One hook per SURFACE, and there are four - world map, minimap, the floating world pin, and the
 // gameplay-role pin. A marker branded on the map but not in the world reads as two different pins.

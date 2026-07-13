@@ -152,9 +152,14 @@ public class NCZDGWorldActions extends ScriptableSystem {
     //
     //   Routing is the feature. A pin that fades out at long range costs the player nothing, because
     //   the trail is what they navigate by. Leave scriptData null.
+    // ACTIVE: set it. The rule "never set active, the game sets it regardless" was measured on a
+    //   CustomPositionVariant waypoint, where it is genuinely inert - it does not transfer to a POI
+    //   mappin, and the community marker template sets it. Without it the pin does not appear on the
+    //   HUD at all until it is tracked.
     let data: MappinData;
     data.mappinType = t"Mappins.DefaultStaticMappin";
     data.variant = gamedataMappinVariant.ApartmentVariant;
+    data.active = true;
     data.visibleThroughWalls = true;
     data.debugCaption = NCZDG_MarkerCaption(title);
 
@@ -221,18 +226,33 @@ public class NCZDGWorldActions extends ScriptableSystem {
     GameInstance.GetDelaySystem(gi).DelayCallback(cb, 2.0);
   }
 
-  // Deactivate, never unregister: destroying the mappin would empty the tracked slot, and only the
-  // world map can fill it again.
+  // DESTROY the mappin. Deactivating it and leaving it in the tracked slot - to spare the player a
+  // re-track - produces a GHOST ROUTE: an inactive mappin stays tracked, and the GPS keeps routing to
+  // a destination it can no longer update. Measured: autodrive held a stale road destination matching
+  // no marker position at all, through a clear AND a re-set.
+  //
+  // Untrack BEFORE unregistering, and only when the slot holds this marker. UntrackMappin() takes no
+  // argument and clears whatever is tracked, so calling it blind would drop a player's own waypoint.
+  //
+  // The cost is real and accepted: the slot empties, so the next marker must be tracked from the map
+  // again. Only the world map can fill that slot, and a route that is never stale is worth the click.
   public func ClearWaypoint(gi: GameInstance) -> Void {
     if !this.HasPin() {
       return;
     }
     let ms = GameInstance.GetMappinSystem(gi);
     if IsDefined(ms) {
-      ms.SetMappinActive(this.m_mappinId, false);
+      let slot = ms.GetManuallyTrackedMappinID();
+      if slot.value == this.m_mappinId.value {
+        ms.UntrackMappin();
+      }
+      ms.UnregisterMappin(this.m_mappinId);
     }
+    let empty: NewMappinID;
+    this.m_mappinId = empty;
     this.m_pinnedId = "";
-    NCZDGLog("[MARK] marker cleared (deactivated, still tracked)");
+    this.m_confirmed = false;
+    NCZDGLog("[MARK] marker untracked and destroyed");
   }
 }
 
