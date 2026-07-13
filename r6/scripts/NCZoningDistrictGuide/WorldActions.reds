@@ -152,29 +152,20 @@ public class NCZDGWorldActions extends ScriptableSystem {
     //
     //   Routing is the feature. A pin that fades out at long range costs the player nothing, because
     //   the trail is what they navigate by. Leave scriptData null.
-    // VARIANT: a variant is not a look. It selects the mappin's UI PROFILE, and the profile decides
-    //   whether the pin exists on the HUD at all.
+    // The variant governs two surfaces at once and they want different things.
     //
-    //   ApartmentVariant fell through CreateMappinUIProfile to MappinUISpawnProfile.MediumRange, which
-    //   is spawnDistance 100 / despawnDistance 120 - so the pin simply did not exist on the HUD beyond
-    //   100 metres, which is every location the player is actually navigating to.
+    //   MAP: only some variants are drawn on the world map at all, and this must be one of them - the
+    //     map is where the player finds the marker and tracks it, and nothing substitutes for that.
+    //     ApartmentVariant qualifies; Zzz10_RemoteControlDrivingVariant does not.
+    //   HUD: the variant also picks the spawn profile. Every map-visible variant lands on
+    //     MappinUISpawnProfile.MediumRange (spawn 100m, despawn 120m), so the HUD pin does not exist
+    //     beyond 100m. MapMarker.reds overrides the profile instead of trading the map away for it.
     //
-    //   Zzz10_RemoteControlDrivingVariant takes the SAME default widget, so every controller hook still
-    //   applies, but lands on MappinUISpawnProfile.Always and WorldMappinUIProfile.RemoteControlDriving:
-    //     hoverRadius  120  (vs 40 - three times easier to hover, which is the one action tracking needs)
-    //     clampX/Y     1    (clamps to the screen edge, like a waypoint)
-    //     showDistance 1    (metres to target)
-    //     priority     7    (vs 0)
-    //
-    //   It carries no journal entry, so CanQuestTrackMappin is false and the player may still track it -
-    //   which is the property the entire feature rests on, and the only one a variant must not break.
-    //
-    // ACTIVE: set it. The rule "never set active, the game sets it regardless" was measured on a
-    //   CustomPositionVariant WAYPOINT, where it is inert. It does not transfer to a POI mappin, and the
-    //   community marker template sets it.
+    // active must be true or the HUD pin does not appear until the mappin is tracked. (The "never set
+    // active" rule holds only for CustomPositionVariant waypoints, where the field is inert.)
     let data: MappinData;
     data.mappinType = t"Mappins.DefaultStaticMappin";
-    data.variant = gamedataMappinVariant.Zzz10_RemoteControlDrivingVariant;
+    data.variant = gamedataMappinVariant.ApartmentVariant;
     data.active = true;
     data.visibleThroughWalls = true;
     data.debugCaption = NCZDG_MarkerCaption(title);
@@ -242,16 +233,14 @@ public class NCZDGWorldActions extends ScriptableSystem {
     GameInstance.GetDelaySystem(gi).DelayCallback(cb, 2.0);
   }
 
-  // DESTROY the mappin. Deactivating it and leaving it in the tracked slot - to spare the player a
-  // re-track - produces a GHOST ROUTE: an inactive mappin stays tracked, and the GPS keeps routing to
-  // a destination it can no longer update. Measured: autodrive held a stale road destination matching
-  // no marker position at all, through a clear AND a re-set.
+  // Destroy the mappin; never merely deactivate it. An inactive mappin stays TRACKED, and the GPS goes
+  // on routing to a destination it can no longer update - a ghost trail to nowhere.
   //
-  // Untrack BEFORE unregistering, and only when the slot holds this marker. UntrackMappin() takes no
-  // argument and clears whatever is tracked, so calling it blind would drop a player's own waypoint.
+  // Untrack only when the slot holds this marker: UntrackMappin() takes no argument and clears whatever
+  // is tracked, so calling it blind drops a waypoint the player set themselves.
   //
-  // The cost is real and accepted: the slot empties, so the next marker must be tracked from the map
-  // again. Only the world map can fill that slot, and a route that is never stale is worth the click.
+  // This empties the tracked slot, so the next marker needs tracking from the map again. Only the world
+  // map can fill that slot.
   public func ClearWaypoint(gi: GameInstance) -> Void {
     if !this.HasPin() {
       return;

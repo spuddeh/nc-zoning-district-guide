@@ -68,11 +68,10 @@ protected final func NCZDG_BrandIcon(width: Float) -> Void {
   if !this.NCZDG_IsOurMarker() {
     return;
   }
-  // DO NOT TINT. The game re-applies a mappin's colour on TRACKED-STATE change, through
-  // UpdateTrackedState and not through UpdateIcon - so a tint written here is stomped and restored at
-  // random, which reads as the icon flickering between white and coloured. The source monogram is
-  // already white and the game already highlights a tracked pin, which is the wanted behaviour anyway.
-  // Owning the colour means fighting the game for it and losing.
+  // Do not tint. The game rewrites a mappin's colour on tracked-state change, through
+  // UpdateTrackedState - which is not hooked here - so any tint set in UpdateIcon is stomped and
+  // restored at random, and the icon flickers. The source monogram is white and the game highlights a
+  // tracked pin on its own.
   inkImageRef.SetAtlasResource(this.iconWidget, NCZDG_MarkerAtlas());
   inkImageRef.SetTexturePart(this.iconWidget, NCZDG_MarkerPart());
 
@@ -85,15 +84,9 @@ protected final func NCZDG_BrandIcon(width: Float) -> Void {
   inkWidgetRef.SetScale(this.iconWidget, new Vector2(1.0, 1.0));
 }
 
-// NO Z-ORDER CONTROL HERE, and adding one back does not work.
-//
-// ink has no z-order: a compound widget draws its children in array order and the last one is on top,
-// so ReorderChild is the only lever the API offers. It does land - measured stuck=true, on the minimap
-// ('unclampedMappinContainer') and on the world pin ('Root'). It just does not help: on the world map
-// the marker sits ALREADY LAST of 107 children and still draws behind the game's apartment pins.
-//
-// Child order therefore does not decide draw order on the world map. Re-sorting a container the game
-// owns, on every icon update of every mappin on screen, buys nothing.
+// The marker cannot be forced in front of other pins on the world map, and ReorderChild does not do it.
+// ink has no z-order - a compound widget draws children in array order, last on top - but the world map
+// does not order its pins by child order: the marker sits last of ~107 children and still draws behind.
 
 // One hook per SURFACE, and there are four - world map, minimap, the floating world pin, and the
 // gameplay-role pin. A marker branded on the map but not in the world reads as two different pins.
@@ -125,6 +118,30 @@ protected func UpdateIcon() -> Void {
 private func UpdateIcon() -> Void {
   wrappedMethod();
   this.NCZDG_BrandIcon(NCZDG_MarkerFitHeight());
+}
+
+// The spawn profile decides whether the HUD pin exists at all, and this function assigns it from the
+// variant. A map-visible variant lands on MappinUISpawnProfile.MediumRange (spawn 100m, despawn 120m),
+// so past 100m the pin is not faded - it is never created. Overriding here frees the variant to be
+// chosen for the world map (see WorldActions.reds) while the HUD gets Always.
+//
+// Same default widget, so the icon hooks above still apply.
+//
+// wrappedMethod() runs first, and its result is returned untouched for every mappin the mod does not
+// own - the game's own pins must be profiled exactly as they would be with this mod absent.
+@wrapMethod(WorldMappinsContainerController)
+public func CreateMappinUIProfile(mappin: wref<IMappin>, mappinVariant: gamedataMappinVariant,
+                                  customData: ref<MappinControllerCustomData>) -> MappinUIProfile {
+  let profile = wrappedMethod(mappin, mappinVariant, customData);
+  if !IsDefined(mappin) || !StrBeginsWith(mappin.GetDisplayName(), NCZDG_MarkerTag() + "|") {
+    return profile;
+  }
+  // RemoteControlDriving is the runtime profile that behaves like a destination rather than a POI:
+  // it clamps to the screen edge, shows the distance in metres, and outranks the default priority.
+  return MappinUIProfile.Create(
+    r"base\\gameplay\\gui\\widgets\\mappins\\quest\\default_mappin.inkwidget",
+    t"MappinUISpawnProfile.Always",
+    t"WorldMappinUIProfile.RemoteControlDriving");
 }
 
 // The tooltip is what makes the marker trackable in practice. Tracking requires selecting the right
