@@ -20,6 +20,7 @@
 public class NCZDGWorldActions extends ScriptableSystem {
   private let m_mappinId: NewMappinID;
   private let m_pinnedId: String;      // the NCZLocation.Id() the pin belongs to; "" = none
+  private let m_isQuestPin: Bool;      // a journal-owned pin is retired by DeleteScriptedQuest, not UnregisterMappin
 
   public final static func Get(gi: GameInstance) -> ref<NCZDGWorldActions> {
     return GameInstance.GetScriptableSystemsContainer(gi)
@@ -41,8 +42,22 @@ public class NCZDGWorldActions extends ScriptableSystem {
   }
 
   // The game keeps ONE custom waypoint, so setting a second must clear the first.
-  public func SetWaypoint(gi: GameInstance, pos: Vector4, locId: String) -> Void {
+  //
+  // Two pins are possible and they are not equivalent. A journal-owned pin (QuestPinProbe) is the
+  // only one that can be TRACKED without the world map being opened, because tracking is a property
+  // of an owner and a bare mappin has none. It is tried first; the orphan pin below is the fallback
+  // and cannot route until the player opens the map.
+  public func SetWaypoint(gi: GameInstance, pos: Vector4, locId: String, title: String) -> Void {
     this.ClearWaypoint(gi);
+
+    let questId = NCZDG_QuestPinSet(gi, pos, title);
+    if questId.value != 0ul {
+      this.m_mappinId = questId;
+      this.m_pinnedId = locId;
+      this.m_isQuestPin = true;
+      NCZDGLog(s"actions: waypoint set on '\(locId)' via the journal");
+      return;
+    }
 
     let ms = GameInstance.GetMappinSystem(gi);
     if !IsDefined(ms) {
@@ -60,22 +75,7 @@ public class NCZDGWorldActions extends ScriptableSystem {
     //   so registering many of them produces waypoints the player never asked for.
     //
     // DO NOT set `active`. It changes nothing - the game sets it on the mappin regardless of what is
-    //   passed here (measured: a pin registered with active = false comes back active = true), and
-    //   an A/B on one location produced identical tracking either way.
-    // MappinData is an importonly struct: declare a local, never `new`.
-    //
-    // TYPE = DefaultStaticMappin. On paper CustomPositionMappinDefinition is the right record and
-    //   this pairing is a mismatch (DefaultStaticMappin declares possibleVariants = [DefaultVariant]).
-    //   In game only this pairing has ever produced a route.
-    //
-    // VARIANT = CustomPositionVariant, because this pin IS the player's waypoint. It is the WRONG
-    //   variant for a point-of-interest pin, which is a separate bug in the checklist mods
-    //   (spuddeh/perk-shard-checklist#2).
-    //
-    // A QUEST pairing (QuestStaticMappinDefinition + DefaultQuestVariant) draws a quest pin and does
-    //   NOT route: the mappin's quest type is cosmetic, and quest routing is journal-bound. Measured.
-    //
-    // DO NOT set `active`. It changes nothing - the game sets it regardless of what is passed here.
+    //   passed here (measured: a pin registered with active = false comes back active = true).
     let data: MappinData;
     data.mappinType = t"Mappins.DefaultStaticMappin";
     data.variant = gamedataMappinVariant.CustomPositionVariant;
@@ -94,21 +94,27 @@ public class NCZDGWorldActions extends ScriptableSystem {
 
     this.m_mappinId = ms.RegisterMappin(data, pos);
     this.m_pinnedId = locId;
+    this.m_isQuestPin = false;
 
-    NCZDGLog(s"actions: waypoint set on '\(locId)' [ICON TEST: MappinIcons.PlayerStashMappin]");
+    NCZDGLog(s"actions: waypoint set on '\(locId)' as an orphan pin [ICON TEST: MappinIcons.PlayerStashMappin]");
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {
     if !this.HasPin() {
       return;
     }
-    let ms = GameInstance.GetMappinSystem(gi);
-    if IsDefined(ms) {
-      ms.UnregisterMappin(this.m_mappinId);
+    if this.m_isQuestPin {
+      NCZDG_QuestPinClear(gi);
+    } else {
+      let ms = GameInstance.GetMappinSystem(gi);
+      if IsDefined(ms) {
+        ms.UnregisterMappin(this.m_mappinId);
+      }
     }
     let empty: NewMappinID;
     this.m_mappinId = empty;
     this.m_pinnedId = "";
+    this.m_isQuestPin = false;
     NCZDGLog("actions: waypoint cleared");
   }
 }

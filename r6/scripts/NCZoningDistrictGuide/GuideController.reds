@@ -832,7 +832,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     if actions.IsPinned(loc.Id()) {
       actions.ClearWaypoint(this.m_gi);
     } else {
-      actions.SetWaypoint(this.m_gi, loc.Pos(), loc.Id());
+      actions.SetWaypoint(this.m_gi, loc.Pos(), loc.Id(), loc.Name());
     }
     // Re-bind so every card's button reflects the one pin the game allows.
     this.Refresh();
