@@ -590,13 +590,13 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     // The waypoint button reflects the CURRENT pin, so it is right on every re-bind.
     let actions = NCZDGWorldActions.Get(this.m_gi);
-    // A waypoint can only be MOVED, never created: the guide repositions the one the game tracks, and
-    // registering a second one corrupts the player's waypoint state. With none set there is nothing to
-    // move, and the button says so rather than failing silently.
+    // The marker always places. Whether it ROUTES depends on the player having tracked it once from
+    // the map, which no script can do for them - so the label distinguishes a marker that is merely
+    // placed from one the GPS is following.
     let pinned = IsDefined(actions) && actions.IsPinned(loc.Id());
-    let canWp = IsDefined(actions) && actions.CanSetWaypoint(this.m_gi);
-    slot.wpLabel.SetText(pinned ? "CLEAR WAYPOINT" : (canWp ? "SET WAYPOINT" : "PIN ON MAP FIRST"));
-    slot.wpLabel.BindProperty(n"tintColor", pinned || canWp ? NCZDG_Cyan() : NCZDG_Gray());
+    let routing = pinned && actions.IsRouting(this.m_gi);
+    slot.wpLabel.SetText(pinned ? (routing ? "CLEAR MARKER" : "TRACK ON MAP") : "SET MARKER");
+    slot.wpLabel.BindProperty(n"tintColor", pinned && !routing ? NCZDG_Amber() : NCZDG_Cyan());
 
     let canTp = NCZDG_CanTeleport(this.m_gi);
     slot.tpLabel.SetText(canTp ? "TELEPORT" : "EXIT VEHICLE");
@@ -837,7 +837,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     if actions.IsPinned(loc.Id()) {
       actions.ClearWaypoint(this.m_gi);
     } else {
-      actions.SetWaypoint(this.m_gi, loc.Pos(), loc.Id());
+      actions.SetWaypoint(this.m_gi, loc.Pos(), loc.Id(), loc.Name());
     }
     // Re-bind so every card's button reflects the one pin the game allows.
     this.Refresh();
