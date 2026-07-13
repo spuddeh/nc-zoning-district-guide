@@ -114,6 +114,7 @@ public func NCZDG_IdxWaypointBase() -> Int32 { return 2000; }
 public func NCZDG_IdxTeleportBase() -> Int32 { return 3000; }
 public func NCZDG_IdxPrevPage() -> Int32 { return -2; }
 public func NCZDG_IdxNextPage() -> Int32 { return -3; }
+public func NCZDG_IdxClearWaypoint() -> Int32 { return -4; }
 
 // The entry point Input.reds calls. Declared in this module so the import there resolves.
 //
@@ -209,6 +210,7 @@ public class NCZDGGuidePopup extends InGamePopup {
   private let m_query: String;
   private let m_page: Int32;
   private let m_selCard: Int32;   // pool slot of the selected card, -1 for none
+  private let m_clearWp: wref<inkCanvas>;
 
   public static func Show(gi: GameInstance) -> ref<NCZDGGuidePopup> {
     let self = new NCZDGGuidePopup();
@@ -342,6 +344,11 @@ public class NCZDGGuidePopup extends InGamePopup {
     pager.SetHAlign(inkEHorizontalAlign.Right);
     pager.SetMargin(new inkMargin(0.0, 68.0, 0.0, 0.0));
     pager.Reparent(body);
+    // Clearing the pin must not require finding the card it came from - the player may have
+    // searched or paged away from it, and a pin they cannot see is a pin they cannot remove.
+    this.m_clearWp = this.MakeButton(pager, "CLEAR WAYPOINT", NCZDG_IdxClearWaypoint());
+    this.m_clearWp.SetVisible(false);
+    this.m_clearWp.SetSize(new Vector2(280.0, 52.0));
     this.MakeButton(pager, "< PREV", NCZDG_IdxPrevPage());
     this.MakeButton(pager, "NEXT >", NCZDG_IdxNextPage());
 
@@ -534,6 +541,11 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
 
     this.m_selCard = -1;
+
+    let actions = NCZDGWorldActions.Get(this.m_gi);
+    if IsDefined(this.m_clearWp) {
+      this.m_clearWp.SetVisible(IsDefined(actions) && actions.HasPin());
+    }
 
     let shownFrom = n > 0 ? start + 1 : 0;
     let shownTo = start + NCZDG_PageSize() < n ? start + NCZDG_PageSize() : n;
@@ -776,6 +788,14 @@ public class NCZDGGuidePopup extends InGamePopup {
   // A card knows its POOL SLOT, not its location: the slot maps to whatever is bound to it right
   // now, so filtering never touches a proxy.
   public func OnProxyClick(index: Int32) -> Void {
+    if index == NCZDG_IdxClearWaypoint() {
+      let actions = NCZDGWorldActions.Get(this.m_gi);
+      if IsDefined(actions) {
+        actions.ClearWaypoint(this.m_gi);
+      }
+      this.Refresh();
+      return;
+    }
     if index == NCZDG_IdxPrevPage() {
       if this.m_page > 0 {
         this.m_page -= 1;
@@ -931,7 +951,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     return t;
   }
 
-  private func MakeButton(parent: wref<inkCompoundWidget>, label: String, index: Int32) -> Void {
+  private func MakeButton(parent: wref<inkCompoundWidget>, label: String, index: Int32) -> ref<inkCanvas> {
     let box = new inkCanvas();
     box.SetName(n"nczdg_btn");
     box.SetSize(new Vector2(180.0, 52.0));
@@ -963,6 +983,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     proxy.index = index;
     ArrayPush(this.m_proxies, proxy);   // the widget does not keep the proxy alive
     box.RegisterToCallback(n"OnRelease", proxy, n"OnRelease");
+    return box;
   }
 }
 
