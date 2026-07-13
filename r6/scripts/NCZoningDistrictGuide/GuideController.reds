@@ -590,8 +590,13 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     // The waypoint button reflects the CURRENT pin, so it is right on every re-bind.
     let actions = NCZDGWorldActions.Get(this.m_gi);
+    // A waypoint can only be MOVED, never created: the guide repositions the one the game tracks, and
+    // registering a second one corrupts the player's waypoint state. With none set there is nothing to
+    // move, and the button says so rather than failing silently.
     let pinned = IsDefined(actions) && actions.IsPinned(loc.Id());
-    slot.wpLabel.SetText(pinned ? "CLEAR WAYPOINT" : "SET WAYPOINT");
+    let canWp = IsDefined(actions) && actions.CanSetWaypoint(this.m_gi);
+    slot.wpLabel.SetText(pinned ? "CLEAR WAYPOINT" : (canWp ? "SET WAYPOINT" : "PIN ON MAP FIRST"));
+    slot.wpLabel.BindProperty(n"tintColor", pinned || canWp ? NCZDG_Cyan() : NCZDG_Gray());
 
     let canTp = NCZDG_CanTeleport(this.m_gi);
     slot.tpLabel.SetText(canTp ? "TELEPORT" : "EXIT VEHICLE");

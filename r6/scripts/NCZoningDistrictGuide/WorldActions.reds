@@ -20,7 +20,8 @@
 public class NCZDGWorldActions extends ScriptableSystem {
   private let m_mappinId: NewMappinID;
   private let m_pinnedId: String;      // the NCZLocation.Id() the pin belongs to; "" = none
-  private let m_borrowed: Bool;        // true when the pin is the GAME's waypoint, moved rather than registered
+  private let m_pinnedPos: Vector4;    // where the waypoint was put; a mismatch means the map moved it
+  private let m_borrowed: Bool;        // true when the mappin is the GAME's, moved rather than registered
 
   public final static func Get(gi: GameInstance) -> ref<NCZDGWorldActions> {
     return GameInstance.GetScriptableSystemsContainer(gi)
@@ -33,11 +34,57 @@ public class NCZDGWorldActions extends ScriptableSystem {
   // deactivated across a clear, because only the world map can put one in the tracked slot and a
   // tracked mappin can be repositioned forever.
   public func HasPin() -> Bool {
+    this.Reconcile();
     return this.m_mappinId.value != 0ul && !UnicodeStringEqual(this.m_pinnedId, "");
   }
 
   private func HasMappin() -> Bool {
     return this.m_mappinId.value != 0ul;
+  }
+
+  // The waypoint belongs to the GAME, and the map can destroy or move it at any time with no
+  // notification. Held state must be re-checked against the mappin system before it is trusted, or it
+  // goes stale: a waypoint cleared from the map leaves the guide still offering CLEAR WAYPOINT for it.
+  private func Reconcile() -> Void {
+    if this.m_mappinId.value == 0ul {
+      return;
+    }
+    let ms = GameInstance.GetMappinSystem(this.GetGameInstance());
+    if !IsDefined(ms) {
+      return;
+    }
+
+    let mappin = ms.GetMappin(this.m_mappinId);
+    if !IsDefined(mappin) {
+      let empty: NewMappinID;
+      this.m_mappinId = empty;
+      this.m_pinnedId = "";
+      this.m_borrowed = false;
+      NCZDGLog("[SYNC] the waypoint was destroyed elsewhere - releasing it");
+      return;
+    }
+
+    // Moved from the map: the mappin lives on, but it no longer marks the location it was set for.
+    if !UnicodeStringEqual(this.m_pinnedId, "")
+      && Vector4.Distance(mappin.GetWorldPosition(), this.m_pinnedPos) > 1.0 {
+      this.m_pinnedId = "";
+      NCZDGLog("[SYNC] the waypoint was moved elsewhere - releasing the location");
+    }
+  }
+
+  // No tracked waypoint means there is nothing to move, and REGISTERING one is not a fallback:
+  // a script-registered variant-21 mappin sits alongside the one the game builds the next time the
+  // player sets a waypoint from the map, and two of them corrupt the game's waypoint handling.
+  public func CanSetWaypoint(gi: GameInstance) -> Bool {
+    let ms = GameInstance.GetMappinSystem(gi);
+    if !IsDefined(ms) {
+      return false;
+    }
+    let trackedId = ms.GetManuallyTrackedMappinID();
+    if trackedId.value != 0ul && IsDefined(ms.GetMappin(trackedId)) {
+      return true;
+    }
+    return this.HasMappin() && IsDefined(ms.GetMappin(this.m_mappinId));
   }
 
   public func IsPinned(locId: String) -> Bool {
@@ -57,6 +104,7 @@ public class NCZDGWorldActions extends ScriptableSystem {
 
     this.m_mappinId = id;
     this.m_pinnedId = locId;
+    this.m_pinnedPos = pos;
     this.m_borrowed = borrowed;
 
     NCZDGLog(s"[MOVE] reused \(what) id=\(id.value) -> \(pos)");
@@ -66,81 +114,42 @@ public class NCZDGWorldActions extends ScriptableSystem {
     }
   }
 
-  // CustomPositionVariant (21) is a ROLE, not a look. The game's own waypoint is a RuntimeMappin with
-  // variant 21 - structurally identical to what RegisterMappin produces - and the game's waypoint
-  // handling misbehaves when a SECOND variant-21 mappin exists: measured, it moved a registered pin to
-  // a coordinate nobody chose and created a third waypoint elsewhere. Registering one while the player
-  // already has a waypoint corrupts their waypoint state. TWO MUST NEVER COEXIST.
+  // THIS NEVER CREATES A MAPPIN. It moves the one the game already tracks.
   //
-  // So the two paths below are exclusive by construction:
-  //   waypoint already set -> REPOSITION it. It is already tracked, so no new mappin is created.
-  //   no waypoint          -> register one. It is then the only variant-21 mappin in the world.
+  // CustomPositionVariant (21) is a ROLE, not a look: the game assumes exactly one mappin holds it,
+  // looks that mappin up, and WRITES to it. A second variant-21 mappin makes it write to the wrong
+  // one - measured, it moved a script-registered pin to a coordinate nobody chose and created a third
+  // waypoint elsewhere. A script-registered pin also cannot route: nothing in the game tracks a mappin
+  // by id, and the C++ slot naming THE custom-position mappin is not writable from script.
   //
-  // The registered pin still cannot route itself: nothing in the game tracks a mappin by id, and the
-  // C++ slot naming THE custom-position mappin is not writable from script. It draws no trail until
-  // the map is opened once.
-  // [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]]
-  public func SetWaypoint(gi: GameInstance, pos: Vector4, locId: String) -> Void {
+  // So registering is not a fallback - it is a decoy that draws no trail and corrupts the player's
+  // waypoint state as soon as they set one from the map. With no tracked waypoint there is nothing to
+  // move, and the honest answer is to refuse and say why. CanSetWaypoint() reports it.
+  //
+  // The GPS reads a tracked mappin's position LIVE, so repositioning it redraws the trail with no map
+  // open. [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]]
+  public func SetWaypoint(gi: GameInstance, pos: Vector4, locId: String) -> Bool {
     let ms = GameInstance.GetMappinSystem(gi);
     if !IsDefined(ms) {
-      return;
+      return false;
     }
 
     // A NewMappinID read inline off the call yields a heap pointer, not the id. Bind it first.
     let trackedId = ms.GetManuallyTrackedMappinID();
-
-    // BEST CASE: a waypoint is tracked. Move it. The GPS reads a tracked mappin's position live, so
-    // the trail redraws with no map open - measured.
     if trackedId.value != 0ul && IsDefined(ms.GetMappin(trackedId)) {
-      // A pin this system registered earlier must not survive alongside the tracked one.
-      if this.HasMappin() && this.m_mappinId.value != trackedId.value && !this.m_borrowed {
-        ms.UnregisterMappin(this.m_mappinId);
-      }
       this.Adopt(gi, trackedId, pos, locId, true, "the game's tracked waypoint");
-      return;
+      return true;
     }
 
-    // A mappin from earlier this session, deactivated by a clear. Reuse it rather than registering a
-    // second one, which is what corrupts the game's waypoint state.
+    // Deactivated by a clear earlier this session. The tracked slot is scarce - only the world map can
+    // fill it - so the mappin is revived rather than abandoned.
     if this.HasMappin() && IsDefined(ms.GetMappin(this.m_mappinId)) {
-      this.Adopt(gi, this.m_mappinId, pos, locId, this.m_borrowed, "a dormant mappin");
-      return;
+      this.Adopt(gi, this.m_mappinId, pos, locId, this.m_borrowed, "a dormant waypoint");
+      return true;
     }
 
-    NCZDGLog("[MOVE] nothing to reposition - registering a new pin");
-    // MappinData is an importonly struct: declare a local, never `new`.
-    //
-    // TYPE = DefaultStaticMappin. On paper CustomPositionMappinDefinition is the right record and
-    //   this pairing is a mismatch (DefaultStaticMappin declares possibleVariants = [DefaultVariant]).
-    //   In game only this pairing has ever produced a route.
-    //
-    // VARIANT = CustomPositionVariant, because this pin IS the player's waypoint. It is the WRONG
-    //   variant for a point-of-interest pin, which is a separate bug in the checklist mods
-    //   (spuddeh/perk-shard-checklist#2): the game adopts any such mappin as the player's waypoint,
-    //   so registering many of them produces waypoints the player never asked for.
-    //
-    // DO NOT set `active`. It changes nothing - the game sets it on the mappin regardless of what is
-    //   passed here (measured: a pin registered with active = false comes back active = true).
-    //
-    // The ICON is overridable: GameplayRoleMappinData.m_textureID on scriptData beats the variant's
-    //   own icon (measured - a PlayerStashMappin glyph rendered in place of the waypoint arrow). A
-    //   branded pin therefore needs only a MappinIcons TweakDB record, which means a TweakXL
-    //   dependency this mod does not currently carry.
-    let data: MappinData;
-    data.mappinType = t"Mappins.DefaultStaticMappin";
-    data.variant = gamedataMappinVariant.CustomPositionVariant;
-    data.visibleThroughWalls = true;
-
-    this.m_mappinId = ms.RegisterMappin(data, pos);
-    this.m_pinnedId = locId;
-
-    NCZDGLog(s"actions: waypoint set on '\(locId)'");
-
-    // RegisterMappin is async - the pin does not exist on this frame - so the baseline census that
-    // the map session is diffed against has to wait for it.
-    let snap = new NCZDGMapDiffCallback();
-    snap.gi = gi;
-    GameInstance.GetDelaySystem(gi).DelayCallback(snap, 2.0);
+    NCZDGLog("[MOVE] refused: no waypoint exists to move, and registering one would corrupt the game's");
+    return false;
   }
 
   // Destroying the mappin also empties the tracked slot, and the slot is the scarce thing: only the
