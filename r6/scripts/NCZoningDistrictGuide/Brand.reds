@@ -111,6 +111,14 @@ public func NCZDG_Rebrand(root: wref<inkWidget>) -> Void {
   NCZDG_Retint(root, n"fluffText", NCZDG_Cyan());
 }
 
+// Codeware's HubTextInput paints its HOVER frame MainColors.Red, which reads as an error state on
+// an idle search box. Idle stays grey, hover goes amber, focus stays cyan.
+public func NCZDG_RebrandInput(root: wref<inkWidget>) -> Void {
+  NCZDG_Retint(root, n"hover", NCZDG_Amber());
+  NCZDG_Retint(root, n"focus", NCZDG_Cyan());
+  NCZDG_Retint(root, n"fill", NCZDG_Cyan());
+}
+
 public func NCZDG_Retint(root: wref<inkWidget>, name: CName, colour: CName) -> Void {
   let w = NCZDG_FindByName(root, name);
   if IsDefined(w) {
