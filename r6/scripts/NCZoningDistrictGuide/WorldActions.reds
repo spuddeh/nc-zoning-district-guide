@@ -20,6 +20,7 @@
 public class NCZDGWorldActions extends ScriptableSystem {
   private let m_mappinId: NewMappinID;
   private let m_pinnedId: String;      // the NCZLocation.Id() the pin belongs to; "" = none
+  private let m_borrowed: Bool;        // true when the pin is the GAME's waypoint, moved rather than registered
 
   public final static func Get(gi: GameInstance) -> ref<NCZDGWorldActions> {
     return GameInstance.GetScriptableSystemsContainer(gi)
@@ -40,22 +41,52 @@ public class NCZDGWorldActions extends ScriptableSystem {
     return this.m_mappinId;
   }
 
-  // The game keeps ONE custom waypoint, so setting a second must clear the first.
+  // CustomPositionVariant (21) is a ROLE, not a look. The game's own waypoint is a RuntimeMappin with
+  // variant 21 - structurally identical to what RegisterMappin produces - and the game's waypoint
+  // handling misbehaves when a SECOND variant-21 mappin exists: measured, it moved a registered pin to
+  // a coordinate nobody chose and created a third waypoint elsewhere. Registering one while the player
+  // already has a waypoint corrupts their waypoint state. TWO MUST NEVER COEXIST.
   //
-  // This pin CANNOT route itself: no breadcrumb trail appears until the player opens the world map
-  // once. Nothing in the game tracks a mappin by id - tracking is a property of an OWNER, and the
-  // only two owners are a world-map mappin controller (alive only while the map runs) and a journal
-  // entry (buildable only through the scripted-quest API, which is stubbed to return false in the
-  // shipped build). A pin registered from a script has no owner, so it cannot be nominated. Say so
-  // in the UI; do not try to work around it in script.
+  // So the two paths below are exclusive by construction:
+  //   waypoint already set -> REPOSITION it. It is already tracked, so no new mappin is created.
+  //   no waypoint          -> register one. It is then the only variant-21 mappin in the world.
+  //
+  // The registered pin still cannot route itself: nothing in the game tracks a mappin by id, and the
+  // C++ slot naming THE custom-position mappin is not writable from script. It draws no trail until
+  // the map is opened once.
   // [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]]
   public func SetWaypoint(gi: GameInstance, pos: Vector4, locId: String) -> Void {
-    this.ClearWaypoint(gi);
-
     let ms = GameInstance.GetMappinSystem(gi);
     if !IsDefined(ms) {
       return;
     }
+
+    // A NewMappinID read inline off the call yields a heap pointer, not the id. Bind it first.
+    let trackedId = ms.GetManuallyTrackedMappinID();
+    if trackedId.value != 0ul {
+      let tracked = ms.GetMappin(trackedId);
+      if IsDefined(tracked) {
+        // Only a pin this system REGISTERED may be unregistered here. A borrowed one is the mappin
+        // about to be repositioned, and destroying it first would leave a dead id.
+        if this.HasPin() && !this.m_borrowed {
+          this.ClearWaypoint(gi);
+        }
+        ms.SetMappinPosition(trackedId, pos);
+        this.m_mappinId = trackedId;
+        this.m_pinnedId = locId;
+        this.m_borrowed = true;
+
+        let readback = ms.GetMappin(trackedId);
+        NCZDGLog(s"[MOVE] repositioned the game's own waypoint id=\(trackedId.value) to \(pos)");
+        if IsDefined(readback) {
+          NCZDGLog(s"[MOVE] readback: tracked=\(readback.IsPlayerTracked()) pos=\(readback.GetWorldPosition())");
+        }
+        return;
+      }
+    }
+
+    this.ClearWaypoint(gi);
+    NCZDGLog("[MOVE] no waypoint to reposition - registering a new pin");
     // MappinData is an importonly struct: declare a local, never `new`.
     //
     // TYPE = DefaultStaticMappin. On paper CustomPositionMappinDefinition is the right record and
@@ -91,6 +122,9 @@ public class NCZDGWorldActions extends ScriptableSystem {
     GameInstance.GetDelaySystem(gi).DelayCallback(snap, 2.0);
   }
 
+  // A borrowed waypoint belongs to the game, so clearing it must do what the map does when the player
+  // clears a waypoint: destroy the mappin. It must NOT be left behind untracked, or it becomes a
+  // second variant-21 mappin the moment another is set.
   public func ClearWaypoint(gi: GameInstance) -> Void {
     if !this.HasPin() {
       return;
@@ -102,6 +136,7 @@ public class NCZDGWorldActions extends ScriptableSystem {
     let empty: NewMappinID;
     this.m_mappinId = empty;
     this.m_pinnedId = "";
+    this.m_borrowed = false;
     NCZDGLog("actions: waypoint cleared");
   }
 }
