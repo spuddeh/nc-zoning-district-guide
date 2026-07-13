@@ -144,22 +144,19 @@ public class NCZDGWorldActions extends ScriptableSystem {
     //   does not own it and CanPlayerTrackMappin allows it. Everything else the variant carries (icon,
     //   and the UI-MappinTypes-Apartment LocKeys) is overridden on the controllers.
     //
-    // SCRIPTDATA: without it, WorldMappinsContainerController.CreateMappinUIProfile falls through to
-    //   MappinUISpawnProfile.MediumRange and the world pin DISAPPEARS at distance - useless for a
-    //   marker the player is navigating towards. A GameplayRoleMappinData routes it to the
-    //   GameplayRole profile instead, which spawns Always, and to GameplayMappinController, which is
-    //   hookable. m_textureID is deliberately left unset: a valid one would need a MappinIcons TweakDB
-    //   record and therefore TweakXL, and the controller hook does the same job for free.
-    let role = new GameplayRoleMappinData();
-    role.m_visibleThroughWalls = true;
-    role.m_showOnMiniMap = true;
-
+    // NO SCRIPTDATA. A GameplayRoleMappinData was attached here to buy MappinUISpawnProfile.Always, so
+    //   the world pin would stop vanishing at distance. It also routes the mappin to the GameplayRole
+    //   UI profile - the loot / clue / scanning family, which are world-space ANNOTATIONS rather than
+    //   navigation destinations - and the GPS trail became unreliable from that build onward, on the
+    //   same locations that had routed before it.
+    //
+    //   Routing is the feature. A pin that fades out at long range costs the player nothing, because
+    //   the trail is what they navigate by. Leave scriptData null.
     let data: MappinData;
     data.mappinType = t"Mappins.DefaultStaticMappin";
     data.variant = gamedataMappinVariant.ApartmentVariant;
     data.visibleThroughWalls = true;
     data.debugCaption = NCZDG_MarkerCaption(title);
-    data.scriptData = role;
 
     this.m_mappinId = ms.RegisterMappin(data, pos);
     this.m_pinnedId = locId;
