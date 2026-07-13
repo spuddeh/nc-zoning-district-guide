@@ -62,31 +62,40 @@ public class NCZDGWorldActions extends ScriptableSystem {
     // DO NOT set `active`. It changes nothing - the game sets it on the mappin regardless of what is
     //   passed here (measured: a pin registered with active = false comes back active = true), and
     //   an A/B on one location produced identical tracking either way.
-    // DEV EXPERIMENT: register as a QUEST mappin rather than a custom-position one.
+    // MappinData is an importonly struct: declare a local, never `new`.
     //
-    // Quest pins route without the map ever being opened, which is the behaviour a custom-position
-    // pin never gets. The question is WHY:
+    // TYPE = DefaultStaticMappin. On paper CustomPositionMappinDefinition is the right record and
+    //   this pairing is a mismatch (DefaultStaticMappin declares possibleVariants = [DefaultVariant]).
+    //   In game only this pairing has ever produced a route.
     //
-    //   (a) the route follows any mappin of a QUEST TYPE/VARIANT   -> this is a one-line fix
-    //   (b) the route follows a journal-TRACKED ENTRY, and the pin only routes because the objective
-    //       it belongs to is tracked                                -> nothing here helps
+    // VARIANT = CustomPositionVariant, because this pin IS the player's waypoint. It is the WRONG
+    //   variant for a point-of-interest pin, which is a separate bug in the checklist mods
+    //   (spuddeh/perk-shard-checklist#2).
     //
-    // GameplayQuestSystem registers exactly this pair, so it is the honest thing to try. If a route
-    // appears with no map, (a) holds. If not, (b) does, and quest routing is journal-bound: reaching
-    // it would mean a spawned entity, a fake journal quest, and hijacking the player's quest tracking
-    // (JournalManager.TrackEntry tracks exactly ONE entry) - too high a price for a breadcrumb.
+    // A QUEST pairing (QuestStaticMappinDefinition + DefaultQuestVariant) draws a quest pin and does
+    //   NOT route: the mappin's quest type is cosmetic, and quest routing is journal-bound. Measured.
     //
-    // The icon experiment is deliberately NOT running alongside this: a quest variant changes the
-    // icon anyway, so the two together would answer neither question.
+    // DO NOT set `active`. It changes nothing - the game sets it regardless of what is passed here.
     let data: MappinData;
-    data.mappinType = t"Mappins.QuestStaticMappinDefinition";
-    data.variant = gamedataMappinVariant.DefaultQuestVariant;
+    data.mappinType = t"Mappins.DefaultStaticMappin";
+    data.variant = gamedataMappinVariant.CustomPositionVariant;
     data.visibleThroughWalls = true;
+
+    // DEV EXPERIMENT, remove either way. Can the pin carry a CUSTOM ICON without changing the
+    // variant? The variant cannot change - CustomPositionVariant is what the map adopts - so the
+    // only candidate is scriptData. GameplayMappinController.UpdateIcon prefers m_textureID over the
+    // variant-derived icon when it is a valid TweakDBID. Whether the custom-position pin uses that
+    // controller at all is the open question. A stash glyph is unmistakable next to a waypoint.
+    let icon = new GameplayRoleMappinData();
+    icon.m_textureID = t"MappinIcons.PlayerStashMappin";
+    icon.m_visibleThroughWalls = true;
+    icon.m_showOnMiniMap = true;
+    data.scriptData = icon;
 
     this.m_mappinId = ms.RegisterMappin(data, pos);
     this.m_pinnedId = locId;
 
-    NCZDGLog(s"actions: waypoint set on '\(locId)' [QUEST MAPPIN TEST: QuestStaticMappinDefinition + DefaultQuestVariant]");
+    NCZDGLog(s"actions: waypoint set on '\(locId)' [ICON TEST: MappinIcons.PlayerStashMappin]");
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {
