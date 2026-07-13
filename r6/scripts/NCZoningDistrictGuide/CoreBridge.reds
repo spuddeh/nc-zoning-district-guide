@@ -41,6 +41,10 @@ public func NCZDG_CoreUsable() -> Bool {
 @if(!ModuleExists("NCZoning.Api"))
 public func NCZDG_CoreUsable() -> Bool { return false; }
 
+// "Ready" means THE CORE HAS DATA, not that the core is installed. Do NOT gate a UI surface on
+// this: with no data it is false, so the surface that exists to tell the player the data is
+// missing gets switched off by the very failure it reports. Gate on NCZDG_CoreUsable() (installed
+// and API-compatible) and branch on NCZDG_HasData() (Status.reds) instead.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_CoreReady() -> Bool {
   return NCZDG_CoreUsable() && IsReady();

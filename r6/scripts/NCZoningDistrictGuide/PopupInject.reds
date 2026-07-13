@@ -96,8 +96,12 @@ public func NCZDG_UpdatePanel() -> Void {
     NCZDGLog("popup: bail - no cfg or toast off");
     return;   // feature off: add nothing
   }
-  if !NCZDG_CoreReady() {
-    NCZDGLog("popup: bail - core not ready");
+  // Gate on the core being CALLABLE (installed, compatible ApiVersion) - NOT on it having data.
+  // NCZDG_CoreReady() folds IsReady() in, and gating on that here is what silenced this panel in
+  // the no-data state: the surface that exists to explain the failure was itself switched off by
+  // the failure. Whether there is data is NCZDG_HasData(), and the panel renders either way.
+  if !NCZDG_CoreUsable() {
+    NCZDGLog("popup: bail - core absent or too old");
     return;
   }
 

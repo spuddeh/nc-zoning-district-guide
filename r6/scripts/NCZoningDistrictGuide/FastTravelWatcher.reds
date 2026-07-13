@@ -65,7 +65,9 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
   private func ShowFastTravelPanel() -> Void {
     let gi = this.GetGameInstance();
     let cfg = NCZDGConfig.Get();
-    if !IsDefined(cfg) || !cfg.enablePopupToast || !NCZDG_CoreReady() {
+    // Gate on the core being CALLABLE, not on it having data: NCZDG_CoreReady() folds IsReady() in,
+    // which would switch off the very panel that reports the missing data. See PopupInject.
+    if !IsDefined(cfg) || !cfg.enablePopupToast || !NCZDG_CoreUsable() {
       return;
     }
     // Fast travel shows no game banner, so this panel stands alone. Opt out to leave fast travel
