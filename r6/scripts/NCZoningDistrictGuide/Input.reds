@@ -20,6 +20,7 @@
 // ======================================================================================
 
 import NCZoningDistrictGuide.Config.*
+import NCZoningDistrictGuide.Guide.*
 
 public class NCZDGInputListener {
   private let m_player: wref<PlayerPuppet>;
@@ -126,6 +127,10 @@ public func NCZDG_ModifierName(m: NCZDGModifier) -> String {
 // Kept separate from the listener so the input plumbing and the UI stay independently testable.
 public func NCZDG_ToggleGuide(player: ref<PlayerPuppet>) -> Void {
   NCZDGLog("guide key: FIRED");
+  if !IsDefined(player) {
+    return;
+  }
+  NCZDG_OpenGuide(player.GetGame());
 }
 
 @addField(PlayerPuppet)
