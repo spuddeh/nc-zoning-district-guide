@@ -107,6 +107,10 @@ public class NCZDGMapDiff extends ScriptableSystem {
     NCZDGLog(s"[TRACK \(when)] \(hits) player-tracked mappin(s) out of \(ArraySize(all))");
   }
 
+  public func HasBaseline() -> Bool {
+    return this.m_taken;
+  }
+
   public func Snapshot(gi: GameInstance, label: String) -> Void {
     ArrayClear(this.m_ids);
     ArrayClear(this.m_desc);
@@ -164,12 +168,20 @@ public class NCZDGMapDiff extends ScriptableSystem {
 
 // Read-only. wrappedMethod() runs first and unconditionally: the map must behave exactly as it would
 // without this mod present.
+// A run that sets only a NATIVE map pin never calls SetWaypoint, so it would have no baseline to diff
+// against. Taking one on first open makes the game's own waypoint measurable on its own terms - the
+// control this whole investigation has been missing.
 @wrapMethod(WorldMapMenuGameController)
 protected cb func OnInitialize() -> Bool {
   let r = wrappedMethod();
-  let diff = NCZDGMapDiff.Get(this.GetPlayerControlledObject().GetGame());
+  let gi = this.GetPlayerControlledObject().GetGame();
+  let diff = NCZDGMapDiff.Get(gi);
   if IsDefined(diff) {
-    diff.Diff(this.GetPlayerControlledObject().GetGame(), "MAP OPENED");
+    if diff.HasBaseline() {
+      diff.Diff(gi, "MAP OPENED");
+    } else {
+      diff.Snapshot(gi, "MAP OPENED (no pin set, baseline only)");
+    }
   }
   return r;
 }
