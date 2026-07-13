@@ -66,10 +66,9 @@ public func NCZDG_TextColor() -> Color {
 
 // Zoning Cyan as a raw colour, for widgets a style bind cannot hold.
 //
-// An INTERACTIVE widget gets widget states applied (Default / Hover / Press), and a state can
-// override a style-BOUND tintColor while leaving a direct SetTintColor alone. That is what turned
-// the scrollbar handle red at rest and cyan only on hover: the bind was being applied in the hover
-// state and overridden in the default one. Tint interactive chrome directly.
+// An INTERACTIVE widget gets widget states applied (Default / Hover / Press), and a state overrides
+// a style-BOUND tintColor while leaving a direct SetTintColor alone. Tint interactive chrome
+// directly, or it renders in the state's colour at rest and in yours only on hover.
 public func NCZDG_CyanColor() -> Color {
   return new Color(Cast<Uint8>(0u), Cast<Uint8>(240u), Cast<Uint8>(255u), Cast<Uint8>(255u));
 }

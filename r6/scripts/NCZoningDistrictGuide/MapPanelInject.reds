@@ -101,10 +101,28 @@ protected cb func OnUpdateHoveredDistricts(district: gamedataDistrict, subdistri
   return result;
 }
 
-// Null the refs when the map closes; the widgets die with the menu.
+// DEV ONLY. Additive: wrappedMethod() first, unconditional.
+@if(ModuleExists("NCZoning.Api"))
+@wrapMethod(WorldMapMenuGameController)
+protected cb func OnInitialize() -> Bool {
+  let result = wrappedMethod();
+  let player = this.GetPlayerControlledObject();
+  if IsDefined(player) {
+    NCZDG_LogMappinState(player.GetGame(), "map-open");
+  }
+  return result;
+}
+
+// Nulls the refs when the map closes; the widgets die with the menu.
 @if(ModuleExists("NCZoning.Api"))
 @wrapMethod(WorldMapMenuGameController)
 protected cb func OnUninitialize() -> Bool {
+  // DEV ONLY. The map builds a custom waypoint's GPS route on open/close, so its tracking state is
+  // logged on both edges.
+  let player = this.GetPlayerControlledObject();
+  if IsDefined(player) {
+    NCZDG_LogMappinState(player.GetGame(), "map-close");
+  }
   let result = wrappedMethod();
   this.nczdg_mapPanel = null;
   this.nczdg_mapCount = null;
