@@ -29,6 +29,37 @@ module NCZoningDistrictGuide.Guide
 import Codeware.UI.*
 import NCZoningDistrictGuide.Config.*
 
+// --------------------------------------------------------------------------------------
+// LAYOUT. Every number here is in 4K DESIGN UNITS (3840x2160), never screen pixels.
+//
+// The game scales the whole popup tree by screenH/2160 (0.5 at 1080p, 0.667 at 1440p, 1.0 at 4K),
+// so design units are already resolution-independent: 2800 units is the same FRACTION of the screen
+// at every resolution. Ultrawide is safe too, because the scale is driven by HEIGHT - a wider screen
+// just leaves more empty space beside the panel.
+//
+// So: never write a screen pixel, and never derive a width from the root window's GetSize(). (The
+// fast-travel panel is the opposite case: it parents onto the top-level window at scale 1.0 and has
+// to apply screenH/2160 by hand. Inside the popup the scale is inherited.)
+public func NCZDG_PopupWidth() -> Float { return 2800.0; }
+public func NCZDG_PopupHeight() -> Float { return 1600.0; }
+
+// InGamePopupContent insets itself by (76, 135, 0, 118) - note the RIGHT margin is ZERO, while the
+// header and footer both inset by 76. Measured from the live tree at container 1600x1100:
+//
+//   header frame width = 1600 - 76 - 76 = 1448
+//   content size       = (1524, 847)    = 1600 - 76 - 0
+//
+// so the content region runs 76 units PAST the visible frame on the right, and anything placed
+// against its right edge overhangs it. Re-inset by hand; do not trust content.GetSize().X as the
+// usable width.
+public func NCZDG_FrameInset() -> Float { return 76.0; }
+
+// The width actually INSIDE the frame. Lay the split columns out against this, never against the
+// content widget's own width.
+public func NCZDG_UsableWidth() -> Float {
+  return NCZDG_PopupWidth() - NCZDG_FrameInset() - NCZDG_FrameInset();
+}
+
 // The entry point Input.reds calls. Declared in this module so the import there resolves.
 public func NCZDG_OpenGuide(gi: GameInstance) -> Void {
   let sys = NCZDGGuideSystem.Get(gi);
@@ -53,15 +84,16 @@ public class NCZDGGuideSystem extends ScriptableSystem {
     return IsDefined(this.m_popup) && !this.m_popup.IsClosed();
   }
 
+  // The keybind OPENS only; ESC / right-click / the CLOSE button dismiss.
+  //
+  // Two reasons, and either alone would settle it. The popup pushes UIGameContext.ModalPopup, which
+  // switches input away from the gameplay contexts the key is bound into, so while the popup is up
+  // the listener never fires at all (verified: pressing it logs nothing). And the panel owns a text
+  // input, so a key that closed the window could not also be typed into the search box - binding the
+  // guide to ' would make ' undismissable as a search character.
   public func Toggle() -> Void {
-    let defined = IsDefined(this.m_popup);
-    let closed = defined ? this.m_popup.IsClosed() : true;
-    NCZDGLog(s"guide: toggle - popup defined=\(defined) closed=\(closed)");
     if this.IsOpen() {
-      NCZDGLog("guide: closing (the keybind is a real toggle)");
-      this.m_popup.Close();
-      this.m_popup = null;
-      return;
+      return;   // unreachable while ModalPopup holds input; harmless if that ever changes
     }
     this.Open();
   }
@@ -146,9 +178,9 @@ public class NCZDGGuidePopup extends InGamePopup {
     super.OnCreate();
 
     // Size the container BEFORE reparenting the content: InGamePopupContent measures itself off the
-    // container at reparent time.
-    this.m_container.SetWidth(1750.0);
-    this.m_container.SetHeight(1150.0);
+    // container at OnReparent, so a later resize does not reach it.
+    this.m_container.SetWidth(NCZDG_PopupWidth());
+    this.m_container.SetHeight(NCZDG_PopupHeight());
 
     // The vignette defaults to MainColors.Red (Codeware's alert styling). This is not an alert.
     if IsDefined(this.m_vignette) {
@@ -172,18 +204,21 @@ public class NCZDGGuidePopup extends InGamePopup {
     // An inkCustomController is not a widget: reach its widget with GetRootCompoundWidget().
     let content = this.m_content.GetRootCompoundWidget();
 
+    // The right margin re-insets the content region back inside the frame (see NCZDG_FrameInset).
     let root = new inkVerticalPanel();
     root.SetName(n"nczdg_guide_root");
     root.SetChildOrder(inkEChildOrder.Forward);
     root.SetFitToContent(true);
     root.SetHAlign(inkEHorizontalAlign.Left);
-    root.SetMargin(new inkMargin(40.0, 40.0, 0.0, 0.0));
+    root.SetMargin(new inkMargin(0.0, 0.0, NCZDG_FrameInset(), 0.0));
     root.Reparent(content);
+
+    NCZDGLog(s"guide: popup \(NCZDG_PopupWidth())x\(NCZDG_PopupHeight()), usable width \(NCZDG_UsableWidth())");
 
     // Hold a STRONG local ref while reparenting. Assigning `new inkText()` straight into a wref
     // field leaves nothing owning the widget, so it is collected before Reparent and never appears.
     let status = this.MakeText(
-      "Press the guide key again to close, or ESC / right-click / CLOSE.", n"MainColors.Grey", 32);
+      "ESC, right-click or CLOSE to dismiss.", n"MainColors.Grey", 32);
     status.Reparent(root);
     this.m_status = status;
 
@@ -201,6 +236,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.MakeButton(root, "CLOSE", -1);
 
     NCZDGLog("guide: popup created");
+    // DEV: the panel's right edge reads as clipped. Dump the live tree rather than guessing which
+    // widget overflows; every ink geometry question in this mod has been answered this way.
+    NCZDGLog("[GUIDE] popup tree:");
+    NCZDG_DumpWidget(this.GetRootCompoundWidget(), 0, 4);
   }
 
   protected cb func OnSearchChanged(widget: ref<inkWidget>) -> Bool {
