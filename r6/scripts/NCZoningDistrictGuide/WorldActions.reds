@@ -152,13 +152,29 @@ public class NCZDGWorldActions extends ScriptableSystem {
     //
     //   Routing is the feature. A pin that fades out at long range costs the player nothing, because
     //   the trail is what they navigate by. Leave scriptData null.
+    // VARIANT: a variant is not a look. It selects the mappin's UI PROFILE, and the profile decides
+    //   whether the pin exists on the HUD at all.
+    //
+    //   ApartmentVariant fell through CreateMappinUIProfile to MappinUISpawnProfile.MediumRange, which
+    //   is spawnDistance 100 / despawnDistance 120 - so the pin simply did not exist on the HUD beyond
+    //   100 metres, which is every location the player is actually navigating to.
+    //
+    //   Zzz10_RemoteControlDrivingVariant takes the SAME default widget, so every controller hook still
+    //   applies, but lands on MappinUISpawnProfile.Always and WorldMappinUIProfile.RemoteControlDriving:
+    //     hoverRadius  120  (vs 40 - three times easier to hover, which is the one action tracking needs)
+    //     clampX/Y     1    (clamps to the screen edge, like a waypoint)
+    //     showDistance 1    (metres to target)
+    //     priority     7    (vs 0)
+    //
+    //   It carries no journal entry, so CanQuestTrackMappin is false and the player may still track it -
+    //   which is the property the entire feature rests on, and the only one a variant must not break.
+    //
     // ACTIVE: set it. The rule "never set active, the game sets it regardless" was measured on a
-    //   CustomPositionVariant waypoint, where it is genuinely inert - it does not transfer to a POI
-    //   mappin, and the community marker template sets it. Without it the pin does not appear on the
-    //   HUD at all until it is tracked.
+    //   CustomPositionVariant WAYPOINT, where it is inert. It does not transfer to a POI mappin, and the
+    //   community marker template sets it.
     let data: MappinData;
     data.mappinType = t"Mappins.DefaultStaticMappin";
-    data.variant = gamedataMappinVariant.ApartmentVariant;
+    data.variant = gamedataMappinVariant.Zzz10_RemoteControlDrivingVariant;
     data.active = true;
     data.visibleThroughWalls = true;
     data.debugCaption = NCZDG_MarkerCaption(title);
