@@ -67,10 +67,31 @@ public class NCZDGWorldActions extends ScriptableSystem {
     data.variant = gamedataMappinVariant.CustomPositionVariant;
     data.visibleThroughWalls = true;
 
+    // DEV EXPERIMENT, remove either way.
+    //
+    // Can the pin carry a CUSTOM ICON without changing the variant? The variant cannot change -
+    // CustomPositionVariant is what makes the game treat this as the player's waypoint - so the only
+    // candidate is MappinData.scriptData.
+    //
+    // GameplayMappinController.UpdateIcon reads m_textureID off the mappin's script data and, when it
+    // is a valid TweakDBID, uses it INSTEAD of the icon derived from the variant:
+    //
+    //   iconID = roleMappinData.m_textureID;
+    //   if TDBID.IsValid(iconID) { this.SetTexture(this.iconWidget, iconID); }
+    //   else { ...texture part from GetVariant()... }
+    //
+    // Whether the custom-position waypoint uses that controller at all is the open question. A stash
+    // icon is unmistakable next to a waypoint diamond, so the pin either changes or it does not.
+    let icon = new GameplayRoleMappinData();
+    icon.m_textureID = t"MappinIcons.PlayerStashMappin";
+    icon.m_visibleThroughWalls = true;
+    icon.m_showOnMiniMap = true;
+    data.scriptData = icon;
+
     this.m_mappinId = ms.RegisterMappin(data, pos);
     this.m_pinnedId = locId;
 
-    NCZDGLog(s"actions: waypoint set on '\(locId)'");
+    NCZDGLog(s"actions: waypoint set on '\(locId)' [ICON TEST: MappinIcons.PlayerStashMappin]");
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {
