@@ -49,6 +49,7 @@ public class NCZDGWorldActions extends ScriptableSystem {
   private let m_mappinId: NewMappinID;
   private let m_pinnedId: String;      // the NCZLocation.Id() the marker belongs to; "" = none
   private let m_pinnedPos: Vector4;
+  private let m_confirmed: Bool;       // the mappin has resolved at least once; registration is async
 
   public final static func Get(gi: GameInstance) -> ref<NCZDGWorldActions> {
     return GameInstance.GetScriptableSystemsContainer(gi)
@@ -84,8 +85,12 @@ public class NCZDGWorldActions extends ScriptableSystem {
     return trackedId.value == this.m_mappinId.value;
   }
 
-  // The map can destroy or untrack the marker with no notification, so held state is re-checked
-  // against the mappin system before it is trusted.
+  // The map can destroy the marker with no notification, so held state is re-checked before it is
+  // trusted.
+  //
+  // RegisterMappin is ASYNC: GetMappin(id) returns null for the first frames after registering, even
+  // though the id is real. A reconcile that treats null as "destroyed" therefore deletes the marker it
+  // just created. Nothing is released until the mappin has been seen alive at least once.
   private func Reconcile() -> Void {
     if this.m_mappinId.value == 0ul {
       return;
@@ -94,12 +99,18 @@ public class NCZDGWorldActions extends ScriptableSystem {
     if !IsDefined(ms) {
       return;
     }
-    if !IsDefined(ms.GetMappin(this.m_mappinId)) {
-      let empty: NewMappinID;
-      this.m_mappinId = empty;
-      this.m_pinnedId = "";
-      NCZDGLog("[SYNC] the marker was destroyed elsewhere - releasing it");
+    if IsDefined(ms.GetMappin(this.m_mappinId)) {
+      this.m_confirmed = true;
+      return;
     }
+    if !this.m_confirmed {
+      return;
+    }
+    let empty: NewMappinID;
+    this.m_mappinId = empty;
+    this.m_pinnedId = "";
+    this.m_confirmed = false;
+    NCZDGLog("[SYNC] the marker was destroyed elsewhere - releasing it");
   }
 
   // Never creates a second mappin. One marker exists per session and moves between locations.

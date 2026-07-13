@@ -346,7 +346,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     pager.Reparent(body);
     // Clearing the pin must not require finding the card it came from - the player may have
     // searched or paged away from it, and a pin they cannot see is a pin they cannot remove.
-    this.m_clearWp = this.MakeButton(pager, "CLEAR WAYPOINT", NCZDG_IdxClearWaypoint());
+    this.m_clearWp = this.MakeButton(pager, "CLEAR MARKER", NCZDG_IdxClearWaypoint());
     this.m_clearWp.SetVisible(false);
     this.m_clearWp.SetSize(new Vector2(280.0, 52.0));
     this.MakeButton(pager, "< PREV", NCZDG_IdxPrevPage());
@@ -543,21 +543,30 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.m_selCard = -1;
 
     let actions = NCZDGWorldActions.Get(this.m_gi);
+    let marked = IsDefined(actions) && actions.HasPin();
     if IsDefined(this.m_clearWp) {
-      this.m_clearWp.SetVisible(IsDefined(actions) && actions.HasPin());
+      this.m_clearWp.SetVisible(marked);
     }
 
+    // A marker that is placed but not tracked draws a pin and no route, and only the player can fix
+    // that - from the map. Saying so once, in the footer, beats a card button that cannot do it.
+    let routing = marked && actions.IsRouting(this.m_gi);
     let shownFrom = n > 0 ? start + 1 : 0;
     let shownTo = start + NCZDG_PageSize() < n ? start + NCZDG_PageSize() : n;
+    let counts: String;
     if StrLen(this.m_query) > 0 {
-      this.m_status.SetText(s"\(n) OF \(area.count) IN \(area.Label())");
+      counts = s"\(n) OF \(area.count) IN \(area.Label())";
     } else {
       if n > NCZDG_PageSize() {
-        this.m_status.SetText(s"\(shownFrom)-\(shownTo) OF \(n) IN \(area.Label())");
+        counts = s"\(shownFrom)-\(shownTo) OF \(n) IN \(area.Label())";
       } else {
-        this.m_status.SetText(s"\(n) IN \(area.Label())");
+        counts = s"\(n) IN \(area.Label())";
       }
     }
+    if marked && !routing {
+      counts += "   ·   TRACK THE MARKER ON THE WORLD MAP ONCE FOR DIRECTIONS";
+    }
+    this.m_status.SetText(counts);
     NCZDGLog(s"guide: '\(area.Label())' q='\(this.m_query)' -> \(n) results, page \(this.m_page + 1)/\(pages)");
   }
 
@@ -590,13 +599,12 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     // The waypoint button reflects the CURRENT pin, so it is right on every re-bind.
     let actions = NCZDGWorldActions.Get(this.m_gi);
-    // The marker always places. Whether it ROUTES depends on the player having tracked it once from
-    // the map, which no script can do for them - so the label distinguishes a marker that is merely
-    // placed from one the GPS is following.
+    // A button says what CLICKING it does, and nothing else. Routing state is not an action - no
+    // script can track a mappin, only the player can, from the map - so it belongs in a hint, not on
+    // a control that does something different from what it reads.
     let pinned = IsDefined(actions) && actions.IsPinned(loc.Id());
-    let routing = pinned && actions.IsRouting(this.m_gi);
-    slot.wpLabel.SetText(pinned ? (routing ? "CLEAR MARKER" : "TRACK ON MAP") : "SET MARKER");
-    slot.wpLabel.BindProperty(n"tintColor", pinned && !routing ? NCZDG_Amber() : NCZDG_Cyan());
+    slot.wpLabel.SetText(pinned ? "CLEAR MARKER" : "SET MARKER");
+    slot.wpLabel.BindProperty(n"tintColor", NCZDG_Cyan());
 
     let canTp = NCZDG_CanTeleport(this.m_gi);
     slot.tpLabel.SetText(canTp ? "TELEPORT" : "EXIT VEHICLE");
