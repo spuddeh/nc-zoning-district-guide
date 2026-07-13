@@ -50,12 +50,18 @@ public class NCZDGWorldActions extends ScriptableSystem {
     }
     // MappinData is an importonly struct: declare a local, never `new`.
     //
-    // The type MUST be Mappins.CustomPositionMappinDefinition. Mappins.DefaultStaticMappin declares
-    // possibleVariants = [DefaultVariant], which does not include CustomPositionVariant, so pairing
-    // the two is a definition/variant mismatch: the pin draws, but no GPS route is built until the
-    // world map opens and runs its own custom-position sync.
+    // Mappins.DefaultStaticMappin, NOT Mappins.CustomPositionMappinDefinition. On paper the second
+    // is the right record - DefaultStaticMappin declares possibleVariants = [DefaultVariant], which
+    // does not include CustomPositionVariant, so this pairing is a mismatch. In game the mismatched
+    // pairing is the one that behaves: with DefaultStaticMappin a map open/close builds the route,
+    // and with CustomPositionMappinDefinition nothing does. Measured, not reasoned; do not "correct"
+    // this back without re-testing the trail.
+    //
+    // CustomPositionVariant is correct HERE, because this pin IS the player's waypoint. It is wrong
+    // for a point-of-interest pin, which is a separate bug in the checklist mods
+    // (spuddeh/perk-shard-checklist#2).
     let data: MappinData;
-    data.mappinType = t"Mappins.CustomPositionMappinDefinition";
+    data.mappinType = t"Mappins.DefaultStaticMappin";
     data.variant = gamedataMappinVariant.CustomPositionVariant;
     data.active = true;
     data.visibleThroughWalls = true;
