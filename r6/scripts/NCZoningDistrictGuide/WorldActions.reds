@@ -62,36 +62,31 @@ public class NCZDGWorldActions extends ScriptableSystem {
     // DO NOT set `active`. It changes nothing - the game sets it on the mappin regardless of what is
     //   passed here (measured: a pin registered with active = false comes back active = true), and
     //   an A/B on one location produced identical tracking either way.
+    // DEV EXPERIMENT: register as a QUEST mappin rather than a custom-position one.
+    //
+    // Quest pins route without the map ever being opened, which is the behaviour a custom-position
+    // pin never gets. The question is WHY:
+    //
+    //   (a) the route follows any mappin of a QUEST TYPE/VARIANT   -> this is a one-line fix
+    //   (b) the route follows a journal-TRACKED ENTRY, and the pin only routes because the objective
+    //       it belongs to is tracked                                -> nothing here helps
+    //
+    // GameplayQuestSystem registers exactly this pair, so it is the honest thing to try. If a route
+    // appears with no map, (a) holds. If not, (b) does, and quest routing is journal-bound: reaching
+    // it would mean a spawned entity, a fake journal quest, and hijacking the player's quest tracking
+    // (JournalManager.TrackEntry tracks exactly ONE entry) - too high a price for a breadcrumb.
+    //
+    // The icon experiment is deliberately NOT running alongside this: a quest variant changes the
+    // icon anyway, so the two together would answer neither question.
     let data: MappinData;
-    data.mappinType = t"Mappins.DefaultStaticMappin";
-    data.variant = gamedataMappinVariant.CustomPositionVariant;
+    data.mappinType = t"Mappins.QuestStaticMappinDefinition";
+    data.variant = gamedataMappinVariant.DefaultQuestVariant;
     data.visibleThroughWalls = true;
-
-    // DEV EXPERIMENT, remove either way.
-    //
-    // Can the pin carry a CUSTOM ICON without changing the variant? The variant cannot change -
-    // CustomPositionVariant is what makes the game treat this as the player's waypoint - so the only
-    // candidate is MappinData.scriptData.
-    //
-    // GameplayMappinController.UpdateIcon reads m_textureID off the mappin's script data and, when it
-    // is a valid TweakDBID, uses it INSTEAD of the icon derived from the variant:
-    //
-    //   iconID = roleMappinData.m_textureID;
-    //   if TDBID.IsValid(iconID) { this.SetTexture(this.iconWidget, iconID); }
-    //   else { ...texture part from GetVariant()... }
-    //
-    // Whether the custom-position waypoint uses that controller at all is the open question. A stash
-    // icon is unmistakable next to a waypoint diamond, so the pin either changes or it does not.
-    let icon = new GameplayRoleMappinData();
-    icon.m_textureID = t"MappinIcons.PlayerStashMappin";
-    icon.m_visibleThroughWalls = true;
-    icon.m_showOnMiniMap = true;
-    data.scriptData = icon;
 
     this.m_mappinId = ms.RegisterMappin(data, pos);
     this.m_pinnedId = locId;
 
-    NCZDGLog(s"actions: waypoint set on '\(locId)' [ICON TEST: MappinIcons.PlayerStashMappin]");
+    NCZDGLog(s"actions: waypoint set on '\(locId)' [QUEST MAPPIN TEST: QuestStaticMappinDefinition + DefaultQuestVariant]");
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {
