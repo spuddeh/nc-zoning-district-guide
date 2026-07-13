@@ -33,6 +33,17 @@ public func NCZDG_MarkerAtlas() -> ResRef {
 }
 public func NCZDG_MarkerPart() -> CName { return n"nc_logo"; }
 
+// The game's mappin icons are 64x64 and SQUARE (mappin_icons.xbm is 1120x792; each part measures
+// 0.05714 x 0.07955 UV = 64.0 x 63.0 px). The monogram is NOT square: nc_logo is 35x20 px in a 160x24
+// atlas, an aspect of 1.75:1.
+//
+// So it cannot simply be scaled to a square icon's size - that stretches it. Matching the icons' 64px
+// WIDTH and deriving the height from the true aspect keeps the footprint right and the emblem
+// undistorted. Setting a size, not a scale, is what makes this independent of the source's own
+// dimensions.
+public func NCZDG_MarkerIconWidth() -> Float { return 64.0; }
+public func NCZDG_MarkerIconHeight() -> Float { return 64.0 / 1.75; }
+
 // Everything below runs inside a hot path shared with every other mappin on screen.
 @addMethod(BaseMappinBaseController)
 protected final func NCZDG_IsOurMarker() -> Bool {
@@ -51,7 +62,14 @@ protected final func NCZDG_BrandIcon(scale: Float) -> Void {
   inkImageRef.SetAtlasResource(this.iconWidget, NCZDG_MarkerAtlas());
   inkImageRef.SetTexturePart(this.iconWidget, NCZDG_MarkerPart());
   inkImageRef.SetTintColor(this.iconWidget, NCZDG_CyanColor());
-  inkWidgetRef.SetScale(this.iconWidget, new Vector2(scale, scale));
+
+  // A widget sized to its 35x20 source draws at 35x20 - roughly half the footprint of the 64px icons
+  // around it. The size is set outright rather than scaled, and FitToContent is cleared first, or the
+  // widget snaps back to the source's dimensions.
+  inkWidgetRef.SetFitToContent(this.iconWidget, false);
+  inkWidgetRef.SetSize(this.iconWidget,
+    new Vector2(NCZDG_MarkerIconWidth() * scale, NCZDG_MarkerIconHeight() * scale));
+  inkWidgetRef.SetScale(this.iconWidget, new Vector2(1.0, 1.0));
 }
 
 // One hook per SURFACE, and there are four - world map, minimap, the floating world pin, and the
