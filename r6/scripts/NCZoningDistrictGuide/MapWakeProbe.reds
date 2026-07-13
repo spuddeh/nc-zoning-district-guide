@@ -4,81 +4,151 @@
 // Author: Spuddeh
 // Description: DEV ONLY. Strip with Logging.reds and InkDebug.reds at M7.
 //
-//              A script-registered pin has no OWNER, so it is not tracked and draws no route until
-//              the world map is opened once. What the map does on open that a script cannot is the
-//              open question.
+//              A script-registered pin is not tracked and draws no route until the world map is
+//              opened once. The map's own code cannot be read, and the route renderer is invisible
+//              to script - gamegpsGPSSystem and gameuiGPSGameController have zero scripted members
+//              and zero references anywhere in the decompiled scripts. So the map's work can only be
+//              observed by its RESULT.
 //
-//              Measured so far: reading the Map-target mappin list does NOT adopt the pin, so the
-//              adoption is not a lazy init behind that read. Two facts came out of it instead:
+//              This snapshots every mappin the system holds, then diffs across the map session:
+//              what was CREATED, what was DESTROYED, and whose tracked/active/variant state MOVED.
+//              If the map builds an owner object, it appears here as a new id. If it only flips a
+//              flag on the pin already present, that appears here too - and they are different
+//              answers with different consequences.
 //
-//              1. Registration is DEFERRED. The pin is in none of the three target lists on the
-//                 frame RegisterMappin returns; all three grow by one within a second.
-//              2. The pin is not findable in the map list BY ID, even after it appears.
-//
-//              (2) is the live question, and an id match cannot answer it - the id is exactly what
-//              is in doubt. This matches by POSITION, which the mappin cannot misreport, and dumps
-//              every entry near the pin so the object the map actually holds is named outright.
+//              Established by the earlier runs and not re-litigated here:
+//                - RegisterMappin is ASYNC. GetMappin(id) is null on the registering frame.
+//                - Once materialised, the pin is present in all three target lists (World, Minimap,
+//                  Map), active, visible, variant 21, and untracked. The map is not short of data.
+//                - Reading the Map-target list does not adopt it.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh
 // ======================================================================================
 
-public func NCZDG_MapWakeRadius() -> Float { return 12.0; }
+// The snapshot lives on the system so it survives the map session that is being measured.
+public class NCZDGMapDiff extends ScriptableSystem {
+  private let m_ids: array<Uint64>;
+  private let m_desc: array<String>;
+  private let m_taken: Bool;
 
-// A handle that resolves and a mappin that is tracked are different facts. Logging them as one
-// value is how the previous run said "false" to two opposite questions.
-public func NCZDG_MapWakeState(gi: GameInstance, pin: NewMappinID, when: String) -> Void {
-  let ms = GameInstance.GetMappinSystem(gi);
-  if !IsDefined(ms) {
-    return;
+  public final static func Get(gi: GameInstance) -> ref<NCZDGMapDiff> {
+    return GameInstance.GetScriptableSystemsContainer(gi).Get(n"NCZDGMapDiff") as NCZDGMapDiff;
   }
-  let trackedId = ms.GetManuallyTrackedMappinID();
-  let ours = ms.GetMappin(pin);
-  if !IsDefined(ours) {
-    NCZDGLog(s"[WAKE \(when)] GetMappin(\(pin.value)) -> NULL. The system does not know this id. manuallyTrackedId=\(trackedId.value)");
-    return;
-  }
-  NCZDGLog(s"[WAKE \(when)] GetMappin(\(pin.value)) -> ok tracked=\(ours.IsPlayerTracked()) active=\(ours.IsActive()) visible=\(ours.IsVisible()) variant=\(EnumInt(ours.GetVariant())) pos=\(ours.GetWorldPosition()) manuallyTrackedId=\(trackedId.value)");
-}
 
-// Names every mappin the system holds within a few metres of the pin, per target list. Whatever
-// object the map is holding for this pin, it is standing at the same coordinate.
-public func NCZDG_MapWakeNear(gi: GameInstance, target: gamemappinsMappinTargetType, label: String, pos: Vector4, pin: NewMappinID) -> Void {
-  let ms = GameInstance.GetMappinSystem(gi);
-  if !IsDefined(ms) {
-    return;
-  }
-  let entries: array<MappinEntry>;
-  ms.GetMappinEntries(target, entries);
-
-  let hits = 0;
-  let i = 0;
-  while i < ArraySize(entries) {
-    let e = entries[i];
-    if Vector4.Distance(e.worldPosition, pos) < NCZDG_MapWakeRadius() {
-      hits += 1;
-      let mine = e.id.value == pin.value ? "  <-- OUR ID" : "";
-      NCZDGLog(s"[WAKE \(label)]   near: id=\(e.id.value) type=\(e.type) pos=\(e.worldPosition)\(mine)");
+  // The census covers every mappin, not just the registered pin. An owner object the map creates is
+  // a mappin that appeared from nowhere, and only a full census can recognise it as new.
+  private func Census(gi: GameInstance, out ids: array<Uint64>, out desc: array<String>) -> Void {
+    let ms = GameInstance.GetMappinSystem(gi);
+    if !IsDefined(ms) {
+      return;
     }
-    i += 1;
+    let all: array<ref<IMappin>>;
+    ms.GetMappins(gamemappinsMappinTargetType.Map, all);
+
+    let i = 0;
+    while i < ArraySize(all) {
+      let m = all[i];
+      if IsDefined(m) {
+        ArrayPush(ids, m.GetNewMappinID().value);
+        ArrayPush(desc, s"\(m.GetClassName()) variant=\(EnumInt(m.GetVariant())) tracked=\(m.IsPlayerTracked()) active=\(m.IsActive()) visible=\(m.IsVisible()) pos=\(m.GetWorldPosition())");
+      }
+      i += 1;
+    }
   }
-  NCZDGLog(s"[WAKE \(label)] \(ArraySize(entries)) entries, \(hits) within \(NCZDG_MapWakeRadius())m of the pin");
+
+  private func IndexOf(ids: array<Uint64>, id: Uint64) -> Int32 {
+    let i = 0;
+    while i < ArraySize(ids) {
+      if ids[i] == id {
+        return i;
+      }
+      i += 1;
+    }
+    return -1;
+  }
+
+  public func Snapshot(gi: GameInstance, label: String) -> Void {
+    ArrayClear(this.m_ids);
+    ArrayClear(this.m_desc);
+    this.Census(gi, this.m_ids, this.m_desc);
+    this.m_taken = true;
+
+    let ms = GameInstance.GetMappinSystem(gi);
+    let trackedId = IsDefined(ms) ? ms.GetManuallyTrackedMappinID().value : 0ul;
+    NCZDGLog(s"[DIFF] snapshot '\(label)': \(ArraySize(this.m_ids)) map mappins, manuallyTrackedId=\(trackedId)");
+  }
+
+  public func Diff(gi: GameInstance, label: String) -> Void {
+    if !this.m_taken {
+      return;
+    }
+    let ids: array<Uint64>;
+    let desc: array<String>;
+    this.Census(gi, ids, desc);
+
+    let ms = GameInstance.GetMappinSystem(gi);
+    let trackedId = IsDefined(ms) ? ms.GetManuallyTrackedMappinID().value : 0ul;
+    NCZDGLog(s"[DIFF] === \(label): \(ArraySize(this.m_ids)) -> \(ArraySize(ids)) map mappins, manuallyTrackedId=\(trackedId) ===");
+
+    let i = 0;
+    while i < ArraySize(ids) {
+      let was = this.IndexOf(this.m_ids, ids[i]);
+      if was < 0 {
+        NCZDGLog(s"[DIFF] CREATED id=\(ids[i]) \(desc[i])");
+      } else {
+        if !UnicodeStringEqual(this.m_desc[was], desc[i]) {
+          NCZDGLog(s"[DIFF] CHANGED id=\(ids[i])");
+          NCZDGLog(s"[DIFF]    was: \(this.m_desc[was])");
+          NCZDGLog(s"[DIFF]    now: \(desc[i])");
+        }
+      }
+      i += 1;
+    }
+
+    i = 0;
+    while i < ArraySize(this.m_ids) {
+      if this.IndexOf(ids, this.m_ids[i]) < 0 {
+        NCZDGLog(s"[DIFF] DESTROYED id=\(this.m_ids[i]) \(this.m_desc[i])");
+      }
+      i += 1;
+    }
+
+    ArrayClear(this.m_ids);
+    ArrayClear(this.m_desc);
+    this.m_ids = ids;
+    this.m_desc = desc;
+  }
 }
 
-public func NCZDG_MapWake(gi: GameInstance, pin: NewMappinID, pos: Vector4, when: String) -> Void {
-  NCZDG_MapWakeState(gi, pin, when);
-  NCZDG_MapWakeNear(gi, gamemappinsMappinTargetType.World, when + " world", pos, pin);
-  NCZDG_MapWakeNear(gi, gamemappinsMappinTargetType.Minimap, when + " minimap", pos, pin);
-  NCZDG_MapWakeNear(gi, gamemappinsMappinTargetType.Map, when + " map", pos, pin);
+// Read-only. wrappedMethod() runs first and unconditionally: the map must behave exactly as it would
+// without this mod present.
+@wrapMethod(WorldMapMenuGameController)
+protected cb func OnInitialize() -> Bool {
+  let r = wrappedMethod();
+  let diff = NCZDGMapDiff.Get(this.GetPlayerControlledObject().GetGame());
+  if IsDefined(diff) {
+    diff.Diff(this.GetPlayerControlledObject().GetGame(), "MAP OPENED");
+  }
+  return r;
 }
 
-// Registration is deferred, so a read on the registering frame sees nothing. This re-reads after the
-// system has had a tick to materialise the pin.
-public class NCZDGMapWakeCallback extends DelayCallback {
+@wrapMethod(WorldMapMenuGameController)
+protected cb func OnUninitialize() -> Bool {
+  let diff = NCZDGMapDiff.Get(this.GetPlayerControlledObject().GetGame());
+  if IsDefined(diff) {
+    diff.Diff(this.GetPlayerControlledObject().GetGame(), "MAP CLOSED");
+  }
+  return wrappedMethod();
+}
+
+// The pin is registered asynchronously, so the baseline census must wait for it to materialise.
+public class NCZDGMapDiffCallback extends DelayCallback {
   public let gi: GameInstance;
-  public let pin: NewMappinID;
-  public let pos: Vector4;
 
   public func Call() -> Void {
-    NCZDG_MapWake(this.gi, this.pin, this.pos, "delayed");
+    let diff = NCZDGMapDiff.Get(this.gi);
+    if IsDefined(diff) {
+      diff.Snapshot(this.gi, "pin registered, map never opened");
+    }
   }
 }

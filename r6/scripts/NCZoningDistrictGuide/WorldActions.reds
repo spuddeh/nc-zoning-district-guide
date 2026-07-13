@@ -84,13 +84,11 @@ public class NCZDGWorldActions extends ScriptableSystem {
 
     NCZDGLog(s"actions: waypoint set on '\(locId)'");
 
-    NCZDG_MapWake(gi, this.m_mappinId, pos, "immediate");
-
-    let wake = new NCZDGMapWakeCallback();
-    wake.gi = gi;
-    wake.pin = this.m_mappinId;
-    wake.pos = pos;
-    GameInstance.GetDelaySystem(gi).DelayCallback(wake, 2.0);
+    // RegisterMappin is async - the pin does not exist on this frame - so the baseline census that
+    // the map session is diffed against has to wait for it.
+    let snap = new NCZDGMapDiffCallback();
+    snap.gi = gi;
+    GameInstance.GetDelaySystem(gi).DelayCallback(snap, 2.0);
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {
