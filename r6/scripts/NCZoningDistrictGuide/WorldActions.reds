@@ -36,6 +36,10 @@ public class NCZDGWorldActions extends ScriptableSystem {
     return this.HasPin() && UnicodeStringEqual(locId, this.m_pinnedId);
   }
 
+  public func PinId() -> NewMappinID {
+    return this.m_mappinId;
+  }
+
   // The game keeps ONE custom waypoint, so setting a second must clear the first.
   public func SetWaypoint(gi: GameInstance, pos: Vector4, locId: String) -> Void {
     this.ClearWaypoint(gi);
