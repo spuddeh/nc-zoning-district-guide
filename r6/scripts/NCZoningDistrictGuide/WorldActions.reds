@@ -83,6 +83,7 @@ public class NCZDGWorldActions extends ScriptableSystem {
     let tracked = ms.GetManuallyTrackedMappinID();
     let pin = ms.GetMappin(this.m_mappinId);
     NCZDGLog(s"actions: waypoint set on '\(locId)' active=\(setActive) id=\(this.m_mappinId.value) trackedId=\(tracked.value) playerTracked=\(IsDefined(pin) ? pin.IsPlayerTracked() : false) pos=\(pos)");
+    NCZDG_LogNavState(gi, pos, locId);
   }
 
   public func ClearWaypoint(gi: GameInstance) -> Void {
@@ -97,6 +98,45 @@ public class NCZDGWorldActions extends ScriptableSystem {
     this.m_mappinId = empty;
     this.m_pinnedId = "";
     NCZDGLog("actions: waypoint cleared");
+  }
+}
+
+// DEV ONLY. Asks the navigation system whether a pin's position can actually be reached.
+//
+// A pin inside a building, down a flight of stairs, floating in the air still produces a trail, so
+// the criterion is not "on a road". The candidate criterion is NAVMESH REACHABILITY: the game
+// pathfinds to the target and draws nothing when it cannot.
+//
+// Both answers are available:
+//   HasPathFromAtoB    is there a path from the player to this point at all
+//   IsPointOnNavmesh   is the point itself navigable, and if not, what is the nearest point that is
+//
+// If the unroutable pins come back off-navmesh, snapping to navmeshPoint is a real fix.
+public func NCZDG_LogNavState(gi: GameInstance, pos: Vector4, label: String) -> Void {
+  let player = GameInstance.GetPlayerSystem(gi).GetLocalPlayerMainGameObject();
+  if !IsDefined(player) {
+    return;
+  }
+  let nav = GameInstance.GetAINavigationSystem(gi);
+  if !IsDefined(nav) {
+    NCZDGLog("[NAV] navigation system not found");
+    return;
+  }
+
+  let tolerance = new Vector4(2.0, 2.0, 2.0, 0.0);
+  let snapped: Vector4;
+  let onMesh = nav.IsPointOnNavmesh(player, pos, tolerance, snapped);
+  let hasPath = AINavigationSystem.HasPathFromAtoB(player, gi, player.GetWorldPosition(), pos);
+
+  NCZDGLog(s"[NAV \(label)] onNavmesh=\(onMesh) hasPath=\(hasPath) pos=\(pos) snapped=\(snapped)");
+
+  // A wider probe, for a pin that sits above or below the walkable surface.
+  let wide = new Vector4(10.0, 10.0, 20.0, 0.0);
+  let snappedWide: Vector4;
+  let onMeshWide = nav.IsPointOnNavmesh(player, pos, wide, snappedWide);
+  if !onMesh && onMeshWide {
+    let hasPathSnapped = AINavigationSystem.HasPathFromAtoB(player, gi, player.GetWorldPosition(), snappedWide);
+    NCZDGLog(s"[NAV \(label)] wide probe found navmesh at \(snappedWide), hasPath=\(hasPathSnapped)");
   }
 }
 
