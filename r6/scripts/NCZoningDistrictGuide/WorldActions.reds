@@ -136,15 +136,27 @@ public class NCZDGWorldActions extends ScriptableSystem {
 
     // MappinData is an importonly struct: declare a local, never `new`.
     //
-    // ApartmentVariant is any ordinary POI variant - what matters is only that it is NOT
-    // CustomPositionVariant and NOT quest-grouped, so the waypoint logic does not own it and the
-    // player is allowed to track it. The icon is overridden on the controller, so the variant's own
-    // look does not survive to the screen.
+    // VARIANT: ApartmentVariant is proven trackable from the map, which is the only property that
+    //   matters - it is not CustomPositionVariant, and it is not quest-grouped, so the waypoint logic
+    //   does not own it and CanPlayerTrackMappin allows it. Everything else the variant carries (icon,
+    //   and the UI-MappinTypes-Apartment LocKeys) is overridden on the controllers.
+    //
+    // SCRIPTDATA: without it, WorldMappinsContainerController.CreateMappinUIProfile falls through to
+    //   MappinUISpawnProfile.MediumRange and the world pin DISAPPEARS at distance - useless for a
+    //   marker the player is navigating towards. A GameplayRoleMappinData routes it to the
+    //   GameplayRole profile instead, which spawns Always, and to GameplayMappinController, which is
+    //   hookable. m_textureID is deliberately left unset: a valid one would need a MappinIcons TweakDB
+    //   record and therefore TweakXL, and the controller hook does the same job for free.
+    let role = new GameplayRoleMappinData();
+    role.m_visibleThroughWalls = true;
+    role.m_showOnMiniMap = true;
+
     let data: MappinData;
     data.mappinType = t"Mappins.DefaultStaticMappin";
     data.variant = gamedataMappinVariant.ApartmentVariant;
     data.visibleThroughWalls = true;
     data.debugCaption = NCZDG_MarkerCaption(title);
+    data.scriptData = role;
 
     this.m_mappinId = ms.RegisterMappin(data, pos);
     this.m_pinnedId = locId;

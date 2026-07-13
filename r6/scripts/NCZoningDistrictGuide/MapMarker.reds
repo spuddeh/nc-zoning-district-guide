@@ -25,12 +25,13 @@
 // Credits: Spuddeh
 // ======================================================================================
 
-// The emblem, not the wordmark. It is grey in the source and tint MULTIPLIES, so it can be darkened
-// or hue-shifted but never brightened - a light tint is the only way to keep it legible.
+// The loading-screen monogram, not the advert logo. It is small and WHITE, and tint MULTIPLIES - so a
+// white source is the only one that can be tinted to an arbitrary colour. The advert atlas
+// (world\adverts\nightcorp) is a grey wordmark and can only ever be darkened.
 public func NCZDG_MarkerAtlas() -> ResRef {
-  return r"base\\gameplay\\gui\\world\\adverts\\nightcorp\\nightcorp.inkatlas";
+  return r"base\\gameplay\\gui\\fullscreen\\loading\\atlas_loading_screen.inkatlas";
 }
-public func NCZDG_MarkerPart() -> CName { return n"logo"; }
+public func NCZDG_MarkerPart() -> CName { return n"nc_logo"; }
 
 // Everything below runs inside a hot path shared with every other mappin on screen.
 @addMethod(BaseMappinBaseController)
@@ -53,7 +54,10 @@ protected final func NCZDG_BrandIcon(scale: Float) -> Void {
   inkWidgetRef.SetScale(this.iconWidget, new Vector2(scale, scale));
 }
 
-// wrappedMethod() first and unconditionally, in every hook: the game's own mappins must draw exactly
+// One hook per SURFACE, and there are four - world map, minimap, the floating world pin, and the
+// gameplay-role pin. A marker branded on the map but not in the world reads as two different pins.
+//
+// wrappedMethod() first and unconditionally, in every one: the game's own mappins must draw exactly
 // as they would with this mod absent.
 @wrapMethod(MinimapPOIMappinController)
 protected final func UpdateIcon() -> Void {
@@ -63,6 +67,20 @@ protected final func UpdateIcon() -> Void {
 
 @wrapMethod(BaseWorldMapMappinController)
 protected func UpdateIcon() -> Void {
+  wrappedMethod();
+  this.NCZDG_BrandIcon(1.0);
+}
+
+@wrapMethod(QuestMappinController)
+protected func UpdateIcon() -> Void {
+  wrappedMethod();
+  this.NCZDG_BrandIcon(1.0);
+}
+
+// GameplayMappinController extends QuestMappinController and overrides UpdateIcon, so the parent hook
+// above does NOT run for it. It is the controller a GameplayRoleMappinData mappin actually gets.
+@wrapMethod(GameplayMappinController)
+private func UpdateIcon() -> Void {
   wrappedMethod();
   this.NCZDG_BrandIcon(1.0);
 }
