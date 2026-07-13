@@ -550,6 +550,10 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     // A marker that is placed but not tracked draws a pin and no route, and only the player can fix
     // that - from the map. Saying so once, in the footer, beats a card button that cannot do it.
+    //
+    // The hint must say HOVER. The map only tracks the mappin under the cursor; pressing the track key
+    // with nothing hovered drops a plain custom waypoint at the cursor instead, which is correct
+    // vanilla behaviour and looks exactly like the mod misfiring.
     let routing = marked && actions.IsRouting(this.m_gi);
     let shownFrom = n > 0 ? start + 1 : 0;
     let shownTo = start + NCZDG_PageSize() < n ? start + NCZDG_PageSize() : n;
@@ -564,7 +568,7 @@ public class NCZDGGuidePopup extends InGamePopup {
       }
     }
     if marked && !routing {
-      counts += "   ·   TRACK THE MARKER ON THE WORLD MAP ONCE FOR DIRECTIONS";
+      counts += "   ·   FOR DIRECTIONS: OPEN THE WORLD MAP, HOVER THE NC MARKER, TRACK WAYPOINT";
     }
     this.m_status.SetText(counts);
     NCZDGLog(s"guide: '\(area.Label())' q='\(this.m_query)' -> \(n) results, page \(this.m_page + 1)/\(pages)");

@@ -68,9 +68,13 @@ protected final func NCZDG_BrandIcon(width: Float) -> Void {
   if !this.NCZDG_IsOurMarker() {
     return;
   }
+  // DO NOT TINT. The game re-applies a mappin's colour on TRACKED-STATE change, through
+  // UpdateTrackedState and not through UpdateIcon - so a tint written here is stomped and restored at
+  // random, which reads as the icon flickering between white and coloured. The source monogram is
+  // already white and the game already highlights a tracked pin, which is the wanted behaviour anyway.
+  // Owning the colour means fighting the game for it and losing.
   inkImageRef.SetAtlasResource(this.iconWidget, NCZDG_MarkerAtlas());
   inkImageRef.SetTexturePart(this.iconWidget, NCZDG_MarkerPart());
-  inkImageRef.SetTintColor(this.iconWidget, NCZDG_CyanColor());
 
   // FitToContent is cleared first or the widget snaps back to the source's own 35x20.
   //
