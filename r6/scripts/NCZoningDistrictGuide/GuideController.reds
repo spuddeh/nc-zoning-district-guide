@@ -110,6 +110,8 @@ public func NCZDG_CardsPerRow() -> Int32 { return 2; }
 
 // Proxy index ranges. One click sink, routed by range, because redscript has no closures.
 public func NCZDG_IdxCardBase() -> Int32 { return 1000; }
+public func NCZDG_IdxWaypointBase() -> Int32 { return 2000; }
+public func NCZDG_IdxTeleportBase() -> Int32 { return 3000; }
 public func NCZDG_IdxPrevPage() -> Int32 { return -2; }
 public func NCZDG_IdxNextPage() -> Int32 { return -3; }
 
@@ -206,6 +208,7 @@ public class NCZDGGuidePopup extends InGamePopup {
   private let m_shown: array<ref<NCZLocation>>;   // the current query result
   private let m_query: String;
   private let m_page: Int32;
+  private let m_selCard: Int32;   // pool slot of the selected card, -1 for none
 
   public static func Show(gi: GameInstance) -> ref<NCZDGGuidePopup> {
     let self = new NCZDGGuidePopup();
@@ -253,6 +256,7 @@ public class NCZDGGuidePopup extends InGamePopup {
   protected cb func OnCreate() -> Void {
     super.OnCreate();
     this.m_selected = -1;
+    this.m_selCard = -1;
 
     // Size the container BEFORE reparenting the content: InGamePopupContent measures itself off the
     // container at OnReparent, so a later resize does not reach it.
@@ -516,6 +520,9 @@ public class NCZDGGuidePopup extends InGamePopup {
       } else {
         this.m_cards[slot].root.SetVisible(false);
       }
+      // A slot's identity changes under a filter or a page turn, so the selection cannot survive it.
+      this.m_cards[slot].actions.SetVisible(false);
+      this.m_cards[slot].frame.SetOpacity(0.35);
       slot += 1;
     }
     // A row with both cards hidden still occupies its height in the flow, so hide the row too.
@@ -525,6 +532,8 @@ public class NCZDGGuidePopup extends InGamePopup {
       this.m_cardRows[r].SetVisible(firstOfRow < n);
       r += 1;
     }
+
+    this.m_selCard = -1;
 
     let shownFrom = n > 0 ? start + 1 : 0;
     let shownTo = start + NCZDG_PageSize() < n ? start + NCZDG_PageSize() : n;
@@ -566,6 +575,40 @@ public class NCZDGGuidePopup extends InGamePopup {
       t += 1;
     }
     slot.tags.SetText(tags);
+
+    // The waypoint button reflects the CURRENT pin, so it is right on every re-bind.
+    let actions = NCZDGWorldActions.Get(this.m_gi);
+    let pinned = IsDefined(actions) && actions.IsPinned(loc.Id());
+    slot.wpLabel.SetText(pinned ? "CLEAR WAYPOINT" : "SET WAYPOINT");
+
+    let canTp = NCZDG_CanTeleport(this.m_gi);
+    slot.tpLabel.SetText(canTp ? "TELEPORT" : "EXIT VEHICLE");
+    slot.tpLabel.BindProperty(n"tintColor", canTp ? NCZDG_Cyan() : NCZDG_Gray());
+  }
+
+  // Selecting a card reveals its actions and hides the previous one's. Nothing reflows: the strip
+  // is always built, only toggled.
+  private func SelectCard(slotIdx: Int32) -> Void {
+    if this.m_selCard >= 0 && this.m_selCard < ArraySize(this.m_cards) {
+      this.m_cards[this.m_selCard].actions.SetVisible(false);
+      this.m_cards[this.m_selCard].frame.SetOpacity(0.35);
+    }
+    if slotIdx < 0 || slotIdx >= ArraySize(this.m_cards) {
+      this.m_selCard = -1;
+      return;
+    }
+    this.m_selCard = slotIdx;
+    this.m_cards[slotIdx].actions.SetVisible(true);
+    this.m_cards[slotIdx].frame.SetOpacity(1.0);
+  }
+
+  // The pool slot -> the location currently bound to it. Null if the slot is empty on this page.
+  private func LocForSlot(slotIdx: Int32) -> ref<NCZLocation> {
+    let f = (this.m_page * NCZDG_PageSize()) + slotIdx;
+    if f < 0 || f >= ArraySize(this.m_shown) {
+      return null;
+    }
+    return this.m_shown[f];
   }
 
   private func BuildCardPool() -> Void {
@@ -656,6 +699,21 @@ public class NCZDGGuidePopup extends InGamePopup {
     tags.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
     tags.Reparent(stack);
 
+    // The action strip. Built now, hidden until the card is selected, so revealing it reflows
+    // nothing and the card height never changes.
+    let actions = new inkHorizontalPanel();
+    actions.SetName(n"nczdg_actions");
+    actions.SetChildOrder(inkEChildOrder.Forward);
+    actions.SetFitToContent(true);
+    actions.SetAnchor(inkEAnchor.BottomRight);
+    actions.SetAnchorPoint(new Vector2(1.0, 1.0));
+    actions.SetMargin(new inkMargin(0.0, 0.0, 20.0, 14.0));
+    actions.SetVisible(false);
+    actions.Reparent(card);
+
+    let wp = this.MakeSmallButton(actions, "SET WAYPOINT", NCZDG_IdxWaypointBase() + slotIdx, 250.0);
+    let tp = this.MakeSmallButton(actions, "TELEPORT", NCZDG_IdxTeleportBase() + slotIdx, 190.0);
+
     let proxy = new NCZDGGuideProxy();
     proxy.popup = this;
     proxy.index = NCZDG_IdxCardBase() + slotIdx;
@@ -670,7 +728,46 @@ public class NCZDGGuidePopup extends InGamePopup {
     slot.meta = meta;
     slot.desc = desc;
     slot.tags = tags;
+    slot.actions = actions;
+    slot.wpLabel = wp;
+    slot.tpLabel = tp;
     return slot;
+  }
+
+  // Returns the LABEL, so the caller can retitle it (SET <-> CLEAR WAYPOINT) without a rebuild.
+  private func MakeSmallButton(parent: wref<inkCompoundWidget>, label: String, index: Int32,
+                               width: Float) -> ref<inkText> {
+    let box = new inkCanvas();
+    box.SetSize(new Vector2(width, 46.0));
+    box.SetHAlign(inkEHorizontalAlign.Left);
+    box.SetMargin(new inkMargin(12.0, 0.0, 0.0, 0.0));
+    box.SetInteractive(true);
+    box.Reparent(parent);
+
+    let frame = new inkImage();
+    frame.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    frame.SetTexturePart(n"cell_fg");
+    frame.SetNineSliceScale(true);
+    frame.SetAnchor(inkEAnchor.Fill);
+    frame.SetTintColor(NCZDG_CyanColor());   // interactive: tint directly, not via a style bind
+    frame.SetOpacity(0.8);
+    frame.Reparent(box);
+
+    let txt = this.MakeText(label, NCZDG_Cyan(), 26);
+    txt.SetLetterCase(textLetterCase.UpperCase);
+    txt.SetHAlign(inkEHorizontalAlign.Center);
+    txt.SetVAlign(inkEVerticalAlign.Center);
+    txt.SetAnchor(inkEAnchor.Centered);
+    txt.SetAnchorPoint(new Vector2(0.5, 0.5));
+    txt.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
+    txt.Reparent(box);
+
+    let proxy = new NCZDGGuideProxy();
+    proxy.popup = this;
+    proxy.index = index;
+    ArrayPush(this.m_proxies, proxy);
+    box.RegisterToCallback(n"OnRelease", proxy, n"OnRelease");
+    return txt;
   }
 
   // Redscript has no closures, so a click needs a proxy object holding a back-reference and an
@@ -691,15 +788,55 @@ public class NCZDGGuidePopup extends InGamePopup {
       this.Refresh();
       return;
     }
+    if index >= NCZDG_IdxTeleportBase() {
+      this.DoTeleport(index - NCZDG_IdxTeleportBase());
+      return;
+    }
+    if index >= NCZDG_IdxWaypointBase() {
+      this.DoWaypoint(index - NCZDG_IdxWaypointBase());
+      return;
+    }
     if index >= NCZDG_IdxCardBase() {
-      let slot = index - NCZDG_IdxCardBase();
-      let f = (this.m_page * NCZDG_PageSize()) + slot;
-      if f < ArraySize(this.m_shown) {
-        NCZDGLog(s"guide: card '\(this.m_shown[f].Name())'");
-      }
+      this.SelectCard(index - NCZDG_IdxCardBase());
       return;
     }
     this.SelectArea(index);
+  }
+
+  private func DoWaypoint(slotIdx: Int32) -> Void {
+    let loc = this.LocForSlot(slotIdx);
+    let actions = NCZDGWorldActions.Get(this.m_gi);
+    if !IsDefined(loc) || !IsDefined(actions) {
+      return;
+    }
+    if actions.IsPinned(loc.Id()) {
+      actions.ClearWaypoint(this.m_gi);
+    } else {
+      actions.SetWaypoint(this.m_gi, loc.Pos(), loc.Id());
+    }
+    // Re-bind so every card's button reflects the one pin the game allows.
+    this.Refresh();
+    this.SelectCard(slotIdx);
+  }
+
+  // Close FIRST, teleport after. The popup holds ModalPopup and pins time dilation at ~1e-6, and a
+  // long-distance teleport triggers streaming; vanilla's own map DEBUG_Teleport closes the menu
+  // immediately after teleporting for the same reason.
+  private func DoTeleport(slotIdx: Int32) -> Void {
+    let loc = this.LocForSlot(slotIdx);
+    if !IsDefined(loc) {
+      return;
+    }
+    if !NCZDG_CanTeleport(this.m_gi) {
+      NCZDGLog("guide: teleport refused - mounted to a vehicle");
+      return;
+    }
+    let cb = new NCZDGTeleportCallback();
+    cb.gi = this.m_gi;
+    cb.pos = loc.Pos();
+    cb.yaw = loc.Yaw();
+    GameInstance.GetDelaySystem(this.m_gi).DelayCallback(cb, 0.15);
+    this.Close();
   }
 
   // A scrolling column: an inkScrollArea holding a fit-to-content vertical panel, plus a slider
@@ -741,10 +878,12 @@ public class NCZDGGuidePopup extends InGamePopup {
     barArea.SetAnchor(inkEAnchor.TopRight);
     barArea.SetAnchorPoint(new Vector2(1.0, 0.0));
 
+    // Tinted DIRECTLY, not through a style bind. The handle is interactive, so it gets widget
+    // states, and a state overrides a bound tintColor while leaving SetTintColor alone - which is
+    // what left the handle red at rest and cyan only on hover.
     let track = new inkRectangle();
     track.SetAnchor(inkEAnchor.Fill);
-    track.SetStyle(NCZDG_StylePath());
-    track.BindProperty(n"tintColor", NCZDG_Cyan());
+    track.SetTintColor(NCZDG_CyanColor());
     track.SetOpacity(0.12);
     track.Reparent(barArea);
 
@@ -752,8 +891,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     handle.SetAnchor(inkEAnchor.TopFillHorizontaly);
     handle.SetSize(new Vector2(barW, 60.0));
     handle.SetInteractive(true);
-    handle.SetStyle(NCZDG_StylePath());
-    handle.BindProperty(n"tintColor", NCZDG_Cyan());
+    handle.SetTintColor(NCZDG_CyanColor());
     handle.SetOpacity(0.8);
     handle.Reparent(barArea);
     barArea.Reparent(box);
@@ -839,6 +977,10 @@ public class NCZDGCardSlot {
   public let meta: wref<inkText>;
   public let desc: wref<inkText>;
   public let tags: wref<inkText>;
+  // The action strip is always BUILT, only hidden, so revealing it reflows nothing.
+  public let actions: wref<inkHorizontalPanel>;
+  public let wpLabel: wref<inkText>;     // SET WAYPOINT <-> CLEAR WAYPOINT
+  public let tpLabel: wref<inkText>;     // greys out in a vehicle
 }
 
 @if(ModuleExists("NCZoning.Api"))
