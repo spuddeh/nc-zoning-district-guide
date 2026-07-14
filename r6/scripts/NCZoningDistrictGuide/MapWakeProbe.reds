@@ -31,6 +31,44 @@ public class NCZDGMapDiff extends ScriptableSystem {
   private let m_desc: array<String>;
   private let m_taken: Bool;
 
+  // --- instance census (the [INST] probe) --------------------------------------------------
+  // One key press invokes TryTrackQuestOrSetWaypoint N times, N growing by one per map open, and all
+  // but the last see selectedMappin == null - so each stale one runs TrackCustomPositionMappin() and
+  // drops a stray waypoint. The stray then STEALS the tracked slot on the next map open.
+  //
+  // The method is reached from a GLOBAL INPUT CALLBACK (OnEntityAttached registers OnPressInput,
+  // OnEntityDetached unregisters it - balanced in vanilla), so one registration is surviving each map
+  // open. Two shapes fit the log and they need different fixes:
+  //
+  //   A. N leaked CONTROLLER INSTANCES, each still registered  -> the [PRESS] burst carries N ids
+  //   B. ONE instance registered N times                       -> the [PRESS] burst repeats ONE id
+  //
+  // The id is what discriminates them. It is stamped once per object (assigned only when 0), so a
+  // REUSED controller keeps its id across map opens and a fresh one gets a new one.
+  private let m_instSeq: Int32;
+  private let m_liveCtrl: Int32;
+
+  public final func NextInstId() -> Int32 {
+    this.m_instSeq += 1;
+    return this.m_instSeq;
+  }
+
+  // Returns the live count AFTER the change, so attach/detach lines read as a running balance.
+  // If DETACH never appears, or live only ever climbs, the registrations are never being removed.
+  public final func CtrlAttached() -> Int32 {
+    this.m_liveCtrl += 1;
+    return this.m_liveCtrl;
+  }
+
+  public final func CtrlDetached() -> Int32 {
+    this.m_liveCtrl -= 1;
+    return this.m_liveCtrl;
+  }
+
+  public final func LiveCtrl() -> Int32 {
+    return this.m_liveCtrl;
+  }
+
   public final static func Get(gi: GameInstance) -> ref<NCZDGMapDiff> {
     return GameInstance.GetScriptableSystemsContainer(gi).Get(n"NCZDGMapDiff") as NCZDGMapDiff;
   }
@@ -177,16 +215,66 @@ public class NCZDGMapDiff extends ScriptableSystem {
 // A run that sets only a NATIVE map pin never calls SetWaypoint, so it would have no baseline to diff
 // against. Taking one on first open makes the game's own waypoint measurable on its own terms - the
 // control this whole investigation has been missing.
+// Stamped once per controller OBJECT, never reassigned. Int32 defaults to 0, and 0 means "not yet
+// stamped" - so a controller the game REUSES across map opens keeps its id, and a fresh one gets a new
+// one. That is the whole discriminator: same id twice in a [PRESS] burst = duplicate registrations on
+// one object; different ids = leaked objects.
+@addField(WorldMapMenuGameController)
+let nczdg_instId: Int32;
+
 @wrapMethod(WorldMapMenuGameController)
 protected cb func OnInitialize() -> Bool {
   let r = wrappedMethod();
   let gi = this.GetPlayerControlledObject().GetGame();
   let diff = NCZDGMapDiff.Get(gi);
   if IsDefined(diff) {
+    if this.nczdg_instId == 0 {
+      this.nczdg_instId = diff.NextInstId();
+    }
+    NCZDGLog(s"[INST] INIT     inst=\(this.nczdg_instId) live=\(diff.LiveCtrl())");
     if diff.HasBaseline() {
       diff.Diff(gi, "MAP OPENED");
     } else {
       diff.Snapshot(gi, "MAP OPENED (no pin set, baseline only)");
+    }
+  }
+  return r;
+}
+
+// OnEntityAttached is where vanilla calls RegisterToGlobalInputCallback(n"OnPostOnPress", this,
+// n"OnPressInput") - worldMap.swift:483. Every attach that is not matched by a detach is one more
+// invocation of TryTrackQuestOrSetWaypoint per key press, forever.
+//
+// wrappedMethod() runs FIRST and UNCONDITIONALLY. It must: a probe that throws before vanilla's
+// register/unregister would MANUFACTURE the leak it is here to measure.
+@wrapMethod(WorldMapMenuGameController)
+protected cb func OnEntityAttached() -> Bool {
+  let r = wrappedMethod();
+  let player = this.GetPlayerControlledObject();
+  if IsDefined(player) {
+    let diff = NCZDGMapDiff.Get(player.GetGame());
+    if IsDefined(diff) {
+      if this.nczdg_instId == 0 {
+        this.nczdg_instId = diff.NextInstId();   // an attach with no preceding OnInitialize still gets an id
+      }
+      NCZDGLog(s"[INST] ATTACH   inst=\(this.nczdg_instId) live=\(diff.CtrlAttached())  <- registered OnPressInput");
+    }
+  }
+  return r;
+}
+
+// OnEntityDetached is vanilla's UnregisterFromGlobalInputCallback - worldMap.swift:519-522, and it is
+// UNCONDITIONAL there. If this line never appears in the log, the callbacks are never removed and the
+// leak is proven. If it appears balanced against ATTACH and the [PRESS] burst still grows, then the
+// unregister is running and NOT taking effect - a different bug entirely.
+@wrapMethod(WorldMapMenuGameController)
+protected cb func OnEntityDetached() -> Bool {
+  let r = wrappedMethod();
+  let player = this.GetPlayerControlledObject();
+  if IsDefined(player) {
+    let diff = NCZDGMapDiff.Get(player.GetGame());
+    if IsDefined(diff) {
+      NCZDGLog(s"[INST] DETACH   inst=\(this.nczdg_instId) live=\(diff.CtrlDetached())  <- unregistered OnPressInput");
     }
   }
   return r;

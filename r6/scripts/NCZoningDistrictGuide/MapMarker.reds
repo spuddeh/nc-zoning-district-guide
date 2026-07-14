@@ -151,20 +151,34 @@ public func CreateMappinUIProfile(mappin: wref<IMappin>, mappinVariant: gamedata
 
 // DEV ONLY. Strip with Logging.reds at M7.
 //
-// The map tracks the mappin it has SELECTED, and drops a fresh custom waypoint at the cursor when
-// nothing is selected. A track press that lands on the marker and still spawns a waypoint means the map
-// did not consider it selected, and only the map can say which. Read-only; wrappedMethod is called
-// unconditionally.
+// The marker hovers, selects and tracks - measured, and NOT the defect this probe was built to look for.
+// What it caught instead: ONE key press invokes this method many times, and the count grows by one on
+// every map open. All but the last invocation see selectedMappin == null and fall through to vanilla's
+// TrackCustomPositionMappin() - which is what plants the stray waypoints, and a stray then steals the
+// tracked slot back off the marker on the next map open.
+//
+// This method is not bound to a widget: it is reached from a GLOBAL INPUT CALLBACK registered in
+// OnEntityAttached (worldMap.swift:483) and removed in OnEntityDetached (:519). So a burst of lines here
+// is a burst of REGISTRATIONS, not a burst of key presses.
+//
+// inst= is the discriminator, stamped per controller object in MapWakeProbe.reds:
+//   different ids in one burst -> leaked controller OBJECTS, each still registered
+//   the same id repeated       -> ONE object registered many times
+// They need different fixes. readyToZoom gates OnPressInput (:1151), so a live controller that ignores a
+// press while stale ones handle it would show up here too.
+//
+// Read-only; wrappedMethod is called unconditionally.
 @wrapMethod(WorldMapMenuGameController)
 private final func TryTrackQuestOrSetWaypoint() -> Void {
+  let tag = s"[PRESS] inst=\(this.nczdg_instId) readyToZoom=\(this.m_readyToZoom)";
   if !IsDefined(this.selectedMappin) {
-    NCZDGLog("[PRESS] nothing selected - the map will create a custom waypoint at the cursor");
+    NCZDGLog(s"\(tag) nothing selected - the map will create a custom waypoint at the cursor");
   } else {
     let mappin = this.selectedMappin.GetMappin();
     if IsDefined(mappin) {
-      NCZDGLog(s"[PRESS] selected '\(mappin.GetDisplayName())' variant=\(EnumInt(mappin.GetVariant())) tracked=\(mappin.IsPlayerTracked()) canPlayerTrack=\(this.CanPlayerTrackMappin(mappin)) canQuestTrack=\(this.CanQuestTrackMappin(mappin))");
+      NCZDGLog(s"\(tag) selected '\(mappin.GetDisplayName())' variant=\(EnumInt(mappin.GetVariant())) tracked=\(mappin.IsPlayerTracked()) canPlayerTrack=\(this.CanPlayerTrackMappin(mappin)) canQuestTrack=\(this.CanQuestTrackMappin(mappin))");
     } else {
-      NCZDGLog("[PRESS] a controller is selected but it holds no mappin");
+      NCZDGLog(s"\(tag) a controller is selected but it holds no mappin");
     }
   }
   wrappedMethod();
