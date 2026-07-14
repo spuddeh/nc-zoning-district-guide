@@ -298,6 +298,22 @@ protected cb func OnUninitialize() -> Bool {
   return wrappedMethod();
 }
 
+// OnPressInput is UPSTREAM of the m_readyToZoom gate (worldMap.swift:1150), and every leaked controller
+// still registered to n"OnPostOnPress" receives it. TryTrackQuestOrSetWaypoint is DOWNSTREAM of the gate,
+// so a probe there is blind to every ghost that m_readyToZoom silences - it can only ever see the ones
+// that already got through. This is the line that shows the leak at full size.
+//
+// m_readyToZoom is what arms a ghost, and it is a ONE-WAY LATCH: worldMap.swift:465 is the only write to
+// it in the whole file, it writes true, and nothing ever writes false. It is set from OnRemovePreloader -
+// so a map session closed BEFORE the preloader finishes leaves a ghost that is leaked but harmless, and a
+// session left open a few seconds longer leaves one that is armed forever. Dwell time on the map is the
+// hidden variable behind "the strays are random".
+@wrapMethod(WorldMapMenuGameController)
+protected cb func OnPressInput(e: ref<inkPointerEvent>) -> Bool {
+  NCZDGLog(s"[GATE] inst=\(this.nczdg_instId) readyToZoom=\(this.m_readyToZoom) action=\(e.GetActionName())");
+  return wrappedMethod(e);
+}
+
 @wrapMethod(WorldMapMenuGameController)
 protected cb func OnUninitialize() -> Bool {
   let diff = NCZDGMapDiff.Get(this.GetPlayerControlledObject().GetGame());
