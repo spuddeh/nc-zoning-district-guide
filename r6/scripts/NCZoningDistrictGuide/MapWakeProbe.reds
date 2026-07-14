@@ -308,9 +308,14 @@ protected cb func OnUninitialize() -> Bool {
 // so a map session closed BEFORE the preloader finishes leaves a ghost that is leaked but harmless, and a
 // session left open a few seconds longer leaves one that is armed forever. Dwell time on the map is the
 // hidden variable behind "the strays are random".
+// An action CANNOT be printed. inkActionName carries exactly one member - IsAction (native, flags 8193) -
+// with no name getter and no properties, so interpolating it yields the literal type name "[inkActionName]"
+// and tells you nothing. It can only be TESTED, which is what vanilla itself does at worldMap.swift:1005.
+// Log the one question that matters: is this the press that plants a waypoint?
 @wrapMethod(WorldMapMenuGameController)
 protected cb func OnPressInput(e: ref<inkPointerEvent>) -> Bool {
-  NCZDGLog(s"[GATE] inst=\(this.nczdg_instId) readyToZoom=\(this.m_readyToZoom) action=\(e.GetActionName())");
+  let isTrack = e.IsAction(n"world_map_menu_track_waypoint");
+  NCZDGLog(s"[GATE] inst=\(this.nczdg_instId) readyToZoom=\(this.m_readyToZoom) trackWaypoint=\(isTrack)");
   return wrappedMethod(e);
 }
 
