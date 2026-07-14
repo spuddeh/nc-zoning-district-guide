@@ -263,21 +263,39 @@ protected cb func OnEntityAttached() -> Bool {
   return r;
 }
 
-// OnEntityDetached is vanilla's UnregisterFromGlobalInputCallback - worldMap.swift:519-522, and it is
-// UNCONDITIONAL there. If this line never appears in the log, the callbacks are never removed and the
-// leak is proven. If it appears balanced against ATTACH and the [PRESS] burst still grows, then the
-// unregister is running and NOT taking effect - a different bug entirely.
+// OnEntityDetached is the ONLY place in the entire map that calls UnregisterFromGlobalInputCallback
+// (worldMap.swift:519-522). OnUninitialize (:252) does NOT touch the input callbacks - it saves filters,
+// clears time dilation and god mode, and unhooks OnBack. So the input registration outlives the menu
+// unless this callback fires.
+//
+// The log line must NOT depend on the player object. OnEntityDetached fires while the entity is
+// detaching, so GetPlayerControlledObject() can be null on the very call this probe exists to observe -
+// and a detach that DID fire would then log nothing, looking exactly like one that never fired at all.
+// The first line therefore carries no dependencies; the live count is best-effort after it.
 @wrapMethod(WorldMapMenuGameController)
 protected cb func OnEntityDetached() -> Bool {
   let r = wrappedMethod();
+  NCZDGLog(s"[INST] DETACH   inst=\(this.nczdg_instId)  <- vanilla unregisters OnPressInput HERE and only here");
+
   let player = this.GetPlayerControlledObject();
   if IsDefined(player) {
     let diff = NCZDGMapDiff.Get(player.GetGame());
     if IsDefined(diff) {
-      NCZDGLog(s"[INST] DETACH   inst=\(this.nczdg_instId) live=\(diff.CtrlDetached())  <- unregistered OnPressInput");
+      NCZDGLog(s"[INST] DETACH   inst=\(this.nczdg_instId) live=\(diff.CtrlDetached())");
     }
+  } else {
+    NCZDGLog(s"[INST] DETACH   inst=\(this.nczdg_instId) - player is NULL here, live count not decremented");
   }
   return r;
+}
+
+// OnUninitialize DOES fire on every map close (the [DIFF] MAP CLOSED lines prove it). Logging it next to
+// DETACH is what separates "the menu closed" from "the controller was torn down" - they are not the same
+// event, and only the second one removes the input registration.
+@wrapMethod(WorldMapMenuGameController)
+protected cb func OnUninitialize() -> Bool {
+  NCZDGLog(s"[INST] UNINIT   inst=\(this.nczdg_instId)  <- menu closed (input callbacks NOT touched here)");
+  return wrappedMethod();
 }
 
 @wrapMethod(WorldMapMenuGameController)
