@@ -100,6 +100,12 @@ public func NCZDG_CardWidth() -> Float {
   return (NCZDG_CardsWidth() - NCZDG_ScrollBarStrip() - NCZDG_CardGap()) / 2.0;
 }
 
+// 240 is a budget with no slack for a bottom badge: name + meta + two desc lines + tags fills it,
+// and ink can neither clip an overflow nor cap a wrapped text's line count. That is why the
+// RECENTLY UPDATED badge lives ON the meta row (a fixed-height canvas, out of the vertical
+// budget), and why BindCard hard-truncates the description to ~2 lines. Do not fix an overflow by
+// raising this: a taller card reads as empty next to the short one-line descriptions, which are
+// the common case.
 public func NCZDG_CardHeight() -> Float { return 240.0; }
 
 // The card POOL is built once and re-bound; cards are never created or destroyed while the popup
@@ -115,6 +121,7 @@ public func NCZDG_IdxTeleportBase() -> Int32 { return 3000; }
 public func NCZDG_IdxPrevPage() -> Int32 { return -2; }
 public func NCZDG_IdxNextPage() -> Int32 { return -3; }
 public func NCZDG_IdxClearWaypoint() -> Int32 { return -4; }
+public func NCZDG_IdxClearSearch() -> Int32 { return -5; }
 
 // The entry point Input.reds calls. Declared in this module so the import there resolves.
 //
@@ -194,12 +201,14 @@ public class NCZDGGuidePopup extends InGamePopup {
   private let m_footer: ref<InGamePopupFooter>;
   private let m_content: ref<InGamePopupContent>;
   private let m_search: ref<HubTextInput>;
+  private let m_searchClear: wref<inkCanvas>;   // the X beside the input; visible only with a query
   private let m_status: wref<inkText>;
   private let m_proxies: array<ref<NCZDGGuideProxy>>;
 
   private let m_navCol: wref<inkVerticalPanel>;    // district rows go here
   private let m_cardCol: wref<inkVerticalPanel>;   // card ROWS go here (2 cards per row)
   private let m_navScroll: ref<inkScrollController>;
+  private let m_cardScroll: ref<inkScrollController>;
   private let m_navRows: array<wref<inkCanvas>>;
   private let m_selected: Int32;   // set to -1 in OnCreate; a negative field default is INVALID_CONSTANT
   private let m_model: ref<NCZDGGuideModel>;
@@ -323,6 +332,49 @@ public class NCZDGGuidePopup extends InGamePopup {
     searchRoot.SetHAlign(inkEHorizontalAlign.Left);
     NCZDG_RebrandInput(searchRoot);
 
+    // Clear-search, beside the input, styled like the pager buttons. Bespoke rather than
+    // MakeButton because it needs an absolute spot in the top strip, and that helper flows its
+    // box from the parent's layout. 52 high inside the input's 80, so top 14 centres it. Hidden
+    // until there is a query.
+    let clearBox = new inkCanvas();
+    clearBox.SetName(n"nczdg_search_clear");
+    clearBox.SetSize(new Vector2(160.0, 52.0));
+    clearBox.SetAnchor(inkEAnchor.TopLeft);
+    clearBox.SetAnchorPoint(new Vector2(0.0, 0.0));
+    clearBox.SetMargin(new inkMargin(NCZDG_NavWidth() + 16.0, 14.0, 0.0, 0.0));
+    clearBox.SetInteractive(true);
+    clearBox.SetVisible(false);
+    clearBox.Reparent(body);
+
+    let clearFrame = new inkImage();
+    clearFrame.SetName(n"frame");   // findable, so OnSearchChanged can reset a hover on hide
+    clearFrame.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    clearFrame.SetTexturePart(n"cell_fg");
+    clearFrame.SetNineSliceScale(true);
+    clearFrame.SetAnchor(inkEAnchor.Fill);
+    clearFrame.SetTintColor(NCZDG_CyanColor());   // interactive: tint directly, not via a style bind
+    clearFrame.SetOpacity(0.8);
+    clearFrame.Reparent(clearBox);
+
+    let clearTxt = this.MakeText("CLEAR", NCZDG_Cyan(), 34);
+    clearTxt.SetHAlign(inkEHorizontalAlign.Center);
+    clearTxt.SetVAlign(inkEVerticalAlign.Center);
+    clearTxt.SetAnchor(inkEAnchor.Centered);
+    clearTxt.SetAnchorPoint(new Vector2(0.5, 0.5));
+    clearTxt.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
+    clearTxt.Reparent(clearBox);
+
+    let clearProxy = new NCZDGGuideProxy();
+    clearProxy.popup = this;
+    clearProxy.index = NCZDG_IdxClearSearch();
+    clearProxy.hoverFrame = clearFrame;
+    clearProxy.restOpacity = 0.8;
+    ArrayPush(this.m_proxies, clearProxy);   // the widget does not keep the proxy alive
+    clearBox.RegisterToCallback(n"OnRelease", clearProxy, n"OnRelease");
+    clearBox.RegisterToCallback(n"OnEnter", clearProxy, n"OnEnter");
+    clearBox.RegisterToCallback(n"OnLeave", clearProxy, n"OnLeave");
+    this.m_searchClear = clearBox;
+
     let count = this.MakeText("", NCZDG_Gray(), 32);
     count.SetName(n"nczdg_count");
     count.SetAnchor(inkEAnchor.TopRight);
@@ -383,7 +435,16 @@ public class NCZDGGuidePopup extends InGamePopup {
   // 295 string compares are trivial, and the game is paused anyway.
   protected cb func OnSearchChanged(widget: ref<inkWidget>) -> Bool {
     this.m_query = this.m_search.GetText();
+    if IsDefined(this.m_searchClear) {
+      let show = StrLen(this.m_query) > 0;
+      this.m_searchClear.SetVisible(show);
+      // Hiding a hovered button eats its OnLeave, so reset the hover by hand or it comes back white.
+      if !show {
+        this.ResetButtonHover(this.m_searchClear, 0.8);
+      }
+    }
     this.m_page = 0;
+    this.ScrollCardsToTop();
     this.Refresh();
     return true;
   }
@@ -500,7 +561,29 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.m_selected = index;
     this.SetRowSelected(this.m_navRows[index], true);
     this.m_page = 0;
+    this.ScrollCardsToTop();
     this.Refresh();
+  }
+
+  // Back to the rest state a hidden button's OnLeave would have restored. The frame child is
+  // named n"frame" in both button builders for exactly this lookup.
+  private func ResetButtonHover(box: wref<inkWidget>, restOpacity: Float) -> Void {
+    let frame = NCZDG_FindByName(box, n"frame");
+    if IsDefined(frame) {
+      frame.SetTintColor(NCZDG_CyanColor());
+      frame.SetOpacity(restOpacity);
+    }
+  }
+
+  // The scroll offset survives a re-bind, which is right for a marker refresh (the pointer is on a
+  // card; yanking the view would move the card out from under it) and wrong for a page turn, a new
+  // area, or a new query, where the fresh content starts above the viewport. So the reset is called
+  // at those three sites, never inside Refresh. SetScrollPosition(0.0) is the vanilla idiom - the
+  // vendor grid does exactly this on restock.
+  private func ScrollCardsToTop() -> Void {
+    if IsDefined(this.m_cardScroll) {
+      this.m_cardScroll.SetScrollPosition(0.0);
+    }
   }
 
   private func SetRowSelected(row: wref<inkCanvas>, on: Bool) -> Void {
@@ -557,6 +640,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     let marked = IsDefined(actions) && actions.HasPin();
     if IsDefined(this.m_clearWp) {
       this.m_clearWp.SetVisible(marked);
+      // Hiding a hovered button eats its OnLeave, so reset the hover by hand or it comes back white.
+      if !marked {
+        this.ResetButtonHover(this.m_clearWp, 1.0);
+      }
     }
 
     // A marker that is placed but not tracked draws a pin and no route, and only the player can fix
@@ -594,19 +681,27 @@ public class NCZDGGuidePopup extends InGamePopup {
       authors += (a > 0 ? ", " : "") + loc.AuthorAt(a);
       a += 1;
     }
+    // Capped so a long author list cannot run into the badge sharing the meta row: the badge is
+    // ~240 wide on an ~850 row, and 40 chars of 26px meta stays well left of it.
     let cat = NCZDG_CategoryLabel(loc.Category());
-    slot.meta.SetText(StrLen(authors) > 0 ? s"\(cat)  -  \(authors)" : cat);
+    let metaStr = StrLen(authors) > 0 ? s"\(cat)  -  \(authors)" : cat;
+    slot.meta.SetText(StrLen(metaStr) > 40 ? StrLeft(metaStr, 37) + "..." : metaStr);
     slot.meta.BindProperty(n"tintColor", NCZDG_CategoryColor(loc.Category()));
     slot.accent.BindProperty(n"tintColor", NCZDG_CategoryColor(loc.Category()));
 
     // There is no way to query a wrapped text's height, so the card height is fixed and the
-    // description is hard-truncated. Without the cap a long entry pushes past the card frame.
+    // description is hard-truncated. 140 chars fills ~2 wrapped lines at this width; an unusually
+    // narrow-glyphed 140 can reach a 3rd line, which only nudges the tags line into the row gap -
+    // the badge is on the meta row and out of reach. 150 reached 3 lines routinely; 110 left the
+    // 2nd line visibly half-empty.
     let d = loc.Description();
-    slot.desc.SetText(StrLen(d) > 150 ? StrLeft(d, 147) + "..." : d);
+    slot.desc.SetText(StrLen(d) > 140 ? StrLeft(d, 137) + "..." : d);
 
+    // Capped by count AND length: the tags line does not wrap, so an unbounded run of long tags
+    // walks off the card's right edge.
     let tags = "";
     let t = 0;
-    while t < loc.TagCount() && t < 5 {
+    while t < loc.TagCount() && t < 5 && StrLen(tags) < 60 {
       tags += (t > 0 ? "  " : "") + "#" + loc.TagAt(t);
       t += 1;
     }
@@ -630,8 +725,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     slot.tpLabel.BindProperty(n"tintColor", canTp ? NCZDG_Cyan() : NCZDG_Gray());
   }
 
-  // Selecting a card reveals its actions and hides the previous one's. Nothing reflows: the strip
-  // is always built, only toggled.
+  // Selecting a card (hover, or a click) reveals its actions and hides the previous one's. Nothing
+  // reflows: the strip is always built, only toggled.
   private func SelectCard(slotIdx: Int32) -> Void {
     if this.m_selCard >= 0 && this.m_selCard < ArraySize(this.m_cards) {
       this.m_cards[this.m_selCard].actions.SetVisible(false);
@@ -728,10 +823,36 @@ public class NCZDGGuidePopup extends InGamePopup {
     name.SetMargin(new inkMargin(0.0, 0.0, 0.0, 6.0));
     name.Reparent(stack);
 
+    // Meta row: category + authors at the left, the recency badge at the right - one fixed-height
+    // canvas, so the badge sits outside the vertical budget entirely and no description can ever
+    // push it off the card (which is what happened when it lived at the bottom of the stack).
+    // BindCard caps the meta string so it cannot reach the badge from the left.
+    let metaRow = new inkCanvas();
+    metaRow.SetSize(new Vector2(NCZDG_CardWidth() - 48.0, 34.0));
+    metaRow.SetMargin(new inkMargin(0.0, 0.0, 0.0, 10.0));
+    metaRow.Reparent(stack);
+
     let meta = this.MakeText("", NCZDG_Cyan(), 26);
     meta.SetLetterCase(textLetterCase.UpperCase);
-    meta.SetMargin(new inkMargin(0.0, 0.0, 0.0, 10.0));
-    meta.Reparent(stack);
+    meta.SetVAlign(inkEVerticalAlign.Center);
+    meta.SetAnchor(inkEAnchor.CenterLeft);
+    meta.SetAnchorPoint(new Vector2(0.0, 0.5));
+    meta.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
+    meta.Reparent(metaRow);
+
+    // Green (the brand's Approval colour, unused elsewhere in the guide) so it reads apart from
+    // the category-tinted meta line. Built once and hidden; BindCard toggles it per mod from the
+    // core's server-computed RecentlyUpdated() - there is no in-game clock to derive it.
+    let badge = this.MakeText("RECENTLY UPDATED", NCZDG_Green(), 22);
+    badge.SetFontStyle(n"Semi-Bold");
+    badge.SetLetterCase(textLetterCase.UpperCase);
+    badge.SetHAlign(inkEHorizontalAlign.Right);
+    badge.SetVAlign(inkEVerticalAlign.Center);
+    badge.SetAnchor(inkEAnchor.CenterRight);
+    badge.SetAnchorPoint(new Vector2(1.0, 0.5));
+    badge.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
+    badge.SetVisible(false);
+    badge.Reparent(metaRow);
 
     let desc = this.MakeText("", NCZDG_Gray(), 26);
     desc.SetWrappingAtPosition(NCZDG_CardWidth() - 60.0);
@@ -743,27 +864,34 @@ public class NCZDGGuidePopup extends InGamePopup {
     tags.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
     tags.Reparent(stack);
 
-    // Recency badge. Green (the brand's Approval colour, unused elsewhere in the guide) so it reads
-    // apart from the category-tinted meta line. Built once and hidden; BindCard toggles it per mod
-    // from the core's server-computed RecentlyUpdated() - there is no in-game clock to derive it.
-    let badge = this.MakeText("RECENTLY UPDATED", NCZDG_Green(), 22);
-    badge.SetFontStyle(n"Semi-Bold");
-    badge.SetLetterCase(textLetterCase.UpperCase);
-    badge.SetMargin(new inkMargin(0.0, 6.0, 0.0, 0.0));
-    badge.SetVisible(false);
-    badge.Reparent(stack);
-
-    // The action strip. Built now, hidden until the card is selected, so revealing it reflows
+    // The action strip. Built now, hidden until the card is hovered, so revealing it reflows
     // nothing and the card height never changes.
+    //
+    // The strip is a CANVAS with a card-coloured backing, not a bare panel: the buttons' cell_fg
+    // frames have translucent interiors, so without the backing whatever the card drew underneath
+    // (a long tags line) reads straight through the buttons. 464x46 is exactly the two buttons
+    // plus their 12-unit lead-in margins.
+    let actionsBox = new inkCanvas();
+    actionsBox.SetName(n"nczdg_actions");
+    actionsBox.SetSize(new Vector2(464.0, 46.0));
+    actionsBox.SetAnchor(inkEAnchor.BottomRight);
+    actionsBox.SetAnchorPoint(new Vector2(1.0, 1.0));
+    actionsBox.SetMargin(new inkMargin(0.0, 0.0, 20.0, 14.0));
+    actionsBox.SetVisible(false);
+    actionsBox.Reparent(card);
+
+    let actionsBg = new inkRectangle();
+    actionsBg.SetAnchor(inkEAnchor.Fill);
+    actionsBg.SetTintColor(NCZDG_CardBgColor());   // interactive context: tint directly, like the card bg
+    actionsBg.SetOpacity(1.0);
+    actionsBg.Reparent(actionsBox);
+
     let actions = new inkHorizontalPanel();
-    actions.SetName(n"nczdg_actions");
     actions.SetChildOrder(inkEChildOrder.Forward);
     actions.SetFitToContent(true);
-    actions.SetAnchor(inkEAnchor.BottomRight);
-    actions.SetAnchorPoint(new Vector2(1.0, 1.0));
-    actions.SetMargin(new inkMargin(0.0, 0.0, 20.0, 14.0));
-    actions.SetVisible(false);
-    actions.Reparent(card);
+    actions.SetAnchor(inkEAnchor.TopLeft);
+    actions.SetAnchorPoint(new Vector2(0.0, 0.0));
+    actions.Reparent(actionsBox);
 
     let wp = this.MakeSmallButton(actions, "SET WAYPOINT", NCZDG_IdxWaypointBase() + slotIdx, 250.0);
     let tp = this.MakeSmallButton(actions, "TELEPORT", NCZDG_IdxTeleportBase() + slotIdx, 190.0);
@@ -772,7 +900,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     proxy.popup = this;
     proxy.index = NCZDG_IdxCardBase() + slotIdx;
     ArrayPush(this.m_proxies, proxy);
+    // Click kept alongside hover: harmless, and it still selects on input paths with no hover.
     card.RegisterToCallback(n"OnRelease", proxy, n"OnRelease");
+    card.RegisterToCallback(n"OnEnter", proxy, n"OnEnter");
+    card.RegisterToCallback(n"OnLeave", proxy, n"OnLeave");
 
     let slot = new NCZDGCardSlot();
     slot.root = card;
@@ -783,7 +914,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     slot.desc = desc;
     slot.tags = tags;
     slot.badge = badge;
-    slot.actions = actions;
+    slot.actions = actionsBox;
     slot.wpLabel = wp;
     slot.tpLabel = tp;
     return slot;
@@ -820,8 +951,12 @@ public class NCZDGGuidePopup extends InGamePopup {
     let proxy = new NCZDGGuideProxy();
     proxy.popup = this;
     proxy.index = index;
+    proxy.hoverFrame = frame;
+    proxy.restOpacity = 0.8;
     ArrayPush(this.m_proxies, proxy);
     box.RegisterToCallback(n"OnRelease", proxy, n"OnRelease");
+    box.RegisterToCallback(n"OnEnter", proxy, n"OnEnter");
+    box.RegisterToCallback(n"OnLeave", proxy, n"OnLeave");
     return txt;
   }
 
@@ -839,15 +974,24 @@ public class NCZDGGuidePopup extends InGamePopup {
       this.Refresh();
       return;
     }
+    // One call, on purpose: Codeware's SetText fires the input's OnInput callback itself, so
+    // OnSearchChanged handles the query, the X's visibility, the page reset, the scroll and the
+    // refresh - clearing here too would do it all twice.
+    if index == NCZDG_IdxClearSearch() {
+      this.m_search.SetText("");
+      return;
+    }
     if index == NCZDG_IdxPrevPage() {
       if this.m_page > 0 {
         this.m_page -= 1;
+        this.ScrollCardsToTop();
         this.Refresh();
       }
       return;
     }
     if index == NCZDG_IdxNextPage() {
       this.m_page += 1;
+      this.ScrollCardsToTop();
       this.Refresh();
       return;
     }
@@ -864,6 +1008,24 @@ public class NCZDGGuidePopup extends InGamePopup {
       return;
     }
     this.SelectArea(index);
+  }
+
+  // Hover drives the action strip: entering a card reveals its buttons, leaving hides them. Only
+  // card indices react - the nav rows and buttons register no hover callbacks, but the range check
+  // keeps this honest anyway. On a card-to-card move the events can land in either order: OnEnter
+  // first is fine (the OnLeave that follows fails the m_selCard guard), OnLeave first is fine too.
+  public func OnProxyHover(index: Int32, entered: Bool) -> Void {
+    if index < NCZDG_IdxCardBase() || index >= NCZDG_IdxWaypointBase() {
+      return;
+    }
+    let slotIdx = index - NCZDG_IdxCardBase();
+    if entered {
+      this.SelectCard(slotIdx);
+    } else {
+      if this.m_selCard == slotIdx {
+        this.SelectCard(-1);
+      }
+    }
   }
 
   private func DoWaypoint(slotIdx: Int32) -> Void {
@@ -910,7 +1072,7 @@ public class NCZDGGuidePopup extends InGamePopup {
   // Returns the inner panel. Reparent rows into that, never into the scroll area itself.
   private func MakeScrollColumn(parent: wref<inkCompoundWidget>, x: Float, y: Float,
                                 width: Float, height: Float,
-                                keepCtrl: Bool) -> ref<inkVerticalPanel> {
+                                isNav: Bool) -> ref<inkVerticalPanel> {
     let barW: Float = 12.0;
     let viewW: Float = width - NCZDG_ScrollBarStrip();
 
@@ -975,8 +1137,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     scroll.autoHideVertical = true;
     box.AttachController(scroll);
 
-    if keepCtrl {
+    if isNav {
       this.m_navScroll = scroll;
+    } else {
+      this.m_cardScroll = scroll;
     }
     return col;
   }
@@ -1005,12 +1169,12 @@ public class NCZDGGuidePopup extends InGamePopup {
     box.Reparent(parent);
 
     let frame = new inkImage();
+    frame.SetName(n"frame");   // findable, so a hide site can reset a hover the widget never left
     frame.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
     frame.SetTexturePart(n"cell_fg");
     frame.SetNineSliceScale(true);
     frame.SetAnchor(inkEAnchor.Fill);
-    frame.SetStyle(NCZDG_StylePath());
-    frame.BindProperty(n"tintColor", NCZDG_Cyan());
+    frame.SetTintColor(NCZDG_CyanColor());   // interactive: tint directly, not via a style bind
     frame.Reparent(box);
 
     let txt = this.MakeText(label, NCZDG_Cyan(), 34);
@@ -1024,8 +1188,12 @@ public class NCZDGGuidePopup extends InGamePopup {
     let proxy = new NCZDGGuideProxy();
     proxy.popup = this;
     proxy.index = index;
+    proxy.hoverFrame = frame;
+    proxy.restOpacity = 1.0;
     ArrayPush(this.m_proxies, proxy);   // the widget does not keep the proxy alive
     box.RegisterToCallback(n"OnRelease", proxy, n"OnRelease");
+    box.RegisterToCallback(n"OnEnter", proxy, n"OnEnter");
+    box.RegisterToCallback(n"OnLeave", proxy, n"OnLeave");
     return box;
   }
 }
@@ -1042,8 +1210,9 @@ public class NCZDGCardSlot {
   public let desc: wref<inkText>;
   public let tags: wref<inkText>;
   public let badge: wref<inkText>;       // "RECENTLY UPDATED"; shown per the core's recency bool
-  // The action strip is always BUILT, only hidden, so revealing it reflows nothing.
-  public let actions: wref<inkHorizontalPanel>;
+  // The action strip is always BUILT, only hidden, so revealing it reflows nothing. The canvas
+  // carries a card-coloured backing so card text cannot read through the buttons.
+  public let actions: wref<inkCanvas>;
   public let wpLabel: wref<inkText>;     // SET WAYPOINT <-> CLEAR WAYPOINT
   public let tpLabel: wref<inkText>;     // greys out in a vehicle
 }
@@ -1052,10 +1221,38 @@ public class NCZDGCardSlot {
 public class NCZDGGuideProxy extends IScriptable {
   public let popup: wref<NCZDGGuidePopup>;
   public let index: Int32;
+  // A button frame to brighten on hover, plus its rest opacity to restore. Cards leave these
+  // unset: their hover feedback (frame + action strip) is the popup's job, via OnProxyHover.
+  public let hoverFrame: wref<inkImage>;
+  public let restOpacity: Float;
 
   protected cb func OnRelease(e: ref<inkPointerEvent>) -> Bool {
     if e.IsAction(n"click") && IsDefined(this.popup) {
       this.popup.OnProxyClick(this.index);
+    }
+    return true;
+  }
+
+  // Registered on the cards and the buttons (base-game pairing, e.g. sliderController's
+  // OnEnter/OnLeave). Buttons brighten their own frame here; cards defer to the popup.
+  protected cb func OnEnter(e: ref<inkPointerEvent>) -> Bool {
+    if IsDefined(this.hoverFrame) {
+      this.hoverFrame.SetTintColor(NCZDG_TextColor());   // Archival White, matching hovered chrome
+      this.hoverFrame.SetOpacity(1.0);
+    }
+    if IsDefined(this.popup) {
+      this.popup.OnProxyHover(this.index, true);
+    }
+    return true;
+  }
+
+  protected cb func OnLeave(e: ref<inkPointerEvent>) -> Bool {
+    if IsDefined(this.hoverFrame) {
+      this.hoverFrame.SetTintColor(NCZDG_CyanColor());
+      this.hoverFrame.SetOpacity(this.restOpacity);
+    }
+    if IsDefined(this.popup) {
+      this.popup.OnProxyHover(this.index, false);
     }
     return true;
   }

@@ -167,7 +167,8 @@ public class NCZDGGuideModel {
     return -1;
   }
 
-  // The locations in an area, filtered by a free-text query, sorted A-Z by name.
+  // The locations in an area, filtered by a free-text query, sorted recently-updated first, then
+  // A-Z by name.
   //
   // Search covers EVERY text field a location carries - name, description, category, tags and
   // authors - so "watson", "interior", an author's handle and a tag all find the same thing.
@@ -234,8 +235,12 @@ public func NCZDG_Matches(loc: ref<NCZLocation>, lowerQuery: String) -> Bool {
   return false;
 }
 
-// Insertion sort by lowercased name. redscript has no comparator sort, and the sets here are small
-// (295 worst case, once per selection, on a paused frame).
+// Insertion sort, two keys: recently-updated first, then lowercased name A-Z within each group.
+// Recency is the core's server-computed flag, so a mod falls back into the alphabetical run by
+// itself once the flag expires - no clock, no state, nothing to clean up here.
+//
+// redscript has no comparator sort, and the sets here are small (295 worst case, once per
+// selection, on a paused frame).
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_SortByName(locs: array<ref<NCZLocation>>) -> array<ref<NCZLocation>> {
   let out: array<ref<NCZLocation>>;
@@ -243,12 +248,26 @@ public func NCZDG_SortByName(locs: array<ref<NCZLocation>>) -> array<ref<NCZLoca
   while i < ArraySize(locs) {
     let loc = locs[i];
     let key = StrLower(loc.Name());
+    let recent = loc.RecentlyUpdated();
     let j = ArraySize(out);
-    while j > 0 && UnicodeStringLessThan(key, StrLower(out[j - 1].Name())) {
+    while j > 0 && NCZDG_OrdersBefore(recent, key, out[j - 1]) {
       j -= 1;
     }
     ArrayInsert(out, j, loc);
     i += 1;
   }
   return out;
+}
+
+// True when (recent, key) sorts before `other`: recent beats not-recent, ties fall through to A-Z.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_OrdersBefore(recent: Bool, key: String, other: ref<NCZLocation>) -> Bool {
+  let otherRecent = other.RecentlyUpdated();
+  if recent && !otherRecent {
+    return true;
+  }
+  if !recent && otherRecent {
+    return false;
+  }
+  return UnicodeStringLessThan(key, StrLower(other.Name()));
 }
