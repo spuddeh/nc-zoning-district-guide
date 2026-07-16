@@ -15,8 +15,9 @@ Feature state for NC Zoning District Guide. Legend: Done, In Progress, Planned.
 
 | Feature | State | Notes |
 | --- | --- | --- |
-| Standalone keybind guide | Planned | Map-styled ink window, per-mod detail |
-| World map info panel section | Planned | Injected into the map's district panel |
+| Standalone keybind guide | Done | Codeware InGamePopup; nav tree + pooled cards, search, paging |
+| World map info panel section | Done | Injected into the map's district panel (count + category breakdown) |
+| Recently-updated surfacing | Done | Green badge on cards, "N RECENT" nav count, "N RECENTLY UPDATED" map line, from the core's recency bool |
 
 ## Nearby location notice
 

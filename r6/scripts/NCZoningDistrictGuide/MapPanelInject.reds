@@ -29,9 +29,10 @@
 //              cannot report a Badlands SUBdistrict, so this is always the district total and
 //              deliberately ignores matchSubdistrict.
 //
-//              The web panel's "N recently updated" stat is not reproducible here: the core exposes
-//              no updated_at accessor, and redscript has no wall clock to compare a date against.
-//              It needs a server-side recency flag.
+//              The web panel's "N recently updated" stat IS reproduced here now: the core exposes the
+//              API's server-computed recently_updated bool per location (NCZLocation.RecentlyUpdated()),
+//              so this counts it over the district's locations. redscript still has no wall clock - the
+//              server did the date math and shipped the answer.
 //
 //              ADDITIVE ONLY. wrappedMethod() runs first and unconditionally in both wraps, so the
 //              vanilla map is byte-identical whether or not this mod is installed. enableMapPanel
@@ -73,6 +74,10 @@ let nczdg_mapCount: wref<inkText>;
 @if(ModuleExists("NCZoning.Api"))
 @addField(WorldMapMenuGameController)
 let nczdg_mapBreakdown: wref<inkHorizontalPanel>;
+
+@if(ModuleExists("NCZoning.Api"))
+@addField(WorldMapMenuGameController)
+let nczdg_mapRecent: wref<inkText>;
 
 // Hover fires on every mouse move over the map, so dedupe like the native ShowGangsInfo does.
 // Bool defaults to false, which is what forces the first hover through.
@@ -161,6 +166,7 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
     this.nczdg_mapCount.BindProperty(n"tintColor", n"MainColors.Red");
     this.nczdg_mapBreakdown.RemoveAllChildren();
     this.nczdg_mapBreakdown.SetVisible(false);
+    this.nczdg_mapRecent.SetVisible(false);
     NCZDGLog("[MAP] no registry data - showing the no-data label");
     return;
   }
@@ -211,6 +217,7 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
     this.nczdg_mapCount.SetText("NO REGISTERED LOCATIONS");
     this.nczdg_mapCount.BindProperty(n"tintColor", n"MainColors.Grey");
     this.nczdg_mapBreakdown.SetVisible(false);
+    this.nczdg_mapRecent.SetVisible(false);
     return;
   }
 
@@ -242,6 +249,23 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
   first = this.NCZDG_AddBreakdown(overhaulCount, "OVERHAUL", n"MainColors.Blue", first);
   first = this.NCZDG_AddBreakdown(otherCount, "OTHER", n"MainColors.Grey", first);
   this.nczdg_mapBreakdown.SetVisible(true);
+
+  // Recency, mirroring the web district panel's "N recently updated". A sum over the server's
+  // per-location bool, not a date comparison - redscript has no clock. Hidden when none are recent.
+  let recentCount: Int32 = 0;
+  let ri = 0;
+  while ri < count {
+    if locs[ri].RecentlyUpdated() {
+      recentCount += 1;
+    }
+    ri += 1;
+  }
+  if recentCount > 0 {
+    this.nczdg_mapRecent.SetText(s"\(recentCount) RECENTLY UPDATED");
+    this.nczdg_mapRecent.SetVisible(true);
+  } else {
+    this.nczdg_mapRecent.SetVisible(false);
+  }
 }
 
 // Append "N LABEL(S)" to the breakdown row, preceded by a separator dot unless it is the first
@@ -331,9 +355,17 @@ private final func NCZDG_EnsureMapSection() -> Bool {
   breakdown.SetMargin(new inkMargin(0.0, 4.0, 0.0, 0.0));
   breakdown.Reparent(panel);
 
+  // Recency line: green (Approval), below the breakdown. Hidden until a hover fills it in.
+  let recent = this.NCZDG_MakeMapText("", n"MainColors.Green", NCZDG_MapDetailSize());
+  recent.SetName(n"nczdg_map_recent");
+  recent.SetMargin(new inkMargin(0.0, 4.0, 0.0, 0.0));
+  recent.SetVisible(false);
+  recent.Reparent(panel);
+
   this.nczdg_mapPanel = panel;
   this.nczdg_mapCount = count;
   this.nczdg_mapBreakdown = breakdown;
+  this.nczdg_mapRecent = recent;
   NCZDGLog("[MAP] section injected into the district info block");
   return true;
 }

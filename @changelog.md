@@ -22,3 +22,8 @@ Initial development. Not yet released.
   mod runs on its defaults with neither installed.
 - Open-guide keybind via Input Loader (default apostrophe), with an optional Shift/Alt/Ctrl
   modifier tracked through dedicated input actions, debounced against key-repeat.
+- Recently-updated surfacing: reads NCZoningCore's server-computed `RecentlyUpdated()` (the /v1
+  API's per-location recency bool - redscript has no in-game clock to derive it) and shows it in
+  three places, all in green: a "RECENTLY UPDATED" badge on each mod card, an "N RECENT" count on
+  every district/subdistrict nav row, and an "N RECENTLY UPDATED" line on the world-map district
+  info panel. Counts are summed over the records already held; no extra API call.

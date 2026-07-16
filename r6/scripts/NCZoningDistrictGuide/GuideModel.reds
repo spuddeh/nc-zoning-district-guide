@@ -36,6 +36,7 @@ public class NCZDGArea {
   public let isAll: Bool;
   public let isSub: Bool;
   public let count: Int32;
+  public let recentCount: Int32;   // of `count`, how many carry the API's recently_updated flag
 
   public func Label() -> String {
     if this.isAll {
@@ -80,6 +81,7 @@ public class NCZDGGuideModel {
     let allRow = new NCZDGArea();
     allRow.isAll = true;
     allRow.count = this.m_total;
+    allRow.recentCount = this.CountRecentIn(all, "", "");
     ArrayPush(this.m_areas, allRow);
 
     let districts = GetDistricts();
@@ -90,6 +92,7 @@ public class NCZDGGuideModel {
       let dRow = new NCZDGArea();
       dRow.district = name;
       dRow.count = this.CountIn(all, name, "");
+      dRow.recentCount = this.CountRecentIn(all, name, "");
       ArrayPush(this.m_areas, dRow);
 
       let subs = GetSubdistricts(name);
@@ -100,6 +103,7 @@ public class NCZDGGuideModel {
         sRow.subdistrict = subs[s];
         sRow.isSub = true;
         sRow.count = this.CountIn(all, name, subs[s]);
+        sRow.recentCount = this.CountRecentIn(all, name, subs[s]);
         ArrayPush(this.m_areas, sRow);
         s += 1;
       }
@@ -117,6 +121,30 @@ public class NCZDGGuideModel {
       if UnicodeStringEqual(loc.District(), district) {
         if StrLen(sub) == 0 || UnicodeStringEqual(loc.Subdistrict(), sub) {
           n += 1;
+        }
+      }
+      i += 1;
+    }
+    return n;
+  }
+
+  // The recently-updated subset of the same area CountIn describes. An empty `district` means "all
+  // areas" (the ALL row); a non-empty district with an empty `sub` means the whole district. Recency
+  // is the core's server-computed flag - redscript has no clock to derive it from a date.
+  private func CountRecentIn(locs: array<ref<NCZLocation>>, district: String, sub: String) -> Int32 {
+    let n = 0;
+    let i = 0;
+    while i < ArraySize(locs) {
+      let loc = locs[i];
+      if loc.RecentlyUpdated() {
+        if StrLen(district) == 0 {
+          n += 1;
+        } else {
+          if UnicodeStringEqual(loc.District(), district) {
+            if StrLen(sub) == 0 || UnicodeStringEqual(loc.Subdistrict(), sub) {
+              n += 1;
+            }
+          }
         }
       }
       i += 1;

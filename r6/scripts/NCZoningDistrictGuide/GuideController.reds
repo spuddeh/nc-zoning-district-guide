@@ -470,6 +470,17 @@ public class NCZDGGuidePopup extends InGamePopup {
     cnt.SetMargin(new inkMargin(0.0, 0.0, 20.0, 0.0));
     cnt.Reparent(row);
 
+    // Of that total, how many are recently updated - green, to the left of the amber total, and only
+    // when there are any. The colour ties back to the green RECENTLY UPDATED badge on the cards.
+    if area.recentCount > 0 {
+      let recent = this.MakeText(s"\(area.recentCount) RECENT", NCZDG_Green(), 22);
+      recent.SetName(n"recent");
+      recent.SetAnchor(inkEAnchor.CenterRight);
+      recent.SetAnchorPoint(new Vector2(1.0, 0.5));
+      recent.SetMargin(new inkMargin(0.0, 0.0, 100.0, 0.0));
+      recent.Reparent(row);
+    }
+
     let proxy = new NCZDGGuideProxy();
     proxy.popup = this;
     proxy.index = index;
@@ -601,6 +612,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
     slot.tags.SetText(tags);
 
+    // Server-computed recency: the guide cannot derive "updated within N days" (no in-game clock),
+    // so it shows what the API decided.
+    slot.badge.SetVisible(loc.RecentlyUpdated());
+
     // The waypoint button reflects the CURRENT pin, so it is right on every re-bind.
     let actions = NCZDGWorldActions.Get(this.m_gi);
     // A button says what CLICKING it does, and nothing else. Routing state is not an action - no
@@ -728,6 +743,16 @@ public class NCZDGGuidePopup extends InGamePopup {
     tags.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
     tags.Reparent(stack);
 
+    // Recency badge. Green (the brand's Approval colour, unused elsewhere in the guide) so it reads
+    // apart from the category-tinted meta line. Built once and hidden; BindCard toggles it per mod
+    // from the core's server-computed RecentlyUpdated() - there is no in-game clock to derive it.
+    let badge = this.MakeText("RECENTLY UPDATED", NCZDG_Green(), 22);
+    badge.SetFontStyle(n"Semi-Bold");
+    badge.SetLetterCase(textLetterCase.UpperCase);
+    badge.SetMargin(new inkMargin(0.0, 6.0, 0.0, 0.0));
+    badge.SetVisible(false);
+    badge.Reparent(stack);
+
     // The action strip. Built now, hidden until the card is selected, so revealing it reflows
     // nothing and the card height never changes.
     let actions = new inkHorizontalPanel();
@@ -757,6 +782,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     slot.meta = meta;
     slot.desc = desc;
     slot.tags = tags;
+    slot.badge = badge;
     slot.actions = actions;
     slot.wpLabel = wp;
     slot.tpLabel = tp;
@@ -1015,6 +1041,7 @@ public class NCZDGCardSlot {
   public let meta: wref<inkText>;
   public let desc: wref<inkText>;
   public let tags: wref<inkText>;
+  public let badge: wref<inkText>;       // "RECENTLY UPDATED"; shown per the core's recency bool
   // The action strip is always BUILT, only hidden, so revealing it reflows nothing.
   public let actions: wref<inkHorizontalPanel>;
   public let wpLabel: wref<inkText>;     // SET WAYPOINT <-> CLEAR WAYPOINT
