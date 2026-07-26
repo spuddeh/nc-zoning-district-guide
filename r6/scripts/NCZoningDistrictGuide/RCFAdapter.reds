@@ -13,11 +13,21 @@
 //              the whole file compiles to nothing when RCF is absent.
 //
 //              This is the ONLY settings UI. The keybind is the one exception and lives in
-//              Mod Settings (see Config.reds), because RCF cannot capture keybinds: its row
-//              kinds are Label/Header/Toggle/Slider/Stepper/Button/Dropdown/Image
-//              (DVRCF_HubPopup.reds:1476-1501), its provider contract has no EInputKey
-//              channel, and its popup handles only n"click". RCF binds its own F8 hotkey
-//              through Mod Settings + Input Loader for exactly this reason.
+//              Mod Settings (see Config.reds).
+//
+//              WHY, AND THIS CHANGED ON 2026-07-26. It used to be that RCF simply COULD NOT
+//              capture a keybind - no keybind row kind, no EInputKey channel, popup handled
+//              only n"click". That was true of RCF 1.3.0 and is FALSE of 2.0.0, which added
+//              Keybind/PadKeybind/AnyKeybind/ModifierKeybind rows and a bundled DVRCFInput
+//              RED4ext plugin that applies the override (value channel is GetInt/SetInt, an
+//              EInputKey cast to Int32).
+//
+//              So the split is now a CHOICE, not a constraint, and it has not been re-decided.
+//              Moving the keybind here would drop the Mod Settings dependency entirely, but it
+//              would raise RCF from recommended-optional to effectively required - with no RCF
+//              the mod would have no rebindable key at all - and pull RED4ext into the chain.
+//              Until that trade is evaluated, leave this as it is.
+//              See [[CP2077-Mods/wiki/decisions/one-owner-per-setting-rcf-plus-modsettings-keybind]].
 //
 //              Values are deliberately NOT pushed back into Mod Settings. The only commit
 //              call available to redscript, ModSettings.AcceptChanges(), is GLOBAL: it would
