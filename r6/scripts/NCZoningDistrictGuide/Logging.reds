@@ -2,17 +2,31 @@
 // Mod Name: NC Zoning District Guide
 // File: Logging.reds
 // Author: Spuddeh
-// Description: DEV ONLY. Global-scope log wrapper (no module, so every file can call it
-//              without an import). Codeware is a hard dependency and provides FTLog
-//              globally, so no Logs.reds native-signature file is needed and there is no
-//              duplicate native-func clash.
+// Description: SHIPPED. Global-scope log wrapper (no module, so every file can call it
+//              without an import). Writes through RedLogger, a hard dependency, into
+//              r6/logs/mods/NCZoningDistrictGuide__<date_time>.log - one file per mod per
+//              session, five sessions kept, oldest pruned. A user reporting a bug can be
+//              asked for that one file instead of a shared log or a debug build.
 //
-//              STRIP THIS FILE and every NCZDGLog call site before a release build
-//              (no-shipped-logging rule).
+//              THIS FILE IS NOT Logs.reds AND MUST NEVER BECOME IT. Logs.reds carries a
+//              `native func` declaration, and redscript compiles every installed mod into
+//              ONE unit, so two mods each shipping one is a duplicate declaration that
+//              breaks every redscript mod on the machine. RedLogger's signature ships once
+//              inside the plugin, so no number of callers can collide. That difference is
+//              the entire reason these calls may ship.
+//
+//              STILL STRIPPED BEFORE RELEASE: FTLog, Log, LogChannel*, LogWarning,
+//              LogError - and InkDebug.reds, which is a widget-tree dumper, not logging.
+//              Do not conflate InkDebug.reds with this file.
+//
+//              RedLog.Append takes no level; encode any level in the line text.
+//              [[CP2077-Mods/wiki/decisions/redlogger-is-the-shipping-logging-path]]
 // Mod Version: 0.1.0 (Pre-release)
-// Credits: psiberx (Codeware)
+// Credits: DigitalVixen (RedLogger)
 // ======================================================================================
 
+import RedLogger.*
+
 public func NCZDGLog(value: script_ref<String>) -> Void {
-  FTLog(s"[NCZDistrictGuide] \(value)");
+  RedLog.Append("NCZoningDistrictGuide", s"\(value)");
 }

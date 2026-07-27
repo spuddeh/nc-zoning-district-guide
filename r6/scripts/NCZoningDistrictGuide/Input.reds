@@ -3,34 +3,38 @@
 // File: Input.reds
 // Author: Spuddeh
 // Description: The guide's open keybind. Requires Input Loader to register the action
-//              (see r6/input/nczdg.xml); Mod Settings optionally makes it rebindable.
+//              (see r6/input/nczdg.xml); RCF makes it rebindable.
 //
 //              Uses a DEDICATED LISTENER CLASS registered with RegisterInputListener.
 //              Do NOT wrap PlayerPuppet.OnAction directly: it corrupts the input system
 //              and is incompatible with how the engine chains cb funcs. (Same pattern and
 //              warning as fpp_speedometer, and as ImmersiveTimeskip / QuickhackHotkeys.)
 //
+//              THE LISTENER NEVER READS openGuideKey. It matches the ACTION name
+//              n"NCZDG_ToggleGuide"; which physical key raises that action is decided by
+//              nczdg.xml and then overridden by RCF's DVRCFInput plugin. So a wrong key in
+//              settings is not something this file can detect or report.
+//
+//              Modifier state moved OUT of this file. It used to be tracked here from three
+//              dedicated input actions; it now lives in NCZDGModifierWatch on Codeware's
+//              n"Input/Key" event. See ModifierWatch.reds for why that workaround existed
+//              and why it was wrong.
+//
 //              Graceful degradation:
 //                - No Input Loader: NCZDG_ToggleGuide never registers, IsAction never
 //                  matches, the listener is inert.
-//                - No Mod Settings: the key stays on the XML default (' = IK_SingleQuote)
-//                  with no modifier.
+//                - No RCF: the key stays on the XML default (' = IK_SingleQuote) with no
+//                  modifier, and cannot be rebound.
 // Mod Version: 0.1.0 (Pre-release)
-// Credits: jackhumbert (Input Loader, Mod Settings)
+// Credits: jackhumbert (Input Loader), psiberx (Codeware), DigitalVixen (RCF)
 // ======================================================================================
 
 import NCZoningDistrictGuide.Config.*
 import NCZoningDistrictGuide.Guide.*
+import NCZoningDistrictGuide.Input.*
 
 public class NCZDGInputListener {
   private let m_player: wref<PlayerPuppet>;
-
-  // Held state of each modifier, maintained from its own input action. Input Loader cannot
-  // express a modifier on a mapping, and inkInputEvent.IsShiftDown() is a UI event method
-  // that a gameplay ListenerAction callback cannot reach, so the keys are observed directly.
-  private let m_shiftHeld: Bool;
-  private let m_altHeld: Bool;
-  private let m_ctrlHeld: Bool;
 
   // BUTTON_PRESSED repeats while held; this debounces it to one fire per press.
   private let m_lastFiredAt: Float;
@@ -42,22 +46,6 @@ public class NCZDGInputListener {
   protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
     let actionType = ListenerAction.GetType(action);
     let pressed = Equals(actionType, gameinputActionType.BUTTON_PRESSED);
-    let released = Equals(actionType, gameinputActionType.BUTTON_RELEASED);
-
-    // Track the modifiers. These actions do nothing else, so never consume them: other
-    // mods and the game itself still need Shift / Alt / Ctrl.
-    if ListenerAction.IsAction(action, n"NCZDG_ModShift") {
-      if pressed { this.m_shiftHeld = true; } else if released { this.m_shiftHeld = false; }
-      return false;
-    }
-    if ListenerAction.IsAction(action, n"NCZDG_ModAlt") {
-      if pressed { this.m_altHeld = true; } else if released { this.m_altHeld = false; }
-      return false;
-    }
-    if ListenerAction.IsAction(action, n"NCZDG_ModCtrl") {
-      if pressed { this.m_ctrlHeld = true; } else if released { this.m_ctrlHeld = false; }
-      return false;
-    }
 
     if !ListenerAction.IsAction(action, n"NCZDG_ToggleGuide") || !pressed {
       return false;
@@ -66,17 +54,21 @@ public class NCZDGInputListener {
     if !IsDefined(player) {
       return false;
     }
-    // Feature toggle lives in RCF's panel; the keybind lives in Mod Settings.
+    // Every setting, the keybind included, lives in RCF's panel.
     let cfg = NCZDGConfig.Get();
     if !IsDefined(cfg) || !cfg.enableStandaloneGuide {
       NCZDGLog("guide key: ignored, guide disabled in settings");
       return false;
     }
-    let keys = NCZDGKeybind.Get();
-    let modifier = IsDefined(keys) ? keys.openGuideModifier : NCZDGModifier.None;
-    if !this.ModifierSatisfied(modifier) {
+    // A missing watcher means no modifier can be confirmed held. Treat that as satisfied
+    // rather than blocking: an unopenable guide is a worse failure than a modifier that
+    // stops being required, and the log line says which happened.
+    let watch = NCZDGModifierWatch.Get(player.GetGame());
+    if !IsDefined(watch) {
+      NCZDGLog("guide key: modifier watcher missing, opening without a modifier check");
+    } else if !watch.Satisfied() {
       // Right key, wrong modifier: leave the press for whoever else wants it.
-      NCZDGLog(s"guide key: ignored, need \(NCZDG_ModifierName(modifier)), held [\(this.DebugHeldState())]");
+      NCZDGLog(s"guide key: ignored, modifier not held [\(watch.DebugState())]");
       return false;
     }
 
@@ -92,36 +84,6 @@ public class NCZDGInputListener {
     return true;
   }
 
-  // The chosen modifier must be held, and with None chosen no modifier may be held, so that
-  // e.g. Shift+' does not also trigger a plain ' binding.
-  private func ModifierSatisfied(required: NCZDGModifier) -> Bool {
-    switch required {
-      case NCZDGModifier.Shift: return this.m_shiftHeld;
-      case NCZDGModifier.Alt: return this.m_altHeld;
-      case NCZDGModifier.Ctrl: return this.m_ctrlHeld;
-      default: return !this.m_shiftHeld && !this.m_altHeld && !this.m_ctrlHeld;
-    }
-  }
-
-  // Dev aid: what the listener currently believes is held. Called from the guide-key path so
-  // one press reports whether the modifier probes are tracking. Strip with the logging.
-  public func DebugHeldState() -> String {
-    let s = "";
-    if this.m_shiftHeld { s += "Shift "; }
-    if this.m_altHeld { s += "Alt "; }
-    if this.m_ctrlHeld { s += "Ctrl "; }
-    if UnicodeStringEqual(s, "") { return "none"; }
-    return s;
-  }
-}
-
-public func NCZDG_ModifierName(m: NCZDGModifier) -> String {
-  switch m {
-    case NCZDGModifier.Shift: return "Shift";
-    case NCZDGModifier.Alt: return "Alt";
-    case NCZDGModifier.Ctrl: return "Ctrl";
-    default: return "no modifier";
-  }
 }
 
 // Kept separate from the listener so the input plumbing and the UI stay independently testable.

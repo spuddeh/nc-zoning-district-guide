@@ -35,7 +35,9 @@ Feature state for NC Zoning District Guide. Legend: Done, In Progress, Planned.
 
 | Feature | State | Notes |
 | --- | --- | --- |
-| Mod Settings support | Done | Keybind + modifier only (one owner per setting) |
-| RCF support | Done | F8 overlay via `RCFAdapter.reds`; toggles and sliders live here |
-| Rebindable guide keybind | Done | Input Loader, `r6/input/nczdg.xml`, debounced |
-| Runs on defaults with no framework | Done | Both frameworks optional, `ModuleExists` guarded |
+| RCF support | Done | F8 overlay via `RCFAdapter.reds`; **every** setting lives here |
+| Mod Settings support | Removed | Held only the keybind, because RCF 1.3.0 could not capture one. RCF 2.0.0 can, so it moved and the dependency was dropped |
+| Rebindable guide keybind | Done | RCF `Keybind` row → `DVRCFInput` plugin → `overridableUI` in `r6/input/nczdg.xml`; debounced |
+| Modifier key | Done | RCF `ModifierKeybind` (`localOnly`); **any** key, not just Shift/Alt/Ctrl. Held state from Codeware `n"Input/Key"` in `ModifierWatch.reds` |
+| Runs on defaults with no framework | Done | RCF is `ModuleExists` guarded; without it nothing is rebindable |
+| Shipped logging | Done | RedLogger hard dep; `NCZDGLog` ships to `r6\logs\mods\`. `InkDebug.reds` still stripped at release |

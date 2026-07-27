@@ -23,15 +23,23 @@ Every feature can be turned off on its own.
 
 - RED4ext, redscript, Codeware
 - [NCZoningCore](https://github.com/spuddeh/nc-zoning-core)
+- [RedLogger](https://www.nexusmods.com/cyberpunk2077/mods/31920) (the mod's log file)
 - Input Loader (for the guide keybind)
 
-Optional, for the settings menu (install either, both, or neither):
+Strongly recommended:
 
-- Mod Settings, for settings in the pause menu
 - [Redscript Configuration Framework](https://www.nexusmods.com/cyberpunk2077/mods/30726)
-  (RCF) by DigitalVixen, for settings in the F8 overlay
+  (RCF) 2.0.0 or newer, by DigitalVixen — every setting lives in its in-world overlay,
+  including the guide keybind and its modifier
 
-Without a settings framework the mod runs on its defaults.
+Without RCF the mod still runs, but on its defaults only: the guide opens with the
+apostrophe key, there is no modifier, and **nothing can be rebound.** RCF also pulls in
+RED4ext for its bundled keybind plugin.
+
+**Mod Settings is no longer used.** Up to 0.1.0 the keybind lived there, because RCF could
+not capture one. RCF 2.0.0 can, so the keybind moved and the dependency was dropped — every
+setting is now in one menu. If you installed Mod Settings only for this mod, you no longer
+need it.
 
 ## Install
 
@@ -53,7 +61,7 @@ breaks every redscript mod. Install each one once, as its own mod.
 - [Akiway](https://www.nexusmods.com/profile/Akiway) for improvements to the NC Zoning map
   UI and UX.
 - [psiberx](https://www.nexusmods.com/profile/psiberx/mods) for Codeware.
-- DigitalVixen for the Redscript Configuration Framework.
+- DigitalVixen for the Redscript Configuration Framework and RedLogger.
 - The location-mod authors the registry maps, and the Locations Hub community.
 
 ## License

@@ -17,11 +17,40 @@ Initial development. Not yet released.
   when the most specific level is not on the map.
 - District change hook, wrapping `PlayerPuppet.OnDistrictChanged`, deduplicated so one
   boundary crossing reports once.
-- Settings: toggles and sliders in the RCF (Redscript Configuration Framework) F8 overlay;
-  the open-guide key and its modifier in Mod Settings. Both frameworks are optional and the
-  mod runs on its defaults with neither installed.
-- Open-guide keybind via Input Loader (default apostrophe), with an optional Shift/Alt/Ctrl
-  modifier tracked through dedicated input actions, debounced against key-repeat.
+- Settings: every setting, the keybind included, in the RCF (Redscript Configuration
+  Framework) 2.0.0 F8 overlay. RCF is optional in the sense that the mod runs on its defaults
+  without it, but nothing can then be rebound. **Mod Settings is not used at all.** Earlier in
+  0.1.0 the keybind lived there, because RCF 1.3.0 had no keybind row kind, no `EInputKey`
+  channel and a popup that handled only `n"click"`. RCF 2.0.0 (2026-07-26) added
+  `Keybind`/`PadKeybind`/`AnyKeybind`/`ModifierKeybind` rows and a bundled `DVRCFInput`
+  RED4ext plugin, so the split stopped being forced and the dependency was dropped. *One
+  owner per setting* is unchanged — it never rested on the keybind limitation, and only which
+  framework owns the keybind changed.
+- Open-guide keybind via Input Loader (default apostrophe; N is photo mode), rebindable in
+  the RCF panel and debounced against key-repeat. The row key, the `NCZDGKeybind.openGuideKey`
+  field and `overridableUI="openGuideKey"` in `nczdg.xml` are one name in three places;
+  RCF pushes the captured key through `RCFInput.SetKeyOverride`, and the listener still
+  matches only the action name, never the key.
+- Optional modifier held with the open key: **any** key, not one of Shift/Alt/Ctrl, via RCF's
+  `localOnly` `ModifierKeybind` row. Held state is tracked in `NCZDGModifierWatch` on
+  Codeware's `n"Input/Key"` `KeyInputEvent`. This replaced three dedicated Input Loader
+  actions (`NCZDG_ModShift`/`ModAlt`/`ModCtrl`) plus their listener branches, which existed
+  on the reasoning that `IsShiftDown()` lives on `inkInputEvent` and is unreachable from a
+  gameplay `ListenerAction` callback — true of that path, but `KeyInputEvent` is not a UI
+  event and exposes `GetKey()`, `GetAction()`, `IsShiftDown()`, `IsControlDown()` and
+  `IsAltDown()`. Note one deliberate behaviour change: the old check also required that *no*
+  modifier be held when None was chosen, so `Shift+'` would not fire a plain `'` binding.
+  With an arbitrary modifier key there is no bounded set of others to test, so that no longer
+  holds.
+- Logging through RedLogger (`RedLog.Append`), a hard dependency, into
+  `r6\logs\mods\NCZoningDistrictGuide__<date_time>.log`. `NCZDGLog` and its ~74 call sites
+  now **ship**; the wrapper body was the only line that changed. `Logging.reds` is not and
+  must never become a `Logs.reds` — the latter carries a `native func` declaration, and
+  redscript compiles every installed mod into one unit, so two mods each shipping one is a
+  duplicate declaration that breaks every redscript mod on the machine. RedLogger's signature
+  ships once inside the plugin. `InkDebug.reds` is still stripped before release: it is a
+  widget-tree dumper, not logging, and the distinction now matters because "strip it with the
+  rest of the logging" would read as an instruction to keep it.
 - Recently-updated surfacing: reads NCZoningCore's server-computed `RecentlyUpdated()` (the /v1
   API's per-location recency bool - redscript has no in-game clock to derive it) and shows it in
   three places, all in green: a "RECENTLY UPDATED" badge on each mod card, an "N RECENT" count on

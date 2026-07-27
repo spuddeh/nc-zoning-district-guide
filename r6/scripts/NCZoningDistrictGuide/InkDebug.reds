@@ -5,7 +5,14 @@
 // Description: DEV ONLY. A recursive ink-widget tree dumper, used to understand the notification
 //              layer, so the fast-travel panel can be positioned and scaled to match the banner.
 //              Logs each widget's class, name, size, scale, translation, anchor, margin and child
-//              count. Strip with the rest of the logging before release.
+//              count.
+//
+//              STRIP THIS WHOLE FILE BEFORE RELEASE - and note that the reason is no longer
+//              "it logs". Logging.reds now ships (RedLogger), so "strip with the rest of the
+//              logging" would today read as an instruction to KEEP this. It is not. This is a
+//              development instrument that dumps hundreds of lines per invocation; it is dead
+//              weight in a release regardless of which sink it writes to. Delete the file and
+//              its call sites.
 //
 //              This is the same information RedHotTools' InkInspector shows, dumped to the log so
 //              it is captured for future reference (understanding the banner vs virtual-window
