@@ -80,7 +80,7 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
         .Toggle(NCZDG_KeyGuide(), "Enable District Guide")
           .Tip("Browse the location mods in any district, with search, a map waypoint and a teleport.")
         .Keybind(NCZDG_KeyOpenKey(), "Open Guide Key")
-          .Tip("Key that opens the district guide. Defaults to the apostrophe, because N is photo mode. Requires Input Loader.")
+          .Tip("Key that opens the district guide. Requires Input Loader.")
         .ModifierKeybind(NCZDG_KeyOpenModifier(), "Open Guide Modifier")
           .Tip("Optional key to hold alongside the open key. Any key will do, not just Shift, Alt or Ctrl. Leave unset for no modifier.")
         .Label("A waypoint set from the guide only draws its route once you open the world map. That is a game limitation, not a setting.")
