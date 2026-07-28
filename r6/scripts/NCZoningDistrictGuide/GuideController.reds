@@ -80,7 +80,18 @@ public func NCZDG_UsableHeight() -> Float {
 //   | districts   |  cards, 2 across                               |  body
 //   | (scrolls)   |  (scrolls)                                     |
 //   +-------------+------------------------------------------------+
-public func NCZDG_TopStripHeight() -> Float { return 150.0; }
+// 150 left ~30 units of dead air under the controls: the tallest thing in the strip is the
+// 80-high search row, and the right-hand count + pager stack ends at 120.
+public func NCZDG_TopStripHeight() -> Float { return 132.0; }
+
+// The install filter sits above the district list rather than in the search row. These size the
+// gap it occupies, and the nav scroll below is shortened by exactly the same amount - derive it,
+// never type it twice.
+public func NCZDG_NavFilterHeight() -> Float { return 60.0; }
+public func NCZDG_NavFilterGap() -> Float { return 14.0; }
+public func NCZDG_NavTop() -> Float {
+  return NCZDG_TopStripHeight() + NCZDG_NavFilterHeight() + NCZDG_NavFilterGap();
+}
 public func NCZDG_NavWidth() -> Float { return 760.0; }
 public func NCZDG_ColumnGap() -> Float { return 40.0; }
 
@@ -97,55 +108,63 @@ public func NCZDG_CardsWidth() -> Float {
 public func NCZDG_ScrollBarStrip() -> Float { return 20.0; }
 public func NCZDG_CardGap() -> Float { return 24.0; }
 
-public func NCZDG_CardWidth() -> Float {
-  return (NCZDG_CardsWidth() - NCZDG_ScrollBarStrip() - NCZDG_CardGap()) / 2.0;
-}
-
-// 240 is a budget with no slack for a bottom badge: name + meta + two desc lines + tags fills it,
-// and ink can neither clip an overflow nor cap a wrapped text's line count. That is why the
-// RECENTLY UPDATED badge lives ON the meta row (a fixed-height canvas, out of the vertical
-// budget), and why BindCard hard-truncates the description to ~2 lines. Do not fix an overflow by
-// raising this: a taller card reads as empty next to the short one-line descriptions, which are
-// the common case.
-// 240 until the thumbnail arrived, and it no longer fits. The thumbnail narrows the text column
-// from ~842 to ~582, so titles that used to sit on one line now wrap to two, and the tags line
-// was pushed off the bottom edge - ink cannot clip a child, so it did not get cut off, it drew
-// outside the card.
-//
-// Budgeted for the worst case rather than the common one, because there is no way to query a
-// wrapped text's rendered height and find out: 18 top + a 2-line 34px title (~97) + 6 + the
-// 34-high meta row + 10 + a 3-line 26px description (~111) + 8 + a 22px tags line (~31) = ~315.
-public func NCZDG_CardHeight() -> Float { return 320.0; }
-
 // The card POOL is built once and re-bound; cards are never created or destroyed while the popup
 // lives. 295 cards would be ~3000 widgets in one scroll area, and ink does not cull offscreen
 // children - every one is laid out and submitted every frame. So: a fixed pool, and pages.
 public func NCZDG_PageSize() -> Int32 { return 30; }
-public func NCZDG_CardsPerRow() -> Int32 { return 2; }
+public func NCZDG_CardsPerRow() -> Int32 { return 3; }
 
-// Proxy index ranges. One click sink, routed by range, because redscript has no closures.
-// --- card thumbnail -----------------------------------------------------------------------
-// 16:9, because the registry's images are Nexus screenshots. The image is scaled to fit
-// INSIDE this box preserving its own aspect, so a differently-shaped image letterboxes
-// rather than overflowing - ink cannot clip a child, so an oversized image would draw over
-// the card's text.
-public func NCZDG_ThumbWidth() -> Float { return 240.0; }
-public func NCZDG_ThumbHeight() -> Float { return 135.0; }
-public func NCZDG_ThumbGap() -> Float { return 20.0; }
-public func NCZDG_ThumbInset() -> Float { return 28.0; }
+public func NCZDG_CardWidth() -> Float {
+  let gaps = NCZDG_CardGap() * Cast<Float>(NCZDG_CardsPerRow() - 1);
+  return (NCZDG_CardsWidth() - NCZDG_ScrollBarStrip() - gaps) / Cast<Float>(NCZDG_CardsPerRow());
+}
 
-// How far the text column starts from the card's left edge, with and without a thumbnail.
-// A card whose location has no image reclaims the space rather than showing an empty box.
+// --- gallery card: image on top, text beneath ----------------------------------------------
+//
+// THREE COLUMNS WITH A BANNER IMAGE, replacing a two-column card with a small left thumbnail.
+// The banner was considered and rejected at two columns for a concrete reason - at 902 wide a
+// 16:9 image is 507 tall, and the card would have reached ~750. At three columns the card is
+// ~593 wide, so the same 16:9 image is only ~334 tall and the whole card lands near 620.
+// **Narrower columns are what make a banner affordable at all**; ink still cannot crop, so the
+// image height is dictated by the width and nothing else.
+//
+// Left padding clears the two state bars (category accent + install), so the image starts
+// inside them rather than covering them.
+public func NCZDG_CardPadLeft() -> Float { return 20.0; }
+public func NCZDG_CardPadRight() -> Float { return 20.0; }
+
+public func NCZDG_ImageWidth() -> Float {
+  return NCZDG_CardWidth() - NCZDG_CardPadLeft();
+}
+// 16:9, because the registry's images are Nexus screenshots. A differently-shaped image is
+// scaled to FIT this box and letterboxes inside it - ink cannot clip a child, so an image
+// sized to fill would draw over the text below it.
+public func NCZDG_ImageHeight() -> Float {
+  return NCZDG_ImageWidth() * 9.0 / 16.0;
+}
+
+// Everything under the image. Budgeted for the WORST case, not the common one, because there is
+// no way to query a wrapped text's rendered height: 14 top + a 2-line 34px title (~97) + 6 +
+// the 34-high meta row + 10 + a 2-line 26px description (~74) + 8 + a 22px tags line (~31) +
+// 12 bottom = ~286. Rounded up for the action strip that reveals on hover.
+public func NCZDG_TextBlockHeight() -> Float { return 300.0; }
+
+// Derived, never a literal: the image height follows the column count, so a card height typed
+// as a number would silently stop matching the moment either changed.
+public func NCZDG_CardHeight() -> Float {
+  return NCZDG_ImageHeight() + NCZDG_TextBlockHeight();
+}
+
 public func NCZDG_TextInset() -> Float { return 28.0; }
-public func NCZDG_TextInsetThumb() -> Float {
-  return NCZDG_ThumbInset() + NCZDG_ThumbWidth() + NCZDG_ThumbGap();
+public func NCZDG_TextWidth() -> Float {
+  return NCZDG_CardWidth() - NCZDG_TextInset() - NCZDG_CardPadRight();
 }
 
-// Text wrap width for each of the two layouts. 60 is the existing right-hand allowance.
-public func NCZDG_TextWidth() -> Float { return NCZDG_CardWidth() - 60.0; }
-public func NCZDG_TextWidthThumb() -> Float {
-  return NCZDG_CardWidth() - 60.0 - NCZDG_ThumbWidth() - NCZDG_ThumbGap();
-}
+// Both caps are approximate against a proportional font (~20% by glyph mix) and both are sized
+// to TWO lines at NCZDG_TextWidth(). The title is capped now, which it never was before: at 545
+// wide a long mod name wraps to three lines and pushes the tags out of the card.
+public func NCZDG_TitleCap() -> Int32 { return 55; }
+public func NCZDG_DescCap() -> Int32 { return 78; }
 
 // Description caps, one per layout. 140 was tuned empirically against the full width; the
 // narrow cap is that scaled by the width ratio and rounded down. BOTH are approximate - a
@@ -319,6 +338,9 @@ public class NCZDGGuidePopup extends InGamePopup {
   private let m_filterBtn: wref<inkCanvas>;
   private let m_filterLabel: wref<inkText>;
 
+  private let m_prevBtn: wref<inkCanvas>;
+  private let m_nextBtn: wref<inkCanvas>;
+
   // The lightbox: a full-popup overlay, built once and hidden. Parented LAST so it draws over
   // the header, footer and body - ink draw order is child order and there is no z-index.
   private let m_lightbox: wref<inkCanvas>;
@@ -450,14 +472,17 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     // Clear-search, beside the input, styled like the pager buttons. Bespoke rather than
     // MakeButton because it needs an absolute spot in the top strip, and that helper flows its
-    // box from the parent's layout. 52 high inside the input's 80, so top 14 centres it. Hidden
-    // until there is a query.
+    // box from the parent's layout. Hidden until there is a query.
+    //
+    // FULL 80 HIGH AND TOP-ALIGNED, matching the input. It used to be 52 centred inside the
+    // input's 80, which reads as a small box floating beside a tall one - unnoticeable with one
+    // button, ragged once there were more controls on the row.
     let clearBox = new inkCanvas();
     clearBox.SetName(n"nczdg_search_clear");
-    clearBox.SetSize(new Vector2(160.0, 52.0));
+    clearBox.SetSize(new Vector2(160.0, 80.0));
     clearBox.SetAnchor(inkEAnchor.TopLeft);
     clearBox.SetAnchorPoint(new Vector2(0.0, 0.0));
-    clearBox.SetMargin(new inkMargin(NCZDG_NavWidth() + 16.0, 14.0, 0.0, 0.0));
+    clearBox.SetMargin(new inkMargin(NCZDG_NavWidth() + 16.0, 0.0, 0.0, 0.0));
     clearBox.SetInteractive(true);
     clearBox.SetVisible(false);
     clearBox.Reparent(body);
@@ -491,16 +516,22 @@ public class NCZDGGuidePopup extends InGamePopup {
     clearBox.RegisterToCallback(n"OnLeave", clearProxy, n"OnLeave");
     this.m_searchClear = clearBox;
 
-    // Install filter, beside CLEAR and styled the same. Its visibility is a GATE, not a
-    // preference: without CET nothing is detectable, so the control is hidden rather than shown
-    // filtering nothing. Refresh() re-applies that each time, because the scan completes on
-    // session ready and the guide may be built before or after it.
+    // Install filter. It sits at the TOP OF THE DISTRICT COLUMN, not in the search row, because
+    // it filters that column as well as the cards - the counts beside every district change
+    // with it. A control that reshapes a list belongs on the list.
+    //
+    // Placed as a sibling ABOVE the nav scroll rather than as its first row: a row would scroll
+    // away with the districts, and this has to stay reachable.
+    //
+    // Its visibility is a GATE, not a preference: without CET nothing is detectable, so the
+    // control is hidden rather than shown filtering nothing. Refresh() re-applies that, because
+    // the scan completes on session ready and the guide may be built either side of it.
     let filterBox = new inkCanvas();
     filterBox.SetName(n"nczdg_filter");
-    filterBox.SetSize(new Vector2(340.0, 52.0));
+    filterBox.SetSize(new Vector2(NCZDG_NavWidth() - NCZDG_ScrollBarStrip(), NCZDG_NavFilterHeight()));
     filterBox.SetAnchor(inkEAnchor.TopLeft);
     filterBox.SetAnchorPoint(new Vector2(0.0, 0.0));
-    filterBox.SetMargin(new inkMargin(NCZDG_NavWidth() + 192.0, 14.0, 0.0, 0.0));
+    filterBox.SetMargin(new inkMargin(0.0, NCZDG_TopStripHeight(), 0.0, 0.0));
     filterBox.SetInteractive(true);
     filterBox.SetVisible(false);
     filterBox.Reparent(body);
@@ -561,12 +592,16 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.m_clearWp = this.MakeButton(pager, "CLEAR MARKER", NCZDG_IdxClearWaypoint());
     this.m_clearWp.SetVisible(false);
     this.m_clearWp.SetSize(new Vector2(280.0, 52.0));
-    this.MakeButton(pager, "< PREV", NCZDG_IdxPrevPage());
-    this.MakeButton(pager, "NEXT >", NCZDG_IdxNextPage());
+    // Held so Refresh can grey them when there is nowhere to page to. A button that looks
+    // active and does nothing reads as a broken button, not as an empty list.
+    this.m_prevBtn = this.MakeButton(pager, "< PREV", NCZDG_IdxPrevPage());
+    this.m_nextBtn = this.MakeButton(pager, "NEXT >", NCZDG_IdxNextPage());
 
     // --- body: districts | cards ----------------------------------------------------------
-    this.m_navCol = this.MakeScrollColumn(body, 0.0, NCZDG_TopStripHeight(),
-                                          NCZDG_NavWidth(), NCZDG_BodyHeight(), true);
+    // Starts below the filter button and loses exactly that much height, so the two columns
+    // still end level at the bottom of the body.
+    this.m_navCol = this.MakeScrollColumn(body, 0.0, NCZDG_NavTop(), NCZDG_NavWidth(),
+      NCZDG_BodyHeight() - NCZDG_NavFilterHeight() - NCZDG_NavFilterGap(), true);
 
     let divider = new inkRectangle();
     divider.SetName(n"nczdg_divider");
@@ -810,6 +845,10 @@ public class NCZDGGuidePopup extends InGamePopup {
       this.m_filterBtn.SetVisible(NCZDG_InstallDetection());
     }
 
+    // Page buttons only mean something when there is a page to go to.
+    this.SetButtonEnabled(this.m_prevBtn, this.m_page > 0);
+    this.SetButtonEnabled(this.m_nextBtn, this.m_page + 1 < pages);
+
     let actions = NCZDGWorldActions.Get(this.m_gi);
     let marked = IsDefined(actions) && actions.HasPin();
     if IsDefined(this.m_clearWp) {
@@ -932,6 +971,24 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
   }
 
+  // Greys a pager button and takes it out of the input path.
+  //
+  // Opacity on the BOX, not a grey tint on each child: it dims the frame and the label together
+  // in one write, and there is no NCZDG_GrayColor() to tint chrome with anyway - the grey in
+  // this palette is a style-bind CName, and interactive chrome must be tinted directly because
+  // widget states override style-bound tints.
+  //
+  // Interactivity is cleared as well as dimmed. A button that still brightens on hover reads as
+  // active however faint it is, and a non-interactive widget also cannot eat an OnEnter it will
+  // never balance with an OnLeave - which is how the CLEAR button used to stick white.
+  private func SetButtonEnabled(box: wref<inkCanvas>, on: Bool) -> Void {
+    if !IsDefined(box) {
+      return;
+    }
+    box.SetInteractive(on);
+    box.SetOpacity(on ? 1.0 : 0.3);
+  }
+
   public func CycleFilter() -> Void {
     this.m_filter = (this.m_filter + 1) % NCZDG_FilterCount();
     if IsDefined(this.m_filterLabel) {
@@ -955,13 +1012,19 @@ public class NCZDGGuidePopup extends InGamePopup {
     // actually FAILS, which is rare enough that the reflow is acceptable.
     let thumbUrl = loc.ThumbnailUrl();
     let hasImage = NCZDG_Img.Available() && StrLen(thumbUrl) > 0;
-    this.SetCardLayout(slot, hasImage);
+    this.SetCardImageState(slot, hasImage);
     slot.picUrl = hasImage ? loc.PictureUrl() : "";
     if hasImage {
-      this.QueueImage(thumbUrl, slot.image, NCZDG_ThumbWidth(), NCZDG_ThumbHeight(), slot.slotIdx);
+      this.QueueImage(thumbUrl, slot.image, NCZDG_ImageWidth(), NCZDG_ImageHeight(), slot.slotIdx);
     }
 
-    slot.name.SetText(loc.Name());
+    // Capped, which it never used to be. At ~545 wide a long mod name wraps to three lines and
+    // pushes the tags out of the bottom of the card - and ink cannot clip, so they would draw
+    // over the card below rather than being trimmed.
+    let title = loc.Name();
+    slot.name.SetText(StrLen(title) > NCZDG_TitleCap()
+      ? StrLeft(title, NCZDG_TitleCap() - 3) + "..."
+      : title);
 
     let authors = "";
     let a = 0;
@@ -982,9 +1045,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     // narrow-glyphed 140 can reach a 3rd line, which only nudges the tags line into the row gap -
     // the badge is on the meta row and out of reach. 150 reached 3 lines routinely; 110 left the
     // 2nd line visibly half-empty.
-    let cap = IsDefined(slot.imgBox) && slot.imgBox.IsVisible() ? NCZDG_DescCapThumb() : NCZDG_DescCap();
     let d = loc.Description();
-    slot.desc.SetText(StrLen(d) > cap ? StrLeft(d, cap - 3) + "..." : d);
+    slot.desc.SetText(StrLen(d) > NCZDG_DescCap()
+      ? StrLeft(d, NCZDG_DescCap() - 3) + "..."
+      : d);
 
     // Capped by count AND length: the tags line does not wrap, so an unbounded run of long tags
     // walks off the card's right edge.
@@ -1117,29 +1181,21 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
   }
 
-  // The card has exactly two layouts, and this is the only place that switches between them.
-  // Every width the card uses is derived from the mode, so the two can never disagree.
-  private func SetCardLayout(slot: ref<NCZDGCardSlot>, withThumb: Bool) -> Void {
-    if !IsDefined(slot.imgBox) || !IsDefined(slot.stack) {
-      return;
-    }
-    slot.imgBox.SetVisible(withThumb);
-    // Hide the image itself too: the box is shown immediately but the texture is not bound
-    // until the fetch lands, and a stale texture from the slot's previous location would
-    // otherwise sit there under a different card's name until the new one arrived.
+  // The card geometry no longer changes - every card is the same height and reserves the same
+  // image box. All this switches is WHAT FILLS the box: a real image, or the placeholder.
+  //
+  // Called on every bind, and it must hide the image widget even when the new location does
+  // have one: the texture is not bound until the fetch lands, so a slot recycled by a page turn
+  // would otherwise show the PREVIOUS location's picture under the new location's name.
+  private func SetCardImageState(slot: ref<NCZDGCardSlot>, hasImage: Bool) -> Void {
     if IsDefined(slot.image) {
       slot.image.SetVisible(false);
     }
-    let inset = withThumb ? NCZDG_TextInsetThumb() : NCZDG_TextInset();
-    let width = withThumb ? NCZDG_TextWidthThumb() : NCZDG_TextWidth();
-    slot.stack.SetMargin(new inkMargin(inset, 18.0, 20.0, 0.0));
-    slot.name.SetWrappingAtPosition(width);
-    slot.desc.SetWrappingAtPosition(width);
-    // The meta row is a fixed-size canvas, not a flow child, so it does not inherit the
-    // stack's narrowing - resize it or the right-aligned RECENTLY UPDATED badge keeps
-    // anchoring to the old, wider edge and drifts off the card.
-    if IsDefined(slot.metaRow) {
-      slot.metaRow.SetSize(new Vector2(width - 12.0, 34.0));
+    if IsDefined(slot.phIcon) {
+      slot.phIcon.SetVisible(!hasImage);
+    }
+    if IsDefined(slot.phText) {
+      slot.phText.SetVisible(!hasImage);
     }
   }
 
@@ -1219,10 +1275,10 @@ public class NCZDGGuidePopup extends InGamePopup {
             if p.slotIdx < 0 && IsDefined(this.m_lightboxCaption) {
               this.m_lightboxCaption.SetText("IMAGE UNAVAILABLE   -   CLICK ANYWHERE TO CLOSE");
             }
-            // A card whose image will never arrive returns to the full-width layout rather than
-            // keeping a permanently empty box. This is the one case that reflows a live card.
+            // A card whose image will never arrive shows the placeholder instead. Nothing
+            // reflows now: the box is reserved either way, so this only swaps what fills it.
             if p.slotIdx >= 0 && p.slotIdx < ArraySize(this.m_cards) {
-              this.SetCardLayout(this.m_cards[p.slotIdx], false);
+              this.SetCardImageState(this.m_cards[p.slotIdx], false);
             }
             drop = true;
           }
@@ -1376,34 +1432,64 @@ public class NCZDGGuidePopup extends InGamePopup {
     installBar.SetVisible(false);
     installBar.Reparent(card);
 
-    // The thumbnail box, built once and toggled per bind. Vertically centred against the
-    // card so it reads level with the text block whatever the image's aspect turns out to be.
-    // Interactive: clicking it opens the full-size picture in the lightbox.
+    // The banner image, across the top. ALWAYS PRESENT AND ALWAYS THE SAME SIZE - it is not
+    // toggled per bind any more. In a three-across grid a card that collapses its image sits a
+    // third as tall as the two beside it, and a row that does not line up reads as broken; a
+    // reserved box with an honest placeholder does not. That reverses the collapse behaviour
+    // the two-column list had, and the reason is the grid, not a change of mind about images.
     let imgBox = new inkCanvas();
     imgBox.SetName(n"nczdg_thumb");
-    imgBox.SetSize(new Vector2(NCZDG_ThumbWidth(), NCZDG_ThumbHeight()));
-    imgBox.SetAnchor(inkEAnchor.CenterLeft);
-    imgBox.SetAnchorPoint(new Vector2(0.0, 0.5));
-    imgBox.SetMargin(new inkMargin(NCZDG_ThumbInset(), 0.0, 0.0, 0.0));
+    imgBox.SetSize(new Vector2(NCZDG_ImageWidth(), NCZDG_ImageHeight()));
+    imgBox.SetAnchor(inkEAnchor.TopLeft);
+    imgBox.SetAnchorPoint(new Vector2(0.0, 0.0));
+    imgBox.SetMargin(new inkMargin(NCZDG_CardPadLeft(), 0.0, 0.0, 0.0));
     imgBox.SetInteractive(true);
-    imgBox.SetVisible(false);
     imgBox.Reparent(card);
 
-    // A dim plate behind the image, so a slow fetch reads as "loading here" rather than as a
-    // gap, and so a letterboxed image sits on something rather than floating.
+    // A dim plate behind the image, so a slow fetch reads as "loading here" rather than a gap,
+    // and so a letterboxed image sits on something rather than floating.
     let imgPlate = new inkRectangle();
     imgPlate.SetAnchor(inkEAnchor.Fill);
-    imgPlate.SetTintColor(NCZDG_CardBgColor());
-    imgPlate.SetOpacity(0.6);
+    imgPlate.SetTintColor(NCZDG_NavyColor());
+    imgPlate.SetOpacity(0.85);
     imgPlate.Reparent(imgBox);
 
     let img = new inkImage();
     img.SetName(n"nczdg_thumb_img");
     img.SetAnchor(inkEAnchor.Centered);
     img.SetAnchorPoint(new Vector2(0.5, 0.5));
-    img.SetSize(new Vector2(NCZDG_ThumbWidth(), NCZDG_ThumbHeight()));
+    img.SetSize(new Vector2(NCZDG_ImageWidth(), NCZDG_ImageHeight()));
     img.SetVisible(false);   // shown only once a real texture is bound
     img.Reparent(imgBox);
+
+    // --- the no-image placeholder ----------------------------------------------------------
+    // Two widgets, ICON PLUS TEXT, and the text is the load-bearing half. A texture part that
+    // does not resolve renders nothing at all, silently - so an icon-only placeholder would be
+    // indistinguishable from a blank card if the atlas part name were ever wrong. The caption
+    // stands on its own.
+    let phIcon = new inkImage();
+    phIcon.SetName(n"ph_icon");
+    phIcon.SetAtlasResource(r"base\\gameplay\\gui\\common\\icons\\atlas_common.inkatlas");
+    phIcon.SetTexturePart(n"quest_file_failed");
+    phIcon.SetSize(new Vector2(96.0, 96.0));
+    phIcon.SetAnchor(inkEAnchor.Centered);
+    phIcon.SetAnchorPoint(new Vector2(0.5, 0.5));
+    phIcon.SetMargin(new inkMargin(0.0, 0.0, 0.0, 54.0));   // lifted, to sit above the caption
+    phIcon.SetStyle(NCZDG_StylePath());
+    phIcon.BindProperty(n"tintColor", NCZDG_Gray());
+    phIcon.SetOpacity(0.55);
+    phIcon.Reparent(imgBox);
+
+    // Night Corp's voice: official, faintly bureaucratic, never apologetic.
+    let phText = this.MakeText("NO SURVEY IMAGE ON FILE", NCZDG_Gray(), 26);
+    phText.SetName(n"ph_text");
+    phText.SetHAlign(inkEHorizontalAlign.Center);
+    phText.SetVAlign(inkEVerticalAlign.Center);
+    phText.SetAnchor(inkEAnchor.Centered);
+    phText.SetAnchorPoint(new Vector2(0.5, 0.5));
+    phText.SetMargin(new inkMargin(0.0, 96.0, 0.0, 0.0));
+    phText.SetOpacity(0.7);
+    phText.Reparent(imgBox);
 
     let imgProxy = new NCZDGGuideProxy();
     imgProxy.popup = this;
@@ -1411,12 +1497,15 @@ public class NCZDGGuidePopup extends InGamePopup {
     ArrayPush(this.m_proxies, imgProxy);
     imgBox.RegisterToCallback(n"OnRelease", imgProxy, n"OnRelease");
 
+    // Text block, beneath the image. Offset by the image height, so the two never overlap
+    // however the image turns out.
     let stack = new inkVerticalPanel();
     stack.SetChildOrder(inkEChildOrder.Forward);
     stack.SetFitToContent(true);
     stack.SetAnchor(inkEAnchor.TopLeft);
     stack.SetAnchorPoint(new Vector2(0.0, 0.0));
-    stack.SetMargin(new inkMargin(NCZDG_TextInset(), 18.0, 20.0, 0.0));
+    stack.SetMargin(new inkMargin(NCZDG_TextInset(), NCZDG_ImageHeight() + 14.0,
+                                  NCZDG_CardPadRight(), 0.0));
     stack.Reparent(card);
 
     let name = this.MakeText("", NCZDG_White(), 34);
@@ -1430,7 +1519,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     // push it off the card (which is what happened when it lived at the bottom of the stack).
     // BindCard caps the meta string so it cannot reach the badge from the left.
     let metaRow = new inkCanvas();
-    metaRow.SetSize(new Vector2(NCZDG_CardWidth() - 48.0, 34.0));
+    metaRow.SetSize(new Vector2(NCZDG_TextWidth(), 34.0));
     metaRow.SetMargin(new inkMargin(0.0, 0.0, 0.0, 10.0));
     metaRow.Reparent(stack);
 
@@ -1521,6 +1610,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     slot.tpLabel = tp;
     slot.imgBox = imgBox;
     slot.image = img;
+    slot.phIcon = phIcon;
+    slot.phText = phText;
     slot.stack = stack;
     slot.metaRow = metaRow;
     slot.slotIdx = slotIdx;
@@ -1608,9 +1699,15 @@ public class NCZDGGuidePopup extends InGamePopup {
       return;
     }
     if index == NCZDG_IdxNextPage() {
-      this.m_page += 1;
-      this.ScrollCardsToTop();
-      this.Refresh();
+      // Bounded, not just greyed. The button is taken out of the input path when disabled, but
+      // a page number that can run past the end would survive a filter change that shrinks the
+      // result set, and land the player on an empty page.
+      let pages = (ArraySize(this.m_shown) + NCZDG_PageSize() - 1) / NCZDG_PageSize();
+      if this.m_page + 1 < pages {
+        this.m_page += 1;
+        this.ScrollCardsToTop();
+        this.Refresh();
+      }
       return;
     }
     // MUST precede the teleport arm. This chain tests `index >= base` in descending order, so
@@ -1802,6 +1899,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     frame.Reparent(box);
 
     let txt = this.MakeText(label, NCZDG_Cyan(), 34);
+    txt.SetName(n"label");   // findable, so SetButtonEnabled can grey it without a rebuild
     txt.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
     txt.SetHAlign(inkEHorizontalAlign.Center);
     txt.SetVAlign(inkEVerticalAlign.Center);
@@ -1860,9 +1958,13 @@ public class NCZDGCardSlot {
   // rather than a stretched placeholder.
   public let imgBox: wref<inkCanvas>;
   public let image: wref<inkImage>;
-  // Held so BindCard can re-inset the text between the two layouts.
   public let stack: wref<inkVerticalPanel>;
   public let metaRow: wref<inkCanvas>;
+  // The no-image placeholder: icon plus caption. Shown together, hidden together. The caption
+  // carries the meaning on its own, because an atlas part that fails to resolve draws nothing
+  // and says nothing about why.
+  public let phIcon: wref<inkImage>;
+  public let phText: wref<inkText>;
   // The full-size image for this card's location, for the lightbox. Empty means the card is
   // not clickable - the click handler checks this rather than trusting the box's visibility.
   public let picUrl: String;
