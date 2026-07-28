@@ -107,7 +107,15 @@ public func NCZDG_CardWidth() -> Float {
 // budget), and why BindCard hard-truncates the description to ~2 lines. Do not fix an overflow by
 // raising this: a taller card reads as empty next to the short one-line descriptions, which are
 // the common case.
-public func NCZDG_CardHeight() -> Float { return 240.0; }
+// 240 until the thumbnail arrived, and it no longer fits. The thumbnail narrows the text column
+// from ~842 to ~582, so titles that used to sit on one line now wrap to two, and the tags line
+// was pushed off the bottom edge - ink cannot clip a child, so it did not get cut off, it drew
+// outside the card.
+//
+// Budgeted for the worst case rather than the common one, because there is no way to query a
+// wrapped text's rendered height and find out: 18 top + a 2-line 34px title (~97) + 6 + the
+// 34-high meta row + 10 + a 3-line 26px description (~111) + 8 + a 22px tags line (~31) = ~315.
+public func NCZDG_CardHeight() -> Float { return 320.0; }
 
 // The card POOL is built once and re-bound; cards are never created or destroyed while the popup
 // lives. 295 cards would be ~3000 widgets in one scroll area, and ink does not cull offscreen
@@ -161,18 +169,45 @@ public func NCZDG_IdxCloseLightbox() -> Int32 { return -6; }
 public func NCZDG_IdxCycleFilter() -> Int32 { return -7; }
 
 // --- install filter -----------------------------------------------------------------------
-// Three states, cycled by one button. MISSING is not decoration: the guide is partly a
-// DISCOVERY tool, and "what is in this district that I do not have" is the question that sends
-// someone to Nexus. A two-way toggle cannot ask it.
+// Four states, cycled by one button. MISSING is not decoration: the guide is partly a DISCOVERY
+// tool, and "what is in this district that I do not have" is the question that sends someone to
+// Nexus.
+//
+// UNKNOWN IS ITS OWN BUCKET, and that is a correction. It first appeared under BOTH installed
+// and missing, on the reasoning that an undetectable mod might be either - which is true, and
+// unusable: AMM location mods then showed up in a list headed INSTALLED that the player had no
+// reason to believe. A state that cannot be determined is its own answer, so it gets its own
+// view and is excluded from the two definite ones.
+//
+// Deliberately NOT offered as the RCF default. Opening on a list of undetectable mods is not a
+// preference anyone holds; it is a thing you go and look at once.
 public func NCZDG_FilterAll() -> Int32 { return 0; }
 public func NCZDG_FilterInstalled() -> Int32 { return 1; }
 public func NCZDG_FilterMissing() -> Int32 { return 2; }
-public func NCZDG_FilterCount() -> Int32 { return 3; }
+public func NCZDG_FilterUnknown() -> Int32 { return 3; }
+public func NCZDG_FilterCount() -> Int32 { return 4; }
 
 public func NCZDG_FilterLabel(f: Int32) -> String {
   if f == NCZDG_FilterInstalled() { return "SHOWING: INSTALLED"; }
   if f == NCZDG_FilterMissing() { return "SHOWING: MISSING"; }
+  if f == NCZDG_FilterUnknown() { return "SHOWING: UNKNOWN"; }
   return "SHOWING: ALL";
+}
+
+// True when the location passes the given filter. One place, so the card list and the nav
+// counts can never disagree about what a filter means.
+//
+// GUARDED, WITH NO FALLBACK ARM. NCZInstallState is a core type, so this signature cannot even
+// be written without the core - and unlike the classes below, a free function is not implicitly
+// covered by anything. Its only callers are inside guarded classes, so the guarded arm alone is
+// enough. (Caught by the -BothConfigs fallback build, not by the normal one: the real branch has
+// the core installed and compiles this happily.)
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_PassesFilter(st: NCZInstallState, f: Int32) -> Bool {
+  if f == NCZDG_FilterInstalled() { return Equals(st, NCZInstallState.Installed); }
+  if f == NCZDG_FilterMissing() { return Equals(st, NCZInstallState.NotInstalled); }
+  if f == NCZDG_FilterUnknown() { return Equals(st, NCZInstallState.Unknown); }
+  return true;
 }
 
 // The entry point Input.reds calls. Declared in this module so the import there resolves.
@@ -553,6 +588,9 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     this.BuildCardPool();
     this.BuildNav();
+    // The saved default may not be ALL, in which case the nav is already wrong the moment it is
+    // built. Apply it once here so the guide opens consistent.
+    this.ApplyNavFilter();
     // LAST, and onto the popup's own root widget rather than the body: ink draws in child order
     // with no z-index, so this is the only way the overlay covers the header and footer too.
     // Note `this` is an inkCustomController, NOT a widget - reach the widget explicitly.
@@ -812,31 +850,86 @@ public class NCZDGGuidePopup extends InGamePopup {
   // when detection is unavailable - without CET every record is Unknown, so filtering would
   // either empty the list or change nothing, and both are lies about the data.
   //
-  // UNKNOWN APPEARS UNDER BOTH INSTALLED AND MISSING, on purpose. AMM location mods are
-  // permanently undetectable, so dropping Unknown from INSTALLED would hide mods the player
-  // may well have, and dropping it from MISSING would hide mods they may need. Showing it in
-  // both, marked, is the only option that never asserts something false.
+  // Unknown is excluded from INSTALLED and MISSING and has its own view - see the note on the
+  // filter constants for why showing it in both was wrong.
   private func ApplyInstallFilter() -> Void {
     if this.m_filter == NCZDG_FilterAll() || !NCZDG_InstallDetection() {
       return;
     }
     let kept: array<ref<NCZLocation>>;
-    let wantInstalled = this.m_filter == NCZDG_FilterInstalled();
     let i = 0;
     while i < ArraySize(this.m_shown) {
-      let st = NCZDG_InstallStateOf(this.m_shown[i]);
-      let keep = Equals(st, NCZInstallState.Unknown);
-      if wantInstalled {
-        keep = keep || Equals(st, NCZInstallState.Installed);
-      } else {
-        keep = keep || Equals(st, NCZInstallState.NotInstalled);
-      }
-      if keep {
+      if NCZDG_PassesFilter(NCZDG_InstallStateOf(this.m_shown[i]), this.m_filter) {
         ArrayPush(kept, this.m_shown[i]);
       }
       i += 1;
     }
     this.m_shown = kept;
+  }
+
+  // How many of an area's locations survive the current filter. Used for the nav counts, so the
+  // left column can never claim 45 while the card list shows 3.
+  private func FilteredAreaCount(areaIdx: Int32) -> Int32 {
+    let locs = this.m_model.Query(areaIdx, "");
+    if this.m_filter == NCZDG_FilterAll() || !NCZDG_InstallDetection() {
+      return ArraySize(locs);
+    }
+    let n = 0;
+    let i = 0;
+    while i < ArraySize(locs) {
+      if NCZDG_PassesFilter(NCZDG_InstallStateOf(locs[i]), this.m_filter) {
+        n += 1;
+      }
+      i += 1;
+    }
+    return n;
+  }
+
+  // Re-counts and re-colours every nav row against the current filter, and HIDES the areas with
+  // nothing left in them.
+  //
+  // Called on a filter change and once at open - NOT from Refresh(). Refresh runs on every
+  // search keystroke, and the nav has never reflected the search term; recomputing ~40 areas
+  // over ~300 locations per keypress would be pure waste.
+  private func ApplyNavFilter() -> Void {
+    let filtering = this.m_filter != NCZDG_FilterAll() && NCZDG_InstallDetection();
+    let selectedVanished = false;
+    let r = 0;
+    while r < ArraySize(this.m_navRows) {
+      let area = this.m_model.AreaAt(r);
+      if IsDefined(area) && IsDefined(this.m_navRows[r]) {
+        let n = filtering ? this.FilteredAreaCount(r) : area.count;
+
+        // ALL LOCATIONS always stays: it is the way back when a filter empties everything else.
+        let visible = !filtering || n > 0 || area.isAll;
+        this.m_navRows[r].SetVisible(visible);
+        if !visible && r == this.m_selected {
+          selectedVanished = true;
+        }
+
+        let cntTxt = this.m_navRows[r].GetWidget(n"count") as inkText;
+        if IsDefined(cntTxt) {
+          cntTxt.SetText(s"\(n)");
+          cntTxt.BindProperty(n"tintColor", n <= 0 ? NCZDG_Gray() : NCZDG_Amber());
+        }
+        let lblTxt = this.m_navRows[r].GetWidget(n"label") as inkText;
+        if IsDefined(lblTxt) {
+          lblTxt.BindProperty(n"tintColor", n <= 0 ? NCZDG_Gray() : NCZDG_Cyan());
+        }
+        // The recency count is about the registry, not about what is installed, so it would be
+        // lying next to a filtered total. Hide it while filtering rather than recompute it.
+        let recTxt = this.m_navRows[r].GetWidget(n"recent") as inkText;
+        if IsDefined(recTxt) {
+          recTxt.SetVisible(!filtering);
+        }
+      }
+      r += 1;
+    }
+    // Standing on an area the filter just emptied leaves a selected-but-hidden row and an empty
+    // card list with no visible cause. Fall back to ALL LOCATIONS.
+    if selectedVanished {
+      this.SelectArea(0);
+    }
   }
 
   public func CycleFilter() -> Void {
@@ -846,6 +939,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
     this.m_page = 0;   // the old page number means nothing against a different result set
     this.ScrollCardsToTop();
+    // Nav first: it can change the selected area, and Refresh reads that.
+    this.ApplyNavFilter();
     this.Refresh();
     NCZDGLog(s"guide: filter -> \(NCZDG_FilterLabel(this.m_filter))");
   }
@@ -1228,7 +1323,17 @@ public class NCZDGGuidePopup extends InGamePopup {
     card.Reparent(parent);
 
     // Corporate Navy surface, at the same 0.95 the site uses so the world stays faintly visible.
-    let bg = new inkRectangle();
+    //
+    // AN inkImage ON cell_bg, NOT AN inkRectangle. The cell_fg frame below has a chamfered
+    // corner; a plain rectangle is square, so the navy fill drew straight through the cut and
+    // the chamfer read as a line over a solid corner rather than as a corner. cell_bg is the
+    // chamfered counterpart of cell_fg in the same atlas and matches it exactly. Nine-sliced,
+    // or the chamfer scales with the card instead of staying a fixed cut.
+    let bg = new inkImage();
+    bg.SetName(n"bg");
+    bg.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    bg.SetTexturePart(n"cell_bg");
+    bg.SetNineSliceScale(true);
     bg.SetAnchor(inkEAnchor.Fill);
     bg.SetTintColor(NCZDG_CardBgColor());
     bg.SetOpacity(NCZDG_PanelOpacity());
