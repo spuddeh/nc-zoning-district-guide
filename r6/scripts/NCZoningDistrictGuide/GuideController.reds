@@ -219,6 +219,21 @@ public func NCZDG_DescCap() -> Int32 { return 128; }
 public func NCZDG_TagsCap() -> Int32 { return 50; }
 public func NCZDG_TagsMax() -> Int32 { return 5; }
 
+// --- no-image placeholder icon --------------------------------------------------------------
+// SIZED TO THE ATLAS PART'S OWN ASPECT. `quest_file_failed` is 66 x 157 px, NOT square: measured
+// from base\gameplay\gui\common\icons\atlas_common.inkatlas, whose clippingRectInUVCoords for
+// that part is 0.04024 x 0.30664 against a 1640 x 512 texture. It is a document glyph, which is
+// why it is taller than it is wide.
+//
+// AN inkImage DOES NOT PRESERVE ASPECT. SetSize stretches the part to whatever it is given, so a
+// square size on a 0.42-aspect part squashes it 1.45x horizontally - which is visible at a
+// glance and was the first version of this. To size any atlas part correctly, read its UV rect
+// and multiply by the texture's real dimensions; the part name alone tells you nothing.
+public func NCZDG_PhIconHeight() -> Float { return 110.0; }
+public func NCZDG_PhIconWidth() -> Float {
+  return NCZDG_PhIconHeight() * 66.0 / 157.0;
+}
+
 // Description caps, one per layout. 140 was tuned empirically against the full width; the
 // narrow cap is that scaled by the width ratio and rounded down. BOTH are approximate - a
 // char cap against a proportional font varies ~20% by glyph mix, and there is no way to
@@ -1555,10 +1570,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     phIcon.SetName(n"ph_icon");
     phIcon.SetAtlasResource(r"base\\gameplay\\gui\\common\\icons\\atlas_common.inkatlas");
     phIcon.SetTexturePart(n"quest_file_failed");
-    phIcon.SetSize(new Vector2(96.0, 96.0));
+    phIcon.SetSize(new Vector2(NCZDG_PhIconWidth(), NCZDG_PhIconHeight()));
     phIcon.SetAnchor(inkEAnchor.Centered);
     phIcon.SetAnchorPoint(new Vector2(0.5, 0.5));
-    phIcon.SetMargin(new inkMargin(0.0, 0.0, 0.0, 54.0));   // lifted, to sit above the caption
+    phIcon.SetMargin(new inkMargin(0.0, 0.0, 0.0, 45.0));   // lifted, to sit above the caption
     phIcon.SetStyle(NCZDG_StylePath());
     phIcon.BindProperty(n"tintColor", NCZDG_Gray());
     phIcon.SetOpacity(0.55);
@@ -1571,7 +1586,9 @@ public class NCZDGGuidePopup extends InGamePopup {
     phText.SetVAlign(inkEVerticalAlign.Center);
     phText.SetAnchor(inkEAnchor.Centered);
     phText.SetAnchorPoint(new Vector2(0.5, 0.5));
-    phText.SetMargin(new inkMargin(0.0, 96.0, 0.0, 0.0));
+    // Icon centred at -45 spans -100..+10; this caption centred at +40 spans +25..+55, leaving a
+    // 15-unit gap between them.
+    phText.SetMargin(new inkMargin(0.0, 40.0, 0.0, 0.0));
     phText.SetOpacity(0.7);
     phText.Reparent(imgBox);
 
