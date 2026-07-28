@@ -32,6 +32,12 @@ Strongly recommended:
   (RCF) 2.0.0 or newer, by DigitalVixen — every setting lives in its in-world overlay,
   including the guide keybind and its modifier
 
+Optional:
+
+- [RedIMGRetriever](https://www.nexusmods.com/cyberpunk2077/mods/31941) by DigitalVixen — shows
+  each location's screenshot on its card, and the full-size image when you click it. Without it
+  the guide simply has no images; nothing else changes.
+
 Without RCF the mod still runs, but on its defaults only: the guide opens with the
 apostrophe key, there is no modifier, and **nothing can be rebound.** RCF also pulls in
 RED4ext for its bundled keybind plugin.

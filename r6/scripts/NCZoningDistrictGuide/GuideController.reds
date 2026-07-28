@@ -29,6 +29,7 @@ module NCZoningDistrictGuide.Guide
 import Codeware.UI.*
 import NCZoningDistrictGuide.Config.*
 import NCZoningDistrictGuide.Bridge.*
+import NCZoningDistrictGuide.Images.*
 @if(ModuleExists("NCZoning.Api"))
 import NCZoning.Api.*
 @if(ModuleExists("NCZoning.Api"))
@@ -115,13 +116,48 @@ public func NCZDG_PageSize() -> Int32 { return 30; }
 public func NCZDG_CardsPerRow() -> Int32 { return 2; }
 
 // Proxy index ranges. One click sink, routed by range, because redscript has no closures.
+// --- card thumbnail -----------------------------------------------------------------------
+// 16:9, because the registry's images are Nexus screenshots. The image is scaled to fit
+// INSIDE this box preserving its own aspect, so a differently-shaped image letterboxes
+// rather than overflowing - ink cannot clip a child, so an oversized image would draw over
+// the card's text.
+public func NCZDG_ThumbWidth() -> Float { return 240.0; }
+public func NCZDG_ThumbHeight() -> Float { return 135.0; }
+public func NCZDG_ThumbGap() -> Float { return 20.0; }
+public func NCZDG_ThumbInset() -> Float { return 28.0; }
+
+// How far the text column starts from the card's left edge, with and without a thumbnail.
+// A card whose location has no image reclaims the space rather than showing an empty box.
+public func NCZDG_TextInset() -> Float { return 28.0; }
+public func NCZDG_TextInsetThumb() -> Float {
+  return NCZDG_ThumbInset() + NCZDG_ThumbWidth() + NCZDG_ThumbGap();
+}
+
+// Text wrap width for each of the two layouts. 60 is the existing right-hand allowance.
+public func NCZDG_TextWidth() -> Float { return NCZDG_CardWidth() - 60.0; }
+public func NCZDG_TextWidthThumb() -> Float {
+  return NCZDG_CardWidth() - 60.0 - NCZDG_ThumbWidth() - NCZDG_ThumbGap();
+}
+
+// Description caps, one per layout. 140 was tuned empirically against the full width; the
+// narrow cap is that scaled by the width ratio and rounded down. BOTH are approximate - a
+// char cap against a proportional font varies ~20% by glyph mix, and there is no way to
+// query a wrapped text's rendered height to do better.
+public func NCZDG_DescCap() -> Int32 { return 140; }
+public func NCZDG_DescCapThumb() -> Int32 { return 95; }
+
 public func NCZDG_IdxCardBase() -> Int32 { return 1000; }
 public func NCZDG_IdxWaypointBase() -> Int32 { return 2000; }
 public func NCZDG_IdxTeleportBase() -> Int32 { return 3000; }
+// Above teleport, and OnProxyClick MUST test this base BEFORE the others. That dispatch is a
+// descending chain of `index >= base` tests, so a 4000 reaching the `>= 3000` arm first would
+// read as a teleport - clicking a thumbnail would move the player across the city.
+public func NCZDG_IdxImageBase() -> Int32 { return 4000; }
 public func NCZDG_IdxPrevPage() -> Int32 { return -2; }
 public func NCZDG_IdxNextPage() -> Int32 { return -3; }
 public func NCZDG_IdxClearWaypoint() -> Int32 { return -4; }
 public func NCZDG_IdxClearSearch() -> Int32 { return -5; }
+public func NCZDG_IdxCloseLightbox() -> Int32 { return -6; }
 
 // The entry point Input.reds calls. Declared in this module so the import there resolves.
 //
@@ -221,6 +257,16 @@ public class NCZDGGuidePopup extends InGamePopup {
   private let m_selCard: Int32;   // pool slot of the selected card, -1 for none
   private let m_clearWp: wref<inkCanvas>;
 
+  // In-flight image fetches, and the single poll chain that drains them.
+  private let m_pending: array<ref<NCZDGPendingImage>>;
+  private let m_polling: Bool;
+
+  // The lightbox: a full-popup overlay, built once and hidden. Parented LAST so it draws over
+  // the header, footer and body - ink draw order is child order and there is no z-index.
+  private let m_lightbox: wref<inkCanvas>;
+  private let m_lightboxImg: wref<inkImage>;
+  private let m_lightboxCaption: wref<inkText>;
+
   public static func Show(gi: GameInstance) -> ref<NCZDGGuidePopup> {
     let self = new NCZDGGuidePopup();
     self.m_gi = gi;
@@ -260,6 +306,9 @@ public class NCZDGGuidePopup extends InGamePopup {
 
   protected cb func OnDetach() -> Void {
     this.m_isClosed = true;
+    // Drop every in-flight fetch. A pending tick can still fire after this - the DelaySystem
+    // callback is already scheduled - but it reads m_isClosed and stops the chain there.
+    ArrayClear(this.m_pending);
     NCZDGLog("guide: popup detached (ESC, right-click, CLOSE, or the queue)");
     super.OnDetach();   // must chain: this is what un-pauses and pops the game context
   }
@@ -428,6 +477,10 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     this.BuildCardPool();
     this.BuildNav();
+    // LAST, and onto the popup's own root widget rather than the body: ink draws in child order
+    // with no z-index, so this is the only way the overlay covers the header and footer too.
+    // Note `this` is an inkCustomController, NOT a widget - reach the widget explicitly.
+    this.BuildLightbox(this.GetRootCompoundWidget());
     NCZDGLog("guide: popup created");
   }
 
@@ -673,6 +726,21 @@ public class NCZDGGuidePopup extends InGamePopup {
   }
 
   private func BindCard(slot: ref<NCZDGCardSlot>, loc: ref<NCZLocation>) -> Void {
+    // Decide the layout FIRST: everything below is capped against whichever width it picks.
+    //
+    // The test is "is there a URL", not "has the image loaded". Those differ, and using the
+    // second would make every card jump from wide to narrow as fetches landed. A URL is known
+    // the instant the record binds, and 296 of 297 records have one - so the narrow layout is
+    // chosen up front and nothing reflows later. A card only widens again if the fetch
+    // actually FAILS, which is rare enough that the reflow is acceptable.
+    let thumbUrl = loc.ThumbnailUrl();
+    let hasImage = NCZDG_Img.Available() && StrLen(thumbUrl) > 0;
+    this.SetCardLayout(slot, hasImage);
+    slot.picUrl = hasImage ? loc.PictureUrl() : "";
+    if hasImage {
+      this.QueueImage(thumbUrl, slot.image, NCZDG_ThumbWidth(), NCZDG_ThumbHeight(), slot.slotIdx);
+    }
+
     slot.name.SetText(loc.Name());
 
     let authors = "";
@@ -694,8 +762,9 @@ public class NCZDGGuidePopup extends InGamePopup {
     // narrow-glyphed 140 can reach a 3rd line, which only nudges the tags line into the row gap -
     // the badge is on the meta row and out of reach. 150 reached 3 lines routinely; 110 left the
     // 2nd line visibly half-empty.
+    let cap = IsDefined(slot.imgBox) && slot.imgBox.IsVisible() ? NCZDG_DescCapThumb() : NCZDG_DescCap();
     let d = loc.Description();
-    slot.desc.SetText(StrLen(d) > 140 ? StrLeft(d, 137) + "..." : d);
+    slot.desc.SetText(StrLen(d) > cap ? StrLeft(d, cap - 3) + "..." : d);
 
     // Capped by count AND length: the tags line does not wrap, so an unbounded run of long tags
     // walks off the card's right edge.
@@ -723,6 +792,233 @@ public class NCZDGGuidePopup extends InGamePopup {
     let canTp = NCZDG_CanTeleport(this.m_gi);
     slot.tpLabel.SetText(canTp ? "TELEPORT" : "EXIT VEHICLE");
     slot.tpLabel.BindProperty(n"tintColor", canTp ? NCZDG_Cyan() : NCZDG_Gray());
+  }
+
+  // --- lightbox ---------------------------------------------------------------------------
+  //
+  // Built once in OnCreate and hidden. It covers the whole popup, so it is parented LAST: ink
+  // draws in child order and offers no z-index, which is also why it cannot simply live inside
+  // the card it was opened from.
+  //
+  // IT CLOSES ON CLICK, ANYWHERE. ESC is Codeware's and closes the whole guide, and there is no
+  // supported way to intercept it ahead of the popup - so rather than half-capture it, the
+  // scrim is one big button. ESC while the lightbox is open therefore closes the guide outright;
+  // that is a known wart, not an oversight.
+  private func BuildLightbox(parent: wref<inkCompoundWidget>) -> Void {
+    let box = new inkCanvas();
+    box.SetName(n"nczdg_lightbox");
+    box.SetSize(new Vector2(NCZDG_PopupWidth(), NCZDG_PopupHeight()));
+    box.SetAnchor(inkEAnchor.Centered);
+    box.SetAnchorPoint(new Vector2(0.5, 0.5));
+    box.SetInteractive(true);
+    box.SetVisible(false);
+    box.Reparent(parent);
+
+    // The scrim is what swallows the click, so it must fill the overlay and be interactive.
+    let scrim = new inkRectangle();
+    scrim.SetAnchor(inkEAnchor.Fill);
+    scrim.SetTintColor(NCZDG_CardBgColor());
+    scrim.SetOpacity(0.96);
+    scrim.Reparent(box);
+
+    let img = new inkImage();
+    img.SetName(n"nczdg_lightbox_img");
+    img.SetAnchor(inkEAnchor.Centered);
+    img.SetAnchorPoint(new Vector2(0.5, 0.5));
+    img.SetVisible(false);
+    img.Reparent(box);
+
+    let caption = this.MakeText("LOADING...", NCZDG_Cyan(), 30);
+    caption.SetHAlign(inkEHorizontalAlign.Center);
+    caption.SetAnchor(inkEAnchor.BottomCenter);
+    caption.SetAnchorPoint(new Vector2(0.5, 1.0));
+    caption.SetMargin(new inkMargin(0.0, 0.0, 0.0, 60.0));
+    caption.Reparent(box);
+
+    let proxy = new NCZDGGuideProxy();
+    proxy.popup = this;
+    proxy.index = NCZDG_IdxCloseLightbox();
+    ArrayPush(this.m_proxies, proxy);
+    box.RegisterToCallback(n"OnRelease", proxy, n"OnRelease");
+
+    this.m_lightbox = box;
+    this.m_lightboxImg = img;
+    this.m_lightboxCaption = caption;
+  }
+
+  public func OpenLightbox(slotIdx: Int32) -> Void {
+    if slotIdx < 0 || slotIdx >= ArraySize(this.m_cards) || !IsDefined(this.m_lightbox) {
+      return;
+    }
+    let url = this.m_cards[slotIdx].picUrl;
+    // Guarded on the URL, not on the thumbnail being visible: a card whose fetch failed has
+    // collapsed its box but its proxy is still registered.
+    if StrLen(url) == 0 {
+      return;
+    }
+    this.m_lightboxImg.SetVisible(false);
+    this.m_lightboxCaption.SetVisible(true);
+    this.m_lightboxCaption.SetText("LOADING...   -   CLICK ANYWHERE TO CLOSE");
+    this.m_lightbox.SetVisible(true);
+    // The full-size picture is a SECOND fetch - the card holds the thumbnail. slotIdx -1 keeps
+    // it out of the per-slot replacement logic, which is about cards and not about this.
+    this.QueueImage(url, this.m_lightboxImg,
+                    NCZDG_PopupWidth() - 320.0, NCZDG_PopupHeight() - 320.0, -1);
+    NCZDGLog(s"images: lightbox opened for \(url)");
+  }
+
+  public func CloseLightbox() -> Void {
+    if IsDefined(this.m_lightbox) {
+      this.m_lightbox.SetVisible(false);
+    }
+  }
+
+  // The card has exactly two layouts, and this is the only place that switches between them.
+  // Every width the card uses is derived from the mode, so the two can never disagree.
+  private func SetCardLayout(slot: ref<NCZDGCardSlot>, withThumb: Bool) -> Void {
+    if !IsDefined(slot.imgBox) || !IsDefined(slot.stack) {
+      return;
+    }
+    slot.imgBox.SetVisible(withThumb);
+    // Hide the image itself too: the box is shown immediately but the texture is not bound
+    // until the fetch lands, and a stale texture from the slot's previous location would
+    // otherwise sit there under a different card's name until the new one arrived.
+    if IsDefined(slot.image) {
+      slot.image.SetVisible(false);
+    }
+    let inset = withThumb ? NCZDG_TextInsetThumb() : NCZDG_TextInset();
+    let width = withThumb ? NCZDG_TextWidthThumb() : NCZDG_TextWidth();
+    slot.stack.SetMargin(new inkMargin(inset, 18.0, 20.0, 0.0));
+    slot.name.SetWrappingAtPosition(width);
+    slot.desc.SetWrappingAtPosition(width);
+    // The meta row is a fixed-size canvas, not a flow child, so it does not inherit the
+    // stack's narrowing - resize it or the right-aligned RECENTLY UPDATED badge keeps
+    // anchoring to the old, wider edge and drifts off the card.
+    if IsDefined(slot.metaRow) {
+      slot.metaRow.SetSize(new Vector2(width - 12.0, 34.0));
+    }
+  }
+
+  // Queue a fetch. Idempotent per (url, image): a page turn that rebinds the same location to
+  // the same slot must not stack a second pending entry.
+  private func QueueImage(url: String, image: wref<inkImage>, boxW: Float, boxH: Float,
+                          slotIdx: Int32) -> Void {
+    if !NCZDG_Img.Available() || StrLen(url) == 0 || !IsDefined(image) {
+      return;
+    }
+    let i = 0;
+    while i < ArraySize(this.m_pending) {
+      // Same slot, different location: the old fetch is now pointless, so replace it rather
+      // than letting it land on a card that has moved on.
+      if this.m_pending[i].slotIdx == slotIdx && slotIdx >= 0 {
+        if UnicodeStringEqual(this.m_pending[i].url, url) {
+          return;
+        }
+        ArrayErase(this.m_pending, i);
+        break;
+      }
+      i += 1;
+    }
+    let p = new NCZDGPendingImage();
+    p.url = url;
+    p.image = image;
+    p.boxW = boxW;
+    p.boxH = boxH;
+    p.slotIdx = slotIdx;
+    p.applied = false;
+    ArrayPush(this.m_pending, p);
+    this.EnsureImagePoll();
+  }
+
+  // One poll chain at a time, started on demand and left to die when the queue empties or the
+  // popup closes. Deliberately NOT an onUpdate: this is a UI fetch, not game logic, and it must
+  // stop dead the moment the guide is gone.
+  private func EnsureImagePoll() -> Void {
+    if this.m_polling || this.m_isClosed || ArraySize(this.m_pending) == 0 {
+      return;
+    }
+    this.m_polling = true;
+    this.ScheduleImagePoll();
+  }
+
+  private func ScheduleImagePoll() -> Void {
+    let cb = new NCZDGImagePollCB();
+    cb.popup = this;
+    GameInstance.GetDelaySystem(this.m_gi).DelayCallback(cb, 0.25, false);
+  }
+
+  // Prepare() answers "" until the image is ready, so this re-asks each tick. Every entry that
+  // resolves or fails is dropped; the chain stops when nothing is left to wait for.
+  public func OnImagePoll() -> Void {
+    if this.m_isClosed {
+      this.m_polling = false;
+      ArrayClear(this.m_pending);
+      return;
+    }
+    // Single exit per iteration via `drop`, because redscript has no `continue` - and an early
+    // ArrayErase without advancing would otherwise need one. Erasing shifts the next entry into
+    // the current index, so a dropped entry must NOT advance i.
+    let i = 0;
+    while i < ArraySize(this.m_pending) {
+      let p = this.m_pending[i];
+      let drop = false;
+      if !IsDefined(p.image) {
+        drop = true;
+      } else {
+        let atlas = NCZDG_Img.Prepare(p.url);
+        if StrLen(atlas) > 0 {
+          this.ApplyImage(p, atlas);
+          drop = true;
+        } else {
+          if NCZDG_Img.Failed(p.url) {
+            NCZDGLog(s"images: gave up on \(p.url)");
+            if p.slotIdx < 0 && IsDefined(this.m_lightboxCaption) {
+              this.m_lightboxCaption.SetText("IMAGE UNAVAILABLE   -   CLICK ANYWHERE TO CLOSE");
+            }
+            // A card whose image will never arrive returns to the full-width layout rather than
+            // keeping a permanently empty box. This is the one case that reflows a live card.
+            if p.slotIdx >= 0 && p.slotIdx < ArraySize(this.m_cards) {
+              this.SetCardLayout(this.m_cards[p.slotIdx], false);
+            }
+            drop = true;
+          }
+        }
+      }
+      if drop {
+        ArrayErase(this.m_pending, i);
+      } else {
+        i += 1;
+      }
+    }
+    if ArraySize(this.m_pending) > 0 {
+      this.ScheduleImagePoll();
+      return;
+    }
+    this.m_polling = false;
+  }
+
+  // Scale to FIT the box, preserving the image's own aspect. Never scale to fill: ink cannot
+  // clip a child, so an image larger than its box draws over the card's text.
+  private func ApplyImage(p: ref<NCZDGPendingImage>, atlas: String) -> Void {
+    let uvW = NCZDG_Img.UvWidth(p.url);
+    let uvH = NCZDG_Img.UvHeight(p.url);
+    if uvW <= 0.0 { uvW = 1.0; }
+    if uvH <= 0.0 { uvH = 1.0; }
+    let scale = p.boxW / uvW;
+    let byHeight = p.boxH / uvH;
+    if byHeight < scale {
+      scale = byHeight;
+    }
+    p.image.SetAtlasResource(ResRef.FromString(atlas));
+    p.image.SetTexturePart(n"full");
+    p.image.SetSize(new Vector2(uvW * scale, uvH * scale));
+    p.image.SetVisible(true);
+    p.applied = true;
+    // The lightbox (slot -1) shows a LOADING caption in place of the image; swap it for the
+    // close hint once there is something to look at.
+    if p.slotIdx < 0 && IsDefined(this.m_lightboxCaption) {
+      this.m_lightboxCaption.SetText("CLICK ANYWHERE TO CLOSE");
+    }
   }
 
   // Selecting a card (hover, or a click) reveals its actions and hides the previous one's. Nothing
@@ -809,17 +1105,52 @@ public class NCZDGGuidePopup extends InGamePopup {
     accent.BindProperty(n"tintColor", NCZDG_Cyan());
     accent.Reparent(card);
 
+    // The thumbnail box, built once and toggled per bind. Vertically centred against the
+    // card so it reads level with the text block whatever the image's aspect turns out to be.
+    // Interactive: clicking it opens the full-size picture in the lightbox.
+    let imgBox = new inkCanvas();
+    imgBox.SetName(n"nczdg_thumb");
+    imgBox.SetSize(new Vector2(NCZDG_ThumbWidth(), NCZDG_ThumbHeight()));
+    imgBox.SetAnchor(inkEAnchor.CenterLeft);
+    imgBox.SetAnchorPoint(new Vector2(0.0, 0.5));
+    imgBox.SetMargin(new inkMargin(NCZDG_ThumbInset(), 0.0, 0.0, 0.0));
+    imgBox.SetInteractive(true);
+    imgBox.SetVisible(false);
+    imgBox.Reparent(card);
+
+    // A dim plate behind the image, so a slow fetch reads as "loading here" rather than as a
+    // gap, and so a letterboxed image sits on something rather than floating.
+    let imgPlate = new inkRectangle();
+    imgPlate.SetAnchor(inkEAnchor.Fill);
+    imgPlate.SetTintColor(NCZDG_CardBgColor());
+    imgPlate.SetOpacity(0.6);
+    imgPlate.Reparent(imgBox);
+
+    let img = new inkImage();
+    img.SetName(n"nczdg_thumb_img");
+    img.SetAnchor(inkEAnchor.Centered);
+    img.SetAnchorPoint(new Vector2(0.5, 0.5));
+    img.SetSize(new Vector2(NCZDG_ThumbWidth(), NCZDG_ThumbHeight()));
+    img.SetVisible(false);   // shown only once a real texture is bound
+    img.Reparent(imgBox);
+
+    let imgProxy = new NCZDGGuideProxy();
+    imgProxy.popup = this;
+    imgProxy.index = NCZDG_IdxImageBase() + slotIdx;
+    ArrayPush(this.m_proxies, imgProxy);
+    imgBox.RegisterToCallback(n"OnRelease", imgProxy, n"OnRelease");
+
     let stack = new inkVerticalPanel();
     stack.SetChildOrder(inkEChildOrder.Forward);
     stack.SetFitToContent(true);
     stack.SetAnchor(inkEAnchor.TopLeft);
     stack.SetAnchorPoint(new Vector2(0.0, 0.0));
-    stack.SetMargin(new inkMargin(28.0, 18.0, 20.0, 0.0));
+    stack.SetMargin(new inkMargin(NCZDG_TextInset(), 18.0, 20.0, 0.0));
     stack.Reparent(card);
 
     let name = this.MakeText("", NCZDG_White(), 34);
     name.SetFontStyle(n"Semi-Bold");
-    name.SetWrappingAtPosition(NCZDG_CardWidth() - 60.0);
+    name.SetWrappingAtPosition(NCZDG_TextWidth());
     name.SetMargin(new inkMargin(0.0, 0.0, 0.0, 6.0));
     name.Reparent(stack);
 
@@ -855,7 +1186,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     badge.Reparent(metaRow);
 
     let desc = this.MakeText("", NCZDG_Gray(), 26);
-    desc.SetWrappingAtPosition(NCZDG_CardWidth() - 60.0);
+    desc.SetWrappingAtPosition(NCZDG_TextWidth());
     desc.SetMargin(new inkMargin(0.0, 0.0, 0.0, 8.0));
     desc.Reparent(stack);
 
@@ -917,6 +1248,11 @@ public class NCZDGGuidePopup extends InGamePopup {
     slot.actions = actionsBox;
     slot.wpLabel = wp;
     slot.tpLabel = tp;
+    slot.imgBox = imgBox;
+    slot.image = img;
+    slot.stack = stack;
+    slot.metaRow = metaRow;
+    slot.slotIdx = slotIdx;
     return slot;
   }
 
@@ -966,6 +1302,12 @@ public class NCZDGGuidePopup extends InGamePopup {
   // A card knows its POOL SLOT, not its location: the slot maps to whatever is bound to it right
   // now, so filtering never touches a proxy.
   public func OnProxyClick(index: Int32) -> Void {
+    // First, and unconditionally: while the lightbox is up it covers everything, so any click
+    // that arrives is a click on it.
+    if index == NCZDG_IdxCloseLightbox() {
+      this.CloseLightbox();
+      return;
+    }
     if index == NCZDG_IdxClearWaypoint() {
       let actions = NCZDGWorldActions.Get(this.m_gi);
       if IsDefined(actions) {
@@ -993,6 +1335,12 @@ public class NCZDGGuidePopup extends InGamePopup {
       this.m_page += 1;
       this.ScrollCardsToTop();
       this.Refresh();
+      return;
+    }
+    // MUST precede the teleport arm. This chain tests `index >= base` in descending order, so
+    // an image index reaching the >= 3000 test first would fire a teleport instead.
+    if index >= NCZDG_IdxImageBase() {
+      this.OpenLightbox(index - NCZDG_IdxImageBase());
       return;
     }
     if index >= NCZDG_IdxTeleportBase() {
@@ -1201,6 +1549,21 @@ public class NCZDGGuidePopup extends InGamePopup {
 // The widgets of one pooled card. Held so a re-bind is a handful of SetText calls, with no
 // allocation and no proxy churn.
 @if(ModuleExists("NCZoning.Api"))
+// Drives the image poll. A DelayCallback rather than an onUpdate: the chain re-arms itself only
+// while something is still in flight, so an idle guide costs nothing.
+@if(ModuleExists("NCZoning.Api"))
+public class NCZDGImagePollCB extends DelayCallback {
+  // WEAK: the popup must be free to be destroyed while a tick is pending, and a strong ref here
+  // would keep the whole widget tree alive past its own teardown.
+  public let popup: wref<NCZDGGuidePopup>;
+
+  public func Call() -> Void {
+    if IsDefined(this.popup) {
+      this.popup.OnImagePoll();
+    }
+  }
+}
+
 public class NCZDGCardSlot {
   public let root: wref<inkCanvas>;
   public let accent: wref<inkRectangle>;
@@ -1215,6 +1578,21 @@ public class NCZDGCardSlot {
   public let actions: wref<inkCanvas>;
   public let wpLabel: wref<inkText>;     // SET WAYPOINT <-> CLEAR WAYPOINT
   public let tpLabel: wref<inkText>;     // greys out in a vehicle
+
+  // Thumbnail. The box is always built and only toggled, like the action strip; the image
+  // inside it stays hidden until a real texture is bound, so a failed fetch shows the plate
+  // rather than a stretched placeholder.
+  public let imgBox: wref<inkCanvas>;
+  public let image: wref<inkImage>;
+  // Held so BindCard can re-inset the text between the two layouts.
+  public let stack: wref<inkVerticalPanel>;
+  public let metaRow: wref<inkCanvas>;
+  // The full-size image for this card's location, for the lightbox. Empty means the card is
+  // not clickable - the click handler checks this rather than trusting the box's visibility.
+  public let picUrl: String;
+  // This slot's own index, so a pending fetch can be matched back to the card that wanted it
+  // and dropped when a page turn rebinds the slot to a different location.
+  public let slotIdx: Int32;
 }
 
 @if(ModuleExists("NCZoning.Api"))

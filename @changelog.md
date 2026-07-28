@@ -42,6 +42,38 @@ Initial development. Not yet released.
   modifier be held when None was chosen, so `Shift+'` would not fire a plain `'` binding.
   With an arbitrary modifier key there is no bounded set of others to test, so that no longer
   holds.
+- Location images on the guide cards, via RedIMGRetriever (**soft** dependency — without the
+  plugin the guide has no images and is otherwise unchanged). A 240x135 thumbnail sits at the
+  card's left; clicking it opens the full-size picture in a lightbox that closes on a click
+  anywhere. The registry already carried both URLs (`ThumbnailUrl()` / `PictureUrl()`) and
+  296 of 297 live records populate them, so no API or NCZoningCore change was needed.
+  - **Fit, never fill.** Images are scaled to fit inside their box preserving aspect, so an
+    unusual aspect letterboxes. This is not a style choice: ink has **no clip-children facility
+    at all** (no `clipChildren` anywhere in the RTTI dump), so an image larger than its box
+    would draw straight over the card's text. A full-width cropped "banner" layout was designed
+    and abandoned for exactly this reason — at 902 wide a 16:9 image is 507 tall, which would
+    have made the card ~750 and cut the visible grid to about two rows.
+  - **Two card layouts, switched in one place** (`SetCardLayout`): with a thumbnail the text
+    column narrows and the description cap drops 140 -> 95; without one the card reclaims the
+    full width. The meta row is resized explicitly, because it is a fixed-size canvas and does
+    not inherit the stack's narrowing — leave it and the right-anchored RECENTLY UPDATED badge
+    drifts off the card.
+  - **The layout is chosen on "is there a URL", not "has it loaded".** Those differ, and the
+    second would make every card visibly jump from wide to narrow as fetches landed. Only an
+    actual fetch *failure* reflows a live card, which is rare.
+  - `PrepareDocImage` is **poll-until-ready, not a callback**: it returns `""` in flight and an
+    atlas ResRef once ready, and is idempotent. Drained by a self-re-arming `DelayCallback`
+    chain that starts on demand and stops when the queue empties or the popup closes — not an
+    `onUpdate`.
+  - **`NCZDG_IdxImageBase()` is 4000 and `OnProxyClick` MUST test it before teleport.** That
+    dispatch is a descending chain of `index >= base`, so a 4000 hitting the `>= 3000` arm first
+    would have teleported the player across the city on a thumbnail click.
+  - Two redscript constraints hit on the way: **there is no `continue` statement** (the poll
+    loop uses a single-exit `drop` flag), and an `InGamePopup` is an `inkCustomController`, not
+    a widget — the lightbox parents onto `GetRootCompoundWidget()`.
+  - **The lightbox closes on click, not ESC.** ESC belongs to Codeware and closes the whole
+    guide; there is no supported way to intercept it first, so the scrim is one large button.
+    ESC while the lightbox is open therefore closes the guide outright — known, not an oversight.
 - Logging through RedLogger (`RedLog.Append`), a hard dependency, into
   `r6\logs\mods\NCZoningDistrictGuide__<date_time>.log`. `NCZDGLog` and its ~74 call sites
   now **ship**; the wrapper body was the only line that changed. `Logging.reds` is not and
