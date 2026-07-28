@@ -843,9 +843,9 @@ public class NCZDGGuidePopup extends InGamePopup {
       } else {
         this.m_cards[slot].root.SetVisible(false);
       }
-      // A slot's identity changes under a filter or a page turn, so the selection cannot survive it.
-      this.m_cards[slot].actions.SetVisible(false);
-      this.m_cards[slot].frame.SetOpacity(0.35);
+      // A slot's identity changes under a filter or a page turn, so the selection cannot survive
+      // it. Goes through SetCardActions so the tags come back with the strip going away.
+      this.SetCardActions(this.m_cards[slot], false);
       slot += 1;
     }
     // A row with both cards hidden still occupies its height in the flow, so hide the row too.
@@ -1340,20 +1340,37 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
   }
 
+  // The action strip and the tags line occupy the SAME BAND at the bottom of the card. They swap:
+  // never both visible, so the buttons cannot draw over the tags. The alternative was reserving
+  // space for the strip, which costs card height, and card height decides whether two full rows
+  // fit.
+  //
+  // ONE FUNCTION, so the two cannot drift apart. A strip toggled anywhere without its tags
+  // restores the overlap.
+  private func SetCardActions(slot: ref<NCZDGCardSlot>, on: Bool) -> Void {
+    if IsDefined(slot.actions) {
+      slot.actions.SetVisible(on);
+    }
+    if IsDefined(slot.tags) {
+      slot.tags.SetVisible(!on);
+    }
+    if IsDefined(slot.frame) {
+      slot.frame.SetOpacity(on ? 1.0 : 0.35);
+    }
+  }
+
   // Selecting a card (hover, or a click) reveals its actions and hides the previous one's. Nothing
-  // reflows: the strip is always built, only toggled.
+  // reflows: both the strip and the tags are always built, only toggled.
   private func SelectCard(slotIdx: Int32) -> Void {
     if this.m_selCard >= 0 && this.m_selCard < ArraySize(this.m_cards) {
-      this.m_cards[this.m_selCard].actions.SetVisible(false);
-      this.m_cards[this.m_selCard].frame.SetOpacity(0.35);
+      this.SetCardActions(this.m_cards[this.m_selCard], false);
     }
     if slotIdx < 0 || slotIdx >= ArraySize(this.m_cards) {
       this.m_selCard = -1;
       return;
     }
     this.m_selCard = slotIdx;
-    this.m_cards[slotIdx].actions.SetVisible(true);
-    this.m_cards[slotIdx].frame.SetOpacity(1.0);
+    this.SetCardActions(this.m_cards[slotIdx], true);
   }
 
   // The pool slot -> the location currently bound to it. Null if the slot is empty on this page.
@@ -1581,28 +1598,25 @@ public class NCZDGGuidePopup extends InGamePopup {
     // frames have translucent interiors, so without the backing whatever the card drew underneath
     // (a long tags line) reads straight through the buttons. 464x46 is exactly the two buttons
     // plus their 12-unit lead-in margins.
-    // ON THE IMAGE, not under the text. It used to sit at the card's bottom-right, where it drew
-    // straight over the tags line whenever a long title or description pushed the text down -
-    // and ink cannot clip, so nothing trimmed it. The image band is always present and always
-    // exactly the same height, so anchoring here can never collide with reflowing text.
+    // At the card's BOTTOM, over the tags line - and the tags hide while it is shown, which is
+    // what stops the two colliding. Both are simple toggles, so nothing reflows, the card height
+    // is untouched, and the collision cannot come back however the text wraps.
     //
-    // A CHILD OF THE CARD anchored into the image's area, NOT a child of the image box: the
-    // image box is itself interactive (it opens the lightbox), and nesting the buttons inside it
-    // would risk a button click also reading as a click on the image behind it.
+    // It briefly lived on the image instead, which also solved the overlap but put a control
+    // panel across the photograph. Hovering asks "what can I do with this", and the tags are the
+    // least useful line to be reading at that moment, so they yield.
+    //
+    // NO SHARED BACKING PLATE. This canvas is now transparent: each button carries its own fill,
+    // because one rectangle spanning both of them reads as a slab pasted onto the card - obvious
+    // against a bright image, and wrong even against a dark one.
     let actionsBox = new inkCanvas();
     actionsBox.SetName(n"nczdg_actions");
     actionsBox.SetSize(new Vector2(464.0, 46.0));
-    actionsBox.SetAnchor(inkEAnchor.TopRight);
-    actionsBox.SetAnchorPoint(new Vector2(1.0, 0.0));
-    actionsBox.SetMargin(new inkMargin(0.0, NCZDG_ImageHeight() - 58.0, NCZDG_CardPadRight(), 0.0));
+    actionsBox.SetAnchor(inkEAnchor.BottomRight);
+    actionsBox.SetAnchorPoint(new Vector2(1.0, 1.0));
+    actionsBox.SetMargin(new inkMargin(0.0, 0.0, NCZDG_CardPadRight(), 14.0));
     actionsBox.SetVisible(false);
     actionsBox.Reparent(card);
-
-    let actionsBg = new inkRectangle();
-    actionsBg.SetAnchor(inkEAnchor.Fill);
-    actionsBg.SetTintColor(NCZDG_CardBgColor());   // interactive context: tint directly, like the card bg
-    actionsBg.SetOpacity(1.0);
-    actionsBg.Reparent(actionsBox);
 
     let actions = new inkHorizontalPanel();
     actions.SetChildOrder(inkEChildOrder.Forward);
@@ -1655,6 +1669,19 @@ public class NCZDGGuidePopup extends InGamePopup {
     box.SetMargin(new inkMargin(12.0, 0.0, 0.0, 0.0));
     box.SetInteractive(true);
     box.Reparent(parent);
+
+    // Each button carries its OWN fill, chamfered to match its own frame. The strip used to sit
+    // on one shared rectangle spanning both buttons and the gap between them, which reads as a
+    // slab laid over the card - and cell_fg's interior is translucent, so without any fill the
+    // card's tags would read straight through the buttons instead.
+    let bg = new inkImage();
+    bg.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    bg.SetTexturePart(n"cell_bg");
+    bg.SetNineSliceScale(true);
+    bg.SetAnchor(inkEAnchor.Fill);
+    bg.SetTintColor(NCZDG_NavyColor());
+    bg.SetOpacity(0.95);
+    bg.Reparent(box);
 
     let frame = new inkImage();
     frame.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
