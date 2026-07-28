@@ -49,7 +49,14 @@ import NCZoningDistrictGuide.District.*
 // fast-travel panel is the opposite case: it parents onto the top-level window at scale 1.0 and has
 // to apply screenH/2160 by hand. Inside the popup the scale is inherited.)
 public func NCZDG_PopupWidth() -> Float { return 2800.0; }
-public func NCZDG_PopupHeight() -> Float { return 1600.0; }
+
+// 1600 showed one row of gallery cards and a sliver of the next, which reads as a scroll hint
+// rather than as content. Sized so TWO full rows fit:
+//   body   = 1700 - 135 - 118 (InGamePopupContent's own insets) = 1447
+//   cards  = 1447 - 96 (top strip) = 1351
+//   needed = 2 * ~622 + 24 gap    = ~1268
+// 1700 of the 2160-unit design height still leaves ~230 above and below.
+public func NCZDG_PopupHeight() -> Float { return 1700.0; }
 
 // InGamePopupContent insets itself by (76, 135, 0, 118) - note the RIGHT margin is ZERO, while the
 // header and footer both inset by 76. Measured from the live tree at container 1600x1100:
@@ -80,9 +87,14 @@ public func NCZDG_UsableHeight() -> Float {
 //   | districts   |  cards, 2 across                               |  body
 //   | (scrolls)   |  (scrolls)                                     |
 //   +-------------+------------------------------------------------+
-// 150 left ~30 units of dead air under the controls: the tallest thing in the strip is the
-// 80-high search row, and the right-hand count + pager stack ends at 120.
-public func NCZDG_TopStripHeight() -> Float { return 132.0; }
+// ONE ROW, so this is just the row plus a little air. It was 150, then 132, and both were
+// driven by the RIGHT-hand side rather than the left: the count sat at y=20 with the pager
+// stacked under it at y=68, ending at 120, while the search box finished at 80. The strip had
+// to clear the taller column, which left visible dead space under the search box - the gap read
+// as a top-strip problem when it was really a stacking problem.
+//
+// The count now sits INSIDE the pager row rather than above it, so everything finishes at 80.
+public func NCZDG_TopStripHeight() -> Float { return 96.0; }
 
 // The install filter sits above the district list rather than in the search row. These size the
 // gap it occupies, and the nav scroll below is shortened by exactly the same amount - derive it,
@@ -161,9 +173,12 @@ public func NCZDG_TextWidth() -> Float {
 }
 
 // Both caps are approximate against a proportional font (~20% by glyph mix) and both are sized
-// to TWO lines at NCZDG_TextWidth(). The title is capped now, which it never was before: at 545
-// wide a long mod name wraps to three lines and pushes the tags out of the card.
-public func NCZDG_TitleCap() -> Int32 { return 55; }
+// to TWO lines at NCZDG_TextWidth(). The title is capped, which it never was before three
+// columns: a long mod name wraps to three lines and pushes the tags out of the card.
+//
+// 74 measured in-game rather than derived - about 38 title characters fit on one line at this
+// width, so two lines is ~76 and 74 leaves a little for a wide-glyph run.
+public func NCZDG_TitleCap() -> Int32 { return 74; }
 public func NCZDG_DescCap() -> Int32 { return 78; }
 
 // Description caps, one per layout. 140 was tuned empirically against the full width; the
@@ -566,18 +581,12 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.m_filterBtn = filterBox;
     this.m_filterLabel = filterTxt;
 
-    let count = this.MakeText("", NCZDG_Gray(), 32);
-    count.SetName(n"nczdg_count");
-    count.SetAnchor(inkEAnchor.TopRight);
-    count.SetAnchorPoint(new Vector2(1.0, 0.0));
-    count.SetHAlign(inkEHorizontalAlign.Right);
-    count.SetHorizontalAlignment(textHorizontalAlignment.Right);
-    count.SetMargin(new inkMargin(0.0, 20.0, 0.0, 0.0));
-    count.Reparent(body);
-    this.m_status = count;
-
     // Paging. The card column scrolls, but a pool of 30 cannot show 295 locations, so ALL needs a
-    // way through. Sits under the count, right-aligned with it.
+    // way through.
+    //
+    // ONE RIGHT-ALIGNED ROW, sharing the search box's 80-high band. The count used to sit ABOVE
+    // this and the whole strip had to be tall enough for both, which is what put dead space under
+    // the search box.
     let pager = new inkHorizontalPanel();
     pager.SetName(n"nczdg_pager");
     pager.SetChildOrder(inkEChildOrder.Forward);
@@ -585,8 +594,18 @@ public class NCZDGGuidePopup extends InGamePopup {
     pager.SetAnchor(inkEAnchor.TopRight);
     pager.SetAnchorPoint(new Vector2(1.0, 0.0));
     pager.SetHAlign(inkEHorizontalAlign.Right);
-    pager.SetMargin(new inkMargin(0.0, 68.0, 0.0, 0.0));
+    pager.SetMargin(new inkMargin(0.0, 14.0, 0.0, 0.0));   // 52-high buttons centred in the 80 band
     pager.Reparent(body);
+
+    // First child of the pager row, so it flows to the LEFT of the buttons and the whole group
+    // stays right-aligned however wide the count text gets.
+    let count = this.MakeText("", NCZDG_Gray(), 32);
+    count.SetName(n"nczdg_count");
+    count.SetVAlign(inkEVerticalAlign.Center);
+    count.SetHorizontalAlignment(textHorizontalAlignment.Right);
+    count.SetMargin(new inkMargin(0.0, 0.0, 24.0, 0.0));
+    count.Reparent(pager);
+    this.m_status = count;
     // Clearing the pin must not require finding the card it came from - the player may have
     // searched or paged away from it, and a pin they cannot see is a pin they cannot remove.
     this.m_clearWp = this.MakeButton(pager, "CLEAR MARKER", NCZDG_IdxClearWaypoint());
@@ -1562,12 +1581,20 @@ public class NCZDGGuidePopup extends InGamePopup {
     // frames have translucent interiors, so without the backing whatever the card drew underneath
     // (a long tags line) reads straight through the buttons. 464x46 is exactly the two buttons
     // plus their 12-unit lead-in margins.
+    // ON THE IMAGE, not under the text. It used to sit at the card's bottom-right, where it drew
+    // straight over the tags line whenever a long title or description pushed the text down -
+    // and ink cannot clip, so nothing trimmed it. The image band is always present and always
+    // exactly the same height, so anchoring here can never collide with reflowing text.
+    //
+    // A CHILD OF THE CARD anchored into the image's area, NOT a child of the image box: the
+    // image box is itself interactive (it opens the lightbox), and nesting the buttons inside it
+    // would risk a button click also reading as a click on the image behind it.
     let actionsBox = new inkCanvas();
     actionsBox.SetName(n"nczdg_actions");
     actionsBox.SetSize(new Vector2(464.0, 46.0));
-    actionsBox.SetAnchor(inkEAnchor.BottomRight);
-    actionsBox.SetAnchorPoint(new Vector2(1.0, 1.0));
-    actionsBox.SetMargin(new inkMargin(0.0, 0.0, 20.0, 14.0));
+    actionsBox.SetAnchor(inkEAnchor.TopRight);
+    actionsBox.SetAnchorPoint(new Vector2(1.0, 0.0));
+    actionsBox.SetMargin(new inkMargin(0.0, NCZDG_ImageHeight() - 58.0, NCZDG_CardPadRight(), 0.0));
     actionsBox.SetVisible(false);
     actionsBox.Reparent(card);
 
