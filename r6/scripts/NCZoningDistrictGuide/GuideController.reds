@@ -193,15 +193,31 @@ public func NCZDG_TextWidth() -> Float {
 // mod name reaches a third line and pushes the tags into the button band.
 public func NCZDG_TitleCap() -> Int32 { return 74; }
 
-// Description: 3 lines (49 x 3 = 147, held at 145 for a wide-glyph run).
+// Description: 3 lines.
 //
-// THE THIRD LINE FITS BECAUSE THE HEIGHT BUDGET IS CONSERVATIVE, not because the card grew. The
-// budget below assumes ~1.42x font size per rendered line; the real figure is nearer 1.2, which
-// is why a worst-case card - two-line title AND full description - still showed a clear line of
-// empty space above the buttons. That slack is now spent, so this is the cap's ceiling: a fourth
-// line would reach the band, and ink cannot clip, so it would draw over the buttons rather than
-// be trimmed.
-public func NCZDG_DescCap() -> Int32 { return 145; }
+// 128, NOT 147. Multiplying the 49-character first line by three was wrong, because 49 is what
+// fits on ONE line of ONE description - a proportional font gives a different count per line and
+// per string. Measured across seven cards that overflowed at a 145 cap, three lines actually
+// held 133 to 141 characters, the narrowest being a wide-glyph run. 128 clears the worst
+// observed case with a margin for ones not yet seen.
+//
+// A CAP CANNOT BE DERIVED FROM ONE MEASURED LINE. It has to clear the worst line, and the only
+// way to find that is to cap high, look for overflow, and count what spilled.
+//
+// The third line fits at all because the height budget is conservative, not because the card
+// grew: the budget assumes ~1.42x font size per rendered line where the real figure is nearer
+// 1.2. That slack is spent now. A fourth line reaches the reserved button band, and ink cannot
+// clip, so it draws over the buttons rather than being trimmed.
+public func NCZDG_DescCap() -> Int32 { return 128; }
+
+// Tags are ONE LINE, ALWAYS. The widget has no wrap position set, so it does not wrap - it runs
+// straight off the right edge of the card, which ink will not clip. The cap is what keeps it on
+// the card, so it is a correctness bound rather than a tidiness one.
+//
+// ~50 at 22px against the ~49-per-line measured at 26px, scaled by the font ratio and held back
+// for glyph variance the same way the description cap is.
+public func NCZDG_TagsCap() -> Int32 { return 50; }
+public func NCZDG_TagsMax() -> Int32 { return 5; }
 
 // Description caps, one per layout. 140 was tuned empirically against the full width; the
 // narrow cap is that scaled by the width ratio and rounded down. BOTH are approximate - a
@@ -1099,12 +1115,19 @@ public class NCZDGGuidePopup extends InGamePopup {
       ? StrLeft(d, NCZDG_DescCap() - 3) + "..."
       : d);
 
-    // Capped by count AND length: the tags line does not wrap, so an unbounded run of long tags
-    // walks off the card's right edge.
+    // Capped by count AND length, and the length check is done on the PROSPECTIVE string. The
+    // old form tested the length already accumulated and then appended anyway, so the result
+    // could exceed the cap by an entire tag - a 15-character tag arriving at 59 gave 74. That is
+    // not a tidiness slip: the tags widget has no wrap position, so it does not wrap onto a
+    // second line, it runs off the right edge of the card, and ink will not clip it.
     let tags = "";
     let t = 0;
-    while t < loc.TagCount() && t < 5 && StrLen(tags) < 60 {
-      tags += (t > 0 ? "  " : "") + "#" + loc.TagAt(t);
+    while t < loc.TagCount() && t < NCZDG_TagsMax() {
+      let next = (t > 0 ? "  " : "") + "#" + loc.TagAt(t);
+      if StrLen(tags) + StrLen(next) > NCZDG_TagsCap() {
+        break;
+      }
+      tags += next;
       t += 1;
     }
     slot.tags.SetText(tags);
