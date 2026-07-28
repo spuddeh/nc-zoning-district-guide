@@ -41,7 +41,9 @@ Feature state for NC Zoning District Guide. Legend: Done, In Progress, Planned.
 | Modifier key | Done | RCF `ModifierKeybind` (`localOnly`); **any** key, not just Shift/Alt/Ctrl. Held state from Codeware `n"Input/Key"` in `ModifierWatch.reds` |
 | Runs on defaults with no framework | Done | RCF is `ModuleExists` guarded; without it nothing is rebindable |
 | Shipped logging | Done | RedLogger hard dep; `NCZDGLog` ships to `r6\logs\mods\`. `InkDebug.reds` still stripped at release |
-| Installed-mod filter | Done, **not yet run in-game** | ALL / INSTALLED / MISSING; needs CET + NCZoningCore 0.3.0. Button **hidden** without detection. Unknown shows under both filters |
-| Install marker on cards | Done, **not yet run in-game** | Second bar beside the category accent. Green installed, grey missing, **nothing at all** for unknown |
-| Card thumbnails | Done, verified in-game | RedIMGRetriever **soft** dep; 240x135 fit-not-fill at the card's left. Collapses to full width when there is no URL |
-| Full-size lightbox | Done, **not yet run in-game** | Click a thumbnail; closes on click anywhere. ESC closes the whole guide instead — Codeware owns ESC |
+| Three-across gallery cards | Done, verified in-game | Image on top, uniform height, chamfered `cell_bg`. Two full rows + a deliberate third-row sliver |
+| Installed-mod filter | Done, verified in-game | ALL / INSTALLED / MISSING / **UNKNOWN**; needs CET + NCZoningCore 0.3.0. Button **hidden** without detection. Filters the district column and its counts too |
+| Install marker on cards | Done, verified in-game | Second bar beside the category accent. Green installed, grey missing, **nothing at all** for unknown |
+| Card images | Done, verified in-game | RedIMGRetriever **soft** dep; full-width banner, fit-not-fill. Placeholder (icon + "NO SURVEY IMAGE ON FILE") when a record has no URL |
+| Full-size lightbox | Done, verified in-game | Click a card image; closes on click anywhere. ESC closes the whole guide instead — Codeware owns ESC |
+| Pager disables at the ends | Done, verified in-game | PREV/NEXT grey out and leave the input path; page index bounded on the click too |

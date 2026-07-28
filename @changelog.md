@@ -42,20 +42,62 @@ Initial development. Not yet released.
   modifier be held when None was chosen, so `Shift+'` would not fire a plain `'` binding.
   With an arbitrary modifier key there is no bounded set of others to test, so that no longer
   holds.
+- **The guide is a three-across gallery.** Cards carry a full-width image on top with the text
+  beneath, replacing a two-column card with a small left thumbnail. Popup 1600 -> 1760 so two
+  full rows fit, plus a deliberate sliver of the third - the sliver is what says there is more
+  below. Every card is the same height and reserves the same image box; a location with no image
+  shows a placeholder rather than collapsing, because in a grid a short card beside two tall ones
+  reads as broken.
+  - **A banner was rejected at two columns and became affordable at three.** At 902 wide a 16:9
+    image is 507 tall and the card reaches ~750. At 593 wide the same image is ~334. Ink cannot
+    crop, so image height follows width and nothing else - the column count is the whole trick.
+  - Card height is DERIVED (image + text + button band), never typed, so the three cannot drift
+    apart when any one of them moves.
+  - The action strip has its own **reserved band** beneath the tags. Two earlier placements were
+    rejected in play: over the image, which laid a control panel across the photograph; and
+    sharing the tags' line with the tags hidden on hover, which punished every card for a problem
+    only long-titled ones had - and the tags appear nowhere else in the mod, so hiding them lost
+    the information rather than deferring it.
+  - Each button carries its **own** chamfered fill. One rectangle spanning both buttons and the
+    gap between them read as a slab pasted onto the card, glaring over a bright image. The fill
+    cannot simply be dropped: `cell_fg` has a translucent interior, so with none the card's text
+    reads through the buttons.
+  - The card background is an `inkImage` on `cell_bg`, not an `inkRectangle`. A rectangle is
+    square, so the navy drew straight through the frame's chamfered corner - wrong since the card
+    was first written, and only obvious once the images gave the eye a reason to look there.
+  - **Every text cap is measured in-game, not derived.** Width arithmetic predicted ~39
+    description characters per line; the real figure is ~49. And a cap cannot be derived from one
+    measured line either - three lines held 133-141 characters across seven overflowing cards,
+    because a proportional font gives a different count per line and per string. Title 74,
+    description 128, tags 50.
+  - Top strip is one row, 150 -> 96. The dead space under the search box was a stacking problem,
+    not a strip problem: the count sat above the pager, so the strip had to clear the taller
+    right-hand column and the gap appeared on the left.
+  - PREV/NEXT grey out and leave the input path when there is nowhere to page to, and the page
+    number is bounded on the click as well - a filter change that shrinks the result set could
+    otherwise leave it pointing past the end.
 - Installed-mod awareness. Each card marks whether you already have that location mod, and a
-  three-way button cycles the list between ALL / INSTALLED / MISSING. Backed by NCZoningCore
+  button cycles the list between ALL / INSTALLED / MISSING / UNKNOWN. Backed by NCZoningCore
   0.3.0's detection, which needs CET.
   - **MISSING is the point, not an extra.** The guide is partly a discovery tool, and "what is
     in this district that I don't have" is the question that sends someone to Nexus. A two-way
     toggle cannot ask it.
+  - **UNKNOWN IS ITS OWN VIEW**, and that corrected an earlier call. It first appeared under BOTH
+    installed and missing, reasoning that an undetectable mod might be either - true, and
+    unusable: AMM location mods showed up in a list headed INSTALLED that the player had no
+    reason to believe. A state that cannot be determined is its own answer. Not offered as the
+    RCF default, since opening on a list of undetectable mods is not a preference anyone holds.
   - **Availability is a gate: the filter button is HIDDEN without detection**, not shown doing
     nothing. Without CET every record is Unknown, so a filter would either empty the list or
     change nothing, and both are lies about the data. Re-checked on every Refresh, because the
     scan completes on session ready and the guide can be built either side of it.
-  - **Unknown appears under BOTH filters, marked.** AMM location mods are permanently
-    undetectable, so dropping them from INSTALLED would hide mods the player may have, and
-    dropping them from MISSING would hide mods they may want. Showing them in both is the only
-    option that never asserts something false.
+  - **The filter lives at the top of the district column, not in the search row** - it filters
+    that column too, since every district count changes with it. Placed above the nav scroll
+    rather than as its first row, or it would scroll away. Districts left empty by a filter hide;
+    ALL LOCATIONS never does, because it is the way back, and a selection the filter empties
+    falls back to it.
+  - The green "N RECENT" count hides while filtering: recency is a fact about the registry, not
+    about installs, so beside a filtered total it would read as "3 recent of the 3 installed".
   - State shows as a second bar beside the category accent, and **hidden means "no
     information"** - only a known state draws one. It went there rather than on the meta row
     because that row is already tight (the meta string is capped at 40 chars precisely so it
@@ -68,10 +110,19 @@ Initial development. Not yet released.
     compiles and the new calls are UNRESOLVED_FN - which fails the whole compilation and takes
     every redscript mod on that machine down, not just this one.
 - Location images on the guide cards, via RedIMGRetriever (**soft** dependency — without the
-  plugin the guide has no images and is otherwise unchanged). A 240x135 thumbnail sits at the
-  card's left; clicking it opens the full-size picture in a lightbox that closes on a click
-  anywhere. The registry already carried both URLs (`ThumbnailUrl()` / `PictureUrl()`) and
-  296 of 297 live records populate them, so no API or NCZoningCore change was needed.
+  plugin the guide has no images and is otherwise unchanged). Clicking a card's image opens the
+  full-size picture in a lightbox that closes on a click anywhere. The registry already carried
+  both URLs (`ThumbnailUrl()` / `PictureUrl()`) and 296 of 297 live records populate them, so no
+  API or NCZoningCore change was needed.
+  - The no-image placeholder is an **icon plus a caption**, and the caption is the load-bearing
+    half: an atlas part that fails to resolve draws nothing at all, silently, so an icon-only
+    placeholder would be indistinguishable from a blank card. `quest_file_failed` with "NO
+    SURVEY IMAGE ON FILE" beneath it.
+  - The icon is sized to the atlas part's **measured** aspect (66x157, from its UV rect against
+    the 1640x512 texture). An `inkImage` does not preserve aspect - `SetSize` stretches the part
+    to whatever it is given - so the first version drew it square and squashed it 1.45x.
+  - The lightbox scrim is fully opaque and explicitly sized. Relying on `inkEAnchor.Fill` at 0.96
+    opacity read as clearly translucent in-game, with the guide legible straight through it.
   - **Fit, never fill.** Images are scaled to fit inside their box preserving aspect, so an
     unusual aspect letterboxes. This is not a style choice: ink has **no clip-children facility
     at all** (no `clipChildren` anywhere in the RTTI dump), so an image larger than its box
