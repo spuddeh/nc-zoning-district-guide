@@ -184,14 +184,24 @@ public func NCZDG_TextWidth() -> Float {
   return NCZDG_CardWidth() - NCZDG_TextInset() - NCZDG_CardPadRight();
 }
 
-// Both caps are approximate against a proportional font (~20% by glyph mix) and both are sized
-// to TWO lines at NCZDG_TextWidth(). The title is capped, which it never was before three
-// columns: a long mod name wraps to three lines and pushes the tags out of the card.
+// BOTH MEASURED IN-GAME, not derived. Counting characters on a rendered line beats any estimate
+// here, because there is no way to query a wrapped text's height and the arithmetic was wrong in
+// both directions: ~38 title characters fit one line at 34px, and ~49 description characters fit
+// one line at 26px - well over the ~39 the line-width estimate predicted.
 //
-// 74 measured in-game rather than derived - about 38 title characters fit on one line at this
-// width, so two lines is ~76 and 74 leaves a little for a wide-glyph run.
+// Title: 2 lines. It is capped at all only since the three-column grid; at ~545 wide an uncapped
+// mod name reaches a third line and pushes the tags into the button band.
 public func NCZDG_TitleCap() -> Int32 { return 74; }
-public func NCZDG_DescCap() -> Int32 { return 78; }
+
+// Description: 3 lines (49 x 3 = 147, held at 145 for a wide-glyph run).
+//
+// THE THIRD LINE FITS BECAUSE THE HEIGHT BUDGET IS CONSERVATIVE, not because the card grew. The
+// budget below assumes ~1.42x font size per rendered line; the real figure is nearer 1.2, which
+// is why a worst-case card - two-line title AND full description - still showed a clear line of
+// empty space above the buttons. That slack is now spent, so this is the cap's ceiling: a fourth
+// line would reach the band, and ink cannot clip, so it would draw over the buttons rather than
+// be trimmed.
+public func NCZDG_DescCap() -> Int32 { return 145; }
 
 // Description caps, one per layout. 140 was tuned empirically against the full width; the
 // narrow cap is that scaled by the width ratio and rounded down. BOTH are approximate - a
@@ -449,25 +459,13 @@ public class NCZDGGuidePopup extends InGamePopup {
       this.m_vignette.BindProperty(n"tintColor", NCZDG_Cyan());
     }
 
-    // Corporate Navy behind the whole panel. Codeware's container is an empty canvas, so without
-    // this the guide's chrome floats over the blurred world and the cards are the only solid
-    // thing on screen.
+    // THE PANEL HAS NO BACKDROP, deliberately. The blurred world shows between the cards, and
+    // the cards being the only solid surfaces is what gives them their weight.
     //
-    // FIRST CHILD OF THE CONTAINER, and it must stay first. Ink draws in child order with no
-    // z-index, and Codeware's SetContainerWidget routes the header, footer and content in here -
-    // so this is added before any of them are created, and anything reparented later lands on
-    // top of it. Added to the container rather than the popup root deliberately: the vignette is
-    // a screen-wide glow sitting outside the container, and it should keep framing the panel
-    // rather than be painted over.
-    let backdrop = new inkImage();
-    backdrop.SetName(n"nczdg_backdrop");
-    backdrop.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
-    backdrop.SetTexturePart(n"cell_bg");
-    backdrop.SetNineSliceScale(true);   // chamfered corners, like the cards
-    backdrop.SetAnchor(inkEAnchor.Fill);
-    backdrop.SetTintColor(NCZDG_NavyColor());
-    backdrop.SetOpacity(0.92);          // solid, but the world still reads faintly behind it
-    backdrop.Reparent(this.m_container);
+    // A backdrop belongs as the FIRST child of m_container, not the popup root: ink draws in
+    // child order with no z-index, Codeware's SetContainerWidget routes the header, footer and
+    // content into that same canvas so anything added later covers it, and the vignette is a
+    // screen-wide glow outside the container that should keep framing the panel.
 
     this.m_header = InGamePopupHeader.Create();
     this.m_header.SetTitle("NC ZONING BOARD");
