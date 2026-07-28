@@ -53,6 +53,8 @@ public func NCZDG_KeyFastTravel() -> String { return "enableFastTravelNotice"; }
 // RCFInput.SetKeyOverride, so it must equal the `overridableUI` attribute in
 // r6/input/nczdg.xml. Change it in one place only and the bind silently stops working -
 // there is no error, in any log.
+public func NCZDG_KeyDefaultFilter() -> String { return "defaultInstallFilter"; }
+
 public func NCZDG_KeyOpenKey() -> String { return "openGuideKey"; }
 
 // A ModifierKeybind row is `localOnly`: RCF stores it and never pushes it to the plugin, so
@@ -72,6 +74,14 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
 
   // Rebuilt on every panel open, so it always reflects the live config.
   public func BuildSchema() -> ref<DVRCF_Schema> {
+    // Dropdown takes an array<String>, not a delimited string, and the INDEX is what the
+    // provider stores - so this order is the contract with NCZDG_Filter*() and must not be
+    // reordered without changing them.
+    let filterOptions: array<String>;
+    ArrayPush(filterOptions, "All");
+    ArrayPush(filterOptions, "Installed only");
+    ArrayPush(filterOptions, "Missing only");
+
     return DVRCF_SchemaBuilder.New("NC Zoning District Guide")
       .Section("Locations")
         .Toggle(NCZDG_KeySubdistrict(), "Narrow to Subdistrict")
@@ -83,6 +93,8 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
           .Tip("Key that opens the district guide. Requires Input Loader.")
         .ModifierKeybind(NCZDG_KeyOpenModifier(), "Open Guide Modifier")
           .Tip("Optional key to hold alongside the open key. Any key will do, not just Shift, Alt or Ctrl. Leave unset for no modifier.")
+        .Dropdown(NCZDG_KeyDefaultFilter(), "Open Guide Showing", filterOptions)
+          .Tip("Which locations the guide lists when it opens. You can still switch between them inside the guide. Requires Cyber Engine Tweaks, which is what detects your installed mods.")
         .Label("A waypoint set from the guide only draws its route once you open the world map. That is a game limitation, not a setting.")
       .Section("World Map")
         .Toggle(NCZDG_KeyMapPanel(), "Show on World Map")
@@ -134,6 +146,11 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
   // override the binding with "no key" and the guide would become unopenable. RCF's own
   // GetInt("dvrcfOpenKey") carries the identical guard for the identical reason.
   public func GetInt(key: String) -> Int32 {
+    // A Dropdown rides the same Int channel as a Keybind; the value is the selected INDEX.
+    if UnicodeStringEqual(key, NCZDG_KeyDefaultFilter()) {
+      let cfg = NCZDGConfig.Get();
+      return IsDefined(cfg) ? cfg.defaultInstallFilter : 0;
+    }
     let keys = NCZDGKeybind.Get();
     if !IsDefined(keys) {
       return 0;
@@ -153,6 +170,15 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
   // Called live as the user captures a key, and again during DVRCF.Register's SyncOnRegister
   // before the panel has ever been opened, so it must tolerate running early.
   public func SetInt(key: String, value: Int32) -> Void {
+    if UnicodeStringEqual(key, NCZDG_KeyDefaultFilter()) {
+      let cfg = NCZDGConfig.Get();
+      if IsDefined(cfg) {
+        // Clamped: RCF restores whatever is in its JSON, which may predate a change to the
+        // option list, and an out-of-range index would select a filter that does not exist.
+        cfg.defaultInstallFilter = value >= 0 && value < 3 ? value : 0;
+      }
+      return;
+    }
     let keys = NCZDGKeybind.Get();
     if !IsDefined(keys) {
       return;

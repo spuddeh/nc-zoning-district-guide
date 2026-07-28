@@ -44,6 +44,14 @@ public class NCZDGConfig extends ScriptableService {
   // District guide
   public let enableStandaloneGuide: Bool = true;
 
+  // Which install filter the guide OPENS on: 0 all, 1 installed, 2 missing. A preference for
+  // the starting view, not a memory of the last click - cycling the filter in the guide is
+  // session-local and deliberately does not write back here.
+  //
+  // Has no effect without CET, which is what detection needs; the guide then hides the filter
+  // control entirely rather than offering one that cannot work.
+  public let defaultInstallFilter: Int32 = 0;
+
   // World map panel
   public let enableMapPanel: Bool = true;
 

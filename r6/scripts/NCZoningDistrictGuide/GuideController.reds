@@ -158,6 +158,22 @@ public func NCZDG_IdxNextPage() -> Int32 { return -3; }
 public func NCZDG_IdxClearWaypoint() -> Int32 { return -4; }
 public func NCZDG_IdxClearSearch() -> Int32 { return -5; }
 public func NCZDG_IdxCloseLightbox() -> Int32 { return -6; }
+public func NCZDG_IdxCycleFilter() -> Int32 { return -7; }
+
+// --- install filter -----------------------------------------------------------------------
+// Three states, cycled by one button. MISSING is not decoration: the guide is partly a
+// DISCOVERY tool, and "what is in this district that I do not have" is the question that sends
+// someone to Nexus. A two-way toggle cannot ask it.
+public func NCZDG_FilterAll() -> Int32 { return 0; }
+public func NCZDG_FilterInstalled() -> Int32 { return 1; }
+public func NCZDG_FilterMissing() -> Int32 { return 2; }
+public func NCZDG_FilterCount() -> Int32 { return 3; }
+
+public func NCZDG_FilterLabel(f: Int32) -> String {
+  if f == NCZDG_FilterInstalled() { return "SHOWING: INSTALLED"; }
+  if f == NCZDG_FilterMissing() { return "SHOWING: MISSING"; }
+  return "SHOWING: ALL";
+}
 
 // The entry point Input.reds calls. Declared in this module so the import there resolves.
 //
@@ -261,6 +277,13 @@ public class NCZDGGuidePopup extends InGamePopup {
   private let m_pending: array<ref<NCZDGPendingImage>>;
   private let m_polling: Bool;
 
+  // Install filter. Seeded from the RCF setting on open, then session-local - changing it in
+  // the guide does not rewrite the saved default, which is a preference for how the guide
+  // OPENS rather than a record of the last thing you clicked.
+  private let m_filter: Int32;
+  private let m_filterBtn: wref<inkCanvas>;
+  private let m_filterLabel: wref<inkText>;
+
   // The lightbox: a full-popup overlay, built once and hidden. Parented LAST so it draws over
   // the header, footer and body - ink draw order is child order and there is no z-index.
   private let m_lightbox: wref<inkCanvas>;
@@ -317,6 +340,15 @@ public class NCZDGGuidePopup extends InGamePopup {
     super.OnCreate();
     this.m_selected = -1;
     this.m_selCard = -1;
+
+    // Seed the filter from the saved preference. Read once, at open: cycling inside the guide
+    // is session-local and must not write back, or "which view it opens on" silently becomes
+    // "the last thing you clicked".
+    let cfg = NCZDGConfig.Get();
+    this.m_filter = IsDefined(cfg) ? cfg.defaultInstallFilter : NCZDG_FilterAll();
+    if this.m_filter < 0 || this.m_filter >= NCZDG_FilterCount() {
+      this.m_filter = NCZDG_FilterAll();
+    }
 
     // Size the container BEFORE reparenting the content: InGamePopupContent measures itself off the
     // container at OnReparent, so a later resize does not reach it.
@@ -423,6 +455,50 @@ public class NCZDGGuidePopup extends InGamePopup {
     clearBox.RegisterToCallback(n"OnEnter", clearProxy, n"OnEnter");
     clearBox.RegisterToCallback(n"OnLeave", clearProxy, n"OnLeave");
     this.m_searchClear = clearBox;
+
+    // Install filter, beside CLEAR and styled the same. Its visibility is a GATE, not a
+    // preference: without CET nothing is detectable, so the control is hidden rather than shown
+    // filtering nothing. Refresh() re-applies that each time, because the scan completes on
+    // session ready and the guide may be built before or after it.
+    let filterBox = new inkCanvas();
+    filterBox.SetName(n"nczdg_filter");
+    filterBox.SetSize(new Vector2(340.0, 52.0));
+    filterBox.SetAnchor(inkEAnchor.TopLeft);
+    filterBox.SetAnchorPoint(new Vector2(0.0, 0.0));
+    filterBox.SetMargin(new inkMargin(NCZDG_NavWidth() + 192.0, 14.0, 0.0, 0.0));
+    filterBox.SetInteractive(true);
+    filterBox.SetVisible(false);
+    filterBox.Reparent(body);
+
+    let filterFrame = new inkImage();
+    filterFrame.SetName(n"frame");
+    filterFrame.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    filterFrame.SetTexturePart(n"cell_fg");
+    filterFrame.SetNineSliceScale(true);
+    filterFrame.SetAnchor(inkEAnchor.Fill);
+    filterFrame.SetTintColor(NCZDG_CyanColor());   // interactive: tint directly, not via a style bind
+    filterFrame.SetOpacity(0.8);
+    filterFrame.Reparent(filterBox);
+
+    let filterTxt = this.MakeText(NCZDG_FilterLabel(this.m_filter), NCZDG_Cyan(), 28);
+    filterTxt.SetHAlign(inkEHorizontalAlign.Center);
+    filterTxt.SetVAlign(inkEVerticalAlign.Center);
+    filterTxt.SetAnchor(inkEAnchor.Centered);
+    filterTxt.SetAnchorPoint(new Vector2(0.5, 0.5));
+    filterTxt.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
+    filterTxt.Reparent(filterBox);
+
+    let filterProxy = new NCZDGGuideProxy();
+    filterProxy.popup = this;
+    filterProxy.index = NCZDG_IdxCycleFilter();
+    filterProxy.hoverFrame = filterFrame;
+    filterProxy.restOpacity = 0.8;
+    ArrayPush(this.m_proxies, filterProxy);
+    filterBox.RegisterToCallback(n"OnRelease", filterProxy, n"OnRelease");
+    filterBox.RegisterToCallback(n"OnEnter", filterProxy, n"OnEnter");
+    filterBox.RegisterToCallback(n"OnLeave", filterProxy, n"OnLeave");
+    this.m_filterBtn = filterBox;
+    this.m_filterLabel = filterTxt;
 
     let count = this.MakeText("", NCZDG_Gray(), 32);
     count.SetName(n"nczdg_count");
@@ -657,6 +733,7 @@ public class NCZDGGuidePopup extends InGamePopup {
       return;
     }
     this.m_shown = this.m_model.Query(this.m_selected, this.m_query);
+    this.ApplyInstallFilter();
 
     let n = ArraySize(this.m_shown);
     let pages = (n + NCZDG_PageSize() - 1) / NCZDG_PageSize();
@@ -688,6 +765,12 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
 
     this.m_selCard = -1;
+
+    // Availability is a gate. Re-checked here rather than only at build time because the scan
+    // finishes on session ready, which can land either side of the guide being built.
+    if IsDefined(this.m_filterBtn) {
+      this.m_filterBtn.SetVisible(NCZDG_InstallDetection());
+    }
 
     let actions = NCZDGWorldActions.Get(this.m_gi);
     let marked = IsDefined(actions) && actions.HasPin();
@@ -723,6 +806,48 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
     this.m_status.SetText(counts);
     NCZDGLog(s"guide: '\(area.Label())' q='\(this.m_query)' -> \(n) results, page \(this.m_page + 1)/\(pages)");
+  }
+
+  // Narrows m_shown to the current filter. A no-op when the filter is ALL, and ALSO a no-op
+  // when detection is unavailable - without CET every record is Unknown, so filtering would
+  // either empty the list or change nothing, and both are lies about the data.
+  //
+  // UNKNOWN APPEARS UNDER BOTH INSTALLED AND MISSING, on purpose. AMM location mods are
+  // permanently undetectable, so dropping Unknown from INSTALLED would hide mods the player
+  // may well have, and dropping it from MISSING would hide mods they may need. Showing it in
+  // both, marked, is the only option that never asserts something false.
+  private func ApplyInstallFilter() -> Void {
+    if this.m_filter == NCZDG_FilterAll() || !NCZDG_InstallDetection() {
+      return;
+    }
+    let kept: array<ref<NCZLocation>>;
+    let wantInstalled = this.m_filter == NCZDG_FilterInstalled();
+    let i = 0;
+    while i < ArraySize(this.m_shown) {
+      let st = NCZDG_InstallStateOf(this.m_shown[i]);
+      let keep = Equals(st, NCZInstallState.Unknown);
+      if wantInstalled {
+        keep = keep || Equals(st, NCZInstallState.Installed);
+      } else {
+        keep = keep || Equals(st, NCZInstallState.NotInstalled);
+      }
+      if keep {
+        ArrayPush(kept, this.m_shown[i]);
+      }
+      i += 1;
+    }
+    this.m_shown = kept;
+  }
+
+  public func CycleFilter() -> Void {
+    this.m_filter = (this.m_filter + 1) % NCZDG_FilterCount();
+    if IsDefined(this.m_filterLabel) {
+      this.m_filterLabel.SetText(NCZDG_FilterLabel(this.m_filter));
+    }
+    this.m_page = 0;   // the old page number means nothing against a different result set
+    this.ScrollCardsToTop();
+    this.Refresh();
+    NCZDGLog(s"guide: filter -> \(NCZDG_FilterLabel(this.m_filter))");
   }
 
   private func BindCard(slot: ref<NCZDGCardSlot>, loc: ref<NCZLocation>) -> Void {
@@ -780,6 +905,22 @@ public class NCZDGGuidePopup extends InGamePopup {
     // so it shows what the API decided.
     slot.badge.SetVisible(loc.RecentlyUpdated());
 
+    // Install state. Unknown draws nothing at all - see the note on the widget.
+    if IsDefined(slot.installBar) {
+      let st = NCZDG_InstallStateOf(loc);
+      if Equals(st, NCZInstallState.Installed) {
+        slot.installBar.SetVisible(true);
+        slot.installBar.BindProperty(n"tintColor", NCZDG_Green());
+      } else {
+        if Equals(st, NCZInstallState.NotInstalled) {
+          slot.installBar.SetVisible(true);
+          slot.installBar.BindProperty(n"tintColor", NCZDG_Gray());
+        } else {
+          slot.installBar.SetVisible(false);
+        }
+      }
+    }
+
     // The waypoint button reflects the CURRENT pin, so it is right on every re-bind.
     let actions = NCZDGWorldActions.Get(this.m_gi);
     // A button says what CLICKING it does, and nothing else. Routing state is not an action - no
@@ -814,11 +955,19 @@ public class NCZDGGuidePopup extends InGamePopup {
     box.SetVisible(false);
     box.Reparent(parent);
 
-    // The scrim is what swallows the click, so it must fill the overlay and be interactive.
+    // The scrim swallows the click AND blacks out the guide behind it, so the photo is the only
+    // thing to look at.
+    //
+    // FULLY OPAQUE, AND SIZED EXPLICITLY. The first cut used inkEAnchor.Fill at 0.96 opacity and
+    // read clearly translucent in-game - the nav column and card text were legible straight
+    // through it. Both halves of that are now pinned down rather than trusted: an explicit size
+    // instead of Fill, and 1.0 instead of a fraction.
     let scrim = new inkRectangle();
-    scrim.SetAnchor(inkEAnchor.Fill);
-    scrim.SetTintColor(NCZDG_CardBgColor());
-    scrim.SetOpacity(0.96);
+    scrim.SetSize(new Vector2(NCZDG_PopupWidth(), NCZDG_PopupHeight()));
+    scrim.SetAnchor(inkEAnchor.Centered);
+    scrim.SetAnchorPoint(new Vector2(0.5, 0.5));
+    scrim.SetTintColor(NCZDG_NavyColor());   // the darkest brand surface, not the card colour
+    scrim.SetOpacity(1.0);
     scrim.Reparent(box);
 
     let img = new inkImage();
@@ -1105,6 +1254,23 @@ public class NCZDGGuidePopup extends InGamePopup {
     accent.BindProperty(n"tintColor", NCZDG_Cyan());
     accent.Reparent(card);
 
+    // Install state, as a second bar immediately inside the category one. It goes here rather
+    // than on the meta row because that row is already tight - the meta string is capped at 40
+    // chars specifically so it cannot reach the RECENTLY UPDATED badge - and a bar costs no
+    // layout space at all.
+    //
+    // HIDDEN means "no information", and that is the honest rendering for Unknown: an AMM mod
+    // is undetectable in principle, and with no CET nothing is detectable at all. Only a known
+    // state draws a bar.
+    let installBar = new inkRectangle();
+    installBar.SetName(n"install");
+    installBar.SetSize(new Vector2(6.0, NCZDG_CardHeight()));
+    installBar.SetAnchor(inkEAnchor.LeftFillVerticaly);
+    installBar.SetMargin(new inkMargin(8.0, 0.0, 0.0, 0.0));
+    installBar.SetStyle(NCZDG_StylePath());   // style bind, like the accent bar beside it
+    installBar.SetVisible(false);
+    installBar.Reparent(card);
+
     // The thumbnail box, built once and toggled per bind. Vertically centred against the
     // card so it reads level with the text block whatever the image's aspect turns out to be.
     // Interactive: clicking it opens the full-size picture in the lightbox.
@@ -1253,6 +1419,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     slot.stack = stack;
     slot.metaRow = metaRow;
     slot.slotIdx = slotIdx;
+    slot.installBar = installBar;
     return slot;
   }
 
@@ -1306,6 +1473,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     // that arrives is a click on it.
     if index == NCZDG_IdxCloseLightbox() {
       this.CloseLightbox();
+      return;
+    }
+    if index == NCZDG_IdxCycleFilter() {
+      this.CycleFilter();
       return;
     }
     if index == NCZDG_IdxClearWaypoint() {
@@ -1593,6 +1764,9 @@ public class NCZDGCardSlot {
   // This slot's own index, so a pending fetch can be matched back to the card that wanted it
   // and dropped when a page turn rebinds the slot to a different location.
   public let slotIdx: Int32;
+  // Install state, as a bar beside the category accent. Hidden for Unknown - no bar means no
+  // information, which is exactly what Unknown asserts.
+  public let installBar: wref<inkRectangle>;
 }
 
 @if(ModuleExists("NCZoning.Api"))

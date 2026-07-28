@@ -22,7 +22,11 @@ Every feature can be turned off on its own.
 ## Requirements
 
 - RED4ext, redscript, Codeware
-- [NCZoningCore](https://github.com/spuddeh/nc-zoning-core)
+- [NCZoningCore](https://github.com/spuddeh/nc-zoning-core) **0.3.0 or newer** — this is a
+  hard floor, not a recommendation. The guide calls API functions added in 0.3.0, and
+  redscript compiles every installed mod together, so an older NCZoningCore does not
+  degrade gracefully: it fails the compile and takes every redscript mod on the machine
+  down with it.
 - [RedLogger](https://www.nexusmods.com/cyberpunk2077/mods/31920) (the mod's log file)
 - Input Loader (for the guide keybind)
 
@@ -37,6 +41,13 @@ Optional:
 - [RedIMGRetriever](https://www.nexusmods.com/cyberpunk2077/mods/31941) by DigitalVixen — shows
   each location's screenshot on its card, and the full-size image when you click it. Without it
   the guide simply has no images; nothing else changes.
+- **Cyber Engine Tweaks** — lets the guide mark which location mods you already have, and filter
+  the list to installed or missing. Without it the filter is hidden rather than shown doing
+  nothing, and no card claims an install state it cannot know.
+
+  Note that a handful of location mods are **AMM** mods, which can never be detected by anything:
+  their files live in CET's own sandboxed folder. Those stay unmarked and appear under both
+  filters, rather than being wrongly reported as missing.
 
 Without RCF the mod still runs, but on its defaults only: the guide opens with the
 apostrophe key, there is no modifier, and **nothing can be rebound.** RCF also pulls in

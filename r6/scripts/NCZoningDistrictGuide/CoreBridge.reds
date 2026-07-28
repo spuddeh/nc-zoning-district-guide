@@ -57,6 +57,38 @@ public func NCZDG_CoreVersion() -> String { return Version(); }
 @if(!ModuleExists("NCZoning.Api"))
 public func NCZDG_CoreVersion() -> String { return "absent"; }
 
+// --- installed-mod detection (needs NCZoningCore 0.3.0+) -------------------------
+//
+// ⚠ THIS RAISES THE MINIMUM CORE VERSION, AND @if CANNOT SOFTEN IT. `ModuleExists` tests for
+// a MODULE, not a function, so with NCZoning.Api present but OLDER than 0.3.0 the guarded arm
+// still compiles and `IsInstallDetectionAvailable()` is an UNRESOLVED_FN - which fails the
+// whole compilation and takes down every redscript mod on that machine, not just this one.
+// There is no @if(FunctionExists) to hide behind. NCZoningCore 0.3.0+ is therefore a hard
+// floor for this mod and must be stated in its requirements.
+//
+// AVAILABILITY IS A GATE, NOT A BRANCH. False means the answer is unknowable this session -
+// detection needs CET, which this mod does not require - so the filter UI must be HIDDEN
+// rather than shown empty. Same rule as NCZDG_CoreUsable() vs NCZDG_HasData().
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_InstallDetection() -> Bool {
+  return NCZDG_CoreUsable() && IsInstallDetectionAvailable();
+}
+@if(!ModuleExists("NCZoning.Api"))
+public func NCZDG_InstallDetection() -> Bool { return false; }
+
+// Unknown is a real answer and must render as one. It covers "no CET" and "undetectable in
+// principle" (AMM location mods), and showing either as "not installed" would tell the player
+// to download something they may already have.
+//
+// GUARDED ARM ONLY, DELIBERATELY - there is no `!ModuleExists` twin, because both the
+// parameter and the return type are core types that do not exist without the core, so a
+// fallback arm could not be written at all. Every caller lives inside a guarded class for the
+// same reason. Same shape as OnCoreDataReady below.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_InstallStateOf(loc: ref<NCZLocation>) -> NCZInstallState {
+  return GetInstallState(loc);
+}
+
 // --- the bridge system -----------------------------------------------------------
 // Subscribes to the core's Codeware CallbackSystem events. A redscript consumer gets
 // these directly (unlike CET Lua, which has to Observe the facade).

@@ -42,6 +42,31 @@ Initial development. Not yet released.
   modifier be held when None was chosen, so `Shift+'` would not fire a plain `'` binding.
   With an arbitrary modifier key there is no bounded set of others to test, so that no longer
   holds.
+- Installed-mod awareness. Each card marks whether you already have that location mod, and a
+  three-way button cycles the list between ALL / INSTALLED / MISSING. Backed by NCZoningCore
+  0.3.0's detection, which needs CET.
+  - **MISSING is the point, not an extra.** The guide is partly a discovery tool, and "what is
+    in this district that I don't have" is the question that sends someone to Nexus. A two-way
+    toggle cannot ask it.
+  - **Availability is a gate: the filter button is HIDDEN without detection**, not shown doing
+    nothing. Without CET every record is Unknown, so a filter would either empty the list or
+    change nothing, and both are lies about the data. Re-checked on every Refresh, because the
+    scan completes on session ready and the guide can be built either side of it.
+  - **Unknown appears under BOTH filters, marked.** AMM location mods are permanently
+    undetectable, so dropping them from INSTALLED would hide mods the player may have, and
+    dropping them from MISSING would hide mods they may want. Showing them in both is the only
+    option that never asserts something false.
+  - State shows as a second bar beside the category accent, and **hidden means "no
+    information"** - only a known state draws one. It went there rather than on the meta row
+    because that row is already tight (the meta string is capped at 40 chars precisely so it
+    cannot reach the RECENTLY UPDATED badge), and a bar costs no layout space.
+  - RCF gains an "Open Guide Showing" dropdown for which view the guide OPENS on. Cycling
+    inside the guide is session-local and deliberately does not write back, or the preference
+    silently degrades into "the last thing you clicked".
+  - **This raises the NCZoningCore floor to 0.3.0, and `@if` cannot soften it.** `ModuleExists`
+    tests for a MODULE, not a function, so with an older NCZoningCore the guarded arm still
+    compiles and the new calls are UNRESOLVED_FN - which fails the whole compilation and takes
+    every redscript mod on that machine down, not just this one.
 - Location images on the guide cards, via RedIMGRetriever (**soft** dependency — without the
   plugin the guide has no images and is otherwise unchanged). A 240x135 thumbnail sits at the
   card's left; clicking it opens the full-size picture in a lightbox that closes on a click

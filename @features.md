@@ -41,5 +41,7 @@ Feature state for NC Zoning District Guide. Legend: Done, In Progress, Planned.
 | Modifier key | Done | RCF `ModifierKeybind` (`localOnly`); **any** key, not just Shift/Alt/Ctrl. Held state from Codeware `n"Input/Key"` in `ModifierWatch.reds` |
 | Runs on defaults with no framework | Done | RCF is `ModuleExists` guarded; without it nothing is rebindable |
 | Shipped logging | Done | RedLogger hard dep; `NCZDGLog` ships to `r6\logs\mods\`. `InkDebug.reds` still stripped at release |
-| Card thumbnails | Done, **not yet run in-game** | RedIMGRetriever **soft** dep; 240x135 fit-not-fill at the card's left. Collapses to full width when there is no URL |
+| Installed-mod filter | Done, **not yet run in-game** | ALL / INSTALLED / MISSING; needs CET + NCZoningCore 0.3.0. Button **hidden** without detection. Unknown shows under both filters |
+| Install marker on cards | Done, **not yet run in-game** | Second bar beside the category accent. Green installed, grey missing, **nothing at all** for unknown |
+| Card thumbnails | Done, verified in-game | RedIMGRetriever **soft** dep; 240x135 fit-not-fill at the card's left. Collapses to full width when there is no URL |
 | Full-size lightbox | Done, **not yet run in-game** | Click a thumbnail; closes on click anywhere. ESC closes the whole guide instead — Codeware owns ESC |
