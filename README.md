@@ -22,11 +22,14 @@ Every feature can be turned off on its own.
 ## Requirements
 
 - RED4ext, redscript, Codeware
-- [NCZoningCore](https://github.com/spuddeh/nc-zoning-core) **0.3.0 or newer** — this is a
-  hard floor, not a recommendation. The guide calls API functions added in 0.3.0, and
-  redscript compiles every installed mod together, so an older NCZoningCore does not
-  degrade gracefully: it fails the compile and takes every redscript mod on the machine
-  down with it.
+- [NCZoningCore](https://github.com/spuddeh/nc-zoning-core) — install the matching version.
+  These two release together, so the current release of each expects the current release of
+  the other.
+
+  **Do not pair this with an older NCZoningCore from GitHub.** Redscript compiles every
+  installed mod into one unit, so a missing API function is not a graceful degradation — it
+  fails the compile and takes every redscript mod on your machine down with it, including
+  mods unrelated to either of these.
 - [RedLogger](https://www.nexusmods.com/cyberpunk2077/mods/31920) (the mod's log file)
 - Input Loader (for the guide keybind)
 
