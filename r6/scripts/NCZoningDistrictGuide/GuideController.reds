@@ -50,13 +50,16 @@ import NCZoningDistrictGuide.District.*
 // to apply screenH/2160 by hand. Inside the popup the scale is inherited.)
 public func NCZDG_PopupWidth() -> Float { return 2800.0; }
 
-// 1600 showed one row of gallery cards and a sliver of the next, which reads as a scroll hint
-// rather than as content. Sized so TWO full rows fit:
-//   body   = 1700 - 135 - 118 (InGamePopupContent's own insets) = 1447
-//   cards  = 1447 - 96 (top strip) = 1351
-//   needed = 2 * ~622 + 24 gap    = ~1268
-// 1700 of the 2160-unit design height still leaves ~230 above and below.
-public func NCZDG_PopupHeight() -> Float { return 1700.0; }
+// Sized so TWO full rows fit, plus a sliver of the third - the sliver is deliberate, it is what
+// says there is more below.
+//   body   = 1760 - 135 - 118 (InGamePopupContent's own insets) = 1507
+//   cards  = 1507 - 96 (top strip)  = 1411
+//   needed = 2 * 668 + 24 gap       = 1360, leaving ~51 of the third row showing
+//
+// 1600 -> 1700 bought the second row; 1700 -> 1760 bought the reserved button band under the
+// tags (see NCZDG_TextBlockHeight). 1760 of the 2160-unit design height still leaves ~200 clear
+// above and below.
+public func NCZDG_PopupHeight() -> Float { return 1760.0; }
 
 // InGamePopupContent insets itself by (76, 135, 0, 118) - note the RIGHT margin is ZERO, while the
 // header and footer both inset by 76. Measured from the live tree at container 1600x1100:
@@ -155,11 +158,20 @@ public func NCZDG_ImageHeight() -> Float {
   return NCZDG_ImageWidth() * 9.0 / 16.0;
 }
 
-// Everything under the image. Budgeted for the WORST case, not the common one, because there is
-// no way to query a wrapped text's rendered height: 14 top + a 2-line 34px title (~97) + 6 +
-// the 34-high meta row + 10 + a 2-line 26px description (~74) + 8 + a 22px tags line (~31) +
-// 12 bottom = ~286. Rounded up for the action strip that reveals on hover.
-public func NCZDG_TextBlockHeight() -> Float { return 300.0; }
+// Everything under the image: the text, plus a RESERVED BAND at the bottom for the action strip.
+//
+// Budgeted for the WORST case, not the common one, because there is no way to query a wrapped
+// text's rendered height: 14 top + a 2-line 34px title (~97) + 6 + the 34-high meta row + 10 +
+// a 2-line 26px description (~74) + 8 + a 22px tags line (~31) + 12 = ~286 for the text, plus
+// NCZDG_ActionBandHeight() beneath it.
+//
+// THE BAND IS WHY THE TAGS SURVIVE. Earlier versions had the strip share the tags' space and
+// hide them on hover, which punished every card for a problem only long ones had - and the tags
+// appear nowhere else in the mod, so hiding them lost the information outright. Reserving the
+// space costs card height, and that height was bought by growing the popup rather than by
+// shrinking the image or the buttons.
+public func NCZDG_ActionBandHeight() -> Float { return 60.0; }
+public func NCZDG_TextBlockHeight() -> Float { return 286.0 + NCZDG_ActionBandHeight(); }
 
 // Derived, never a literal: the image height follows the column count, so a card height typed
 // as a number would silently stop matching the moment either changed.
@@ -436,6 +448,26 @@ public class NCZDGGuidePopup extends InGamePopup {
     if IsDefined(this.m_vignette) {
       this.m_vignette.BindProperty(n"tintColor", NCZDG_Cyan());
     }
+
+    // Corporate Navy behind the whole panel. Codeware's container is an empty canvas, so without
+    // this the guide's chrome floats over the blurred world and the cards are the only solid
+    // thing on screen.
+    //
+    // FIRST CHILD OF THE CONTAINER, and it must stay first. Ink draws in child order with no
+    // z-index, and Codeware's SetContainerWidget routes the header, footer and content in here -
+    // so this is added before any of them are created, and anything reparented later lands on
+    // top of it. Added to the container rather than the popup root deliberately: the vignette is
+    // a screen-wide glow sitting outside the container, and it should keep framing the panel
+    // rather than be painted over.
+    let backdrop = new inkImage();
+    backdrop.SetName(n"nczdg_backdrop");
+    backdrop.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    backdrop.SetTexturePart(n"cell_bg");
+    backdrop.SetNineSliceScale(true);   // chamfered corners, like the cards
+    backdrop.SetAnchor(inkEAnchor.Fill);
+    backdrop.SetTintColor(NCZDG_NavyColor());
+    backdrop.SetOpacity(0.92);          // solid, but the world still reads faintly behind it
+    backdrop.Reparent(this.m_container);
 
     this.m_header = InGamePopupHeader.Create();
     this.m_header.SetTitle("NC ZONING BOARD");
@@ -1340,19 +1372,14 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
   }
 
-  // The action strip and the tags line occupy the SAME BAND at the bottom of the card. They swap:
-  // never both visible, so the buttons cannot draw over the tags. The alternative was reserving
-  // space for the strip, which costs card height, and card height decides whether two full rows
-  // fit.
-  //
-  // ONE FUNCTION, so the two cannot drift apart. A strip toggled anywhere without its tags
-  // restores the overlap.
+  // The strip has its own reserved band under the tags (NCZDG_ActionBandHeight), so revealing it
+  // overlaps nothing and hides nothing. THE TAGS ARE NEVER TOUCHED HERE - an earlier version
+  // swapped the two, and that was wrong twice over: it punished every card for a problem only
+  // long ones had, and the tags appear nowhere else in the mod, so hiding them lost the
+  // information rather than deferring it.
   private func SetCardActions(slot: ref<NCZDGCardSlot>, on: Bool) -> Void {
     if IsDefined(slot.actions) {
       slot.actions.SetVisible(on);
-    }
-    if IsDefined(slot.tags) {
-      slot.tags.SetVisible(!on);
     }
     if IsDefined(slot.frame) {
       slot.frame.SetOpacity(on ? 1.0 : 0.35);
@@ -1598,20 +1625,20 @@ public class NCZDGGuidePopup extends InGamePopup {
     // frames have translucent interiors, so without the backing whatever the card drew underneath
     // (a long tags line) reads straight through the buttons. 464x46 is exactly the two buttons
     // plus their 12-unit lead-in margins.
-    // At the card's BOTTOM, over the tags line - and the tags hide while it is shown, which is
-    // what stops the two colliding. Both are simple toggles, so nothing reflows, the card height
-    // is untouched, and the collision cannot come back however the text wraps.
+    // In the reserved band at the card's bottom, BELOW the tags rather than over them. The band
+    // is always there whether or not the strip is drawn in it, so revealing on hover moves
+    // nothing and hides nothing.
     //
-    // It briefly lived on the image instead, which also solved the overlap but put a control
-    // panel across the photograph. Hovering asks "what can I do with this", and the tags are the
-    // least useful line to be reading at that moment, so they yield.
+    // Two earlier placements, both rejected in play: on the image, which put a control panel
+    // across the photograph; and sharing the tags' line with the tags hidden on hover, which
+    // punished every card for a problem only long-titled ones had.
     //
-    // NO SHARED BACKING PLATE. This canvas is now transparent: each button carries its own fill,
-    // because one rectangle spanning both of them reads as a slab pasted onto the card - obvious
-    // against a bright image, and wrong even against a dark one.
+    // NO SHARED BACKING PLATE. This canvas is transparent: each button carries its own fill,
+    // because one rectangle spanning both of them - and the gap between them - reads as a slab
+    // pasted onto the card, which is glaring over a bright image.
     let actionsBox = new inkCanvas();
     actionsBox.SetName(n"nczdg_actions");
-    actionsBox.SetSize(new Vector2(464.0, 46.0));
+    actionsBox.SetSize(new Vector2(404.0, 46.0));   // 2 * 190 + their 12 lead-in margins
     actionsBox.SetAnchor(inkEAnchor.BottomRight);
     actionsBox.SetAnchorPoint(new Vector2(1.0, 1.0));
     actionsBox.SetMargin(new inkMargin(0.0, 0.0, NCZDG_CardPadRight(), 14.0));
@@ -1625,7 +1652,11 @@ public class NCZDGGuidePopup extends InGamePopup {
     actions.SetAnchorPoint(new Vector2(0.0, 0.0));
     actions.Reparent(actionsBox);
 
-    let wp = this.MakeSmallButton(actions, "SET WAYPOINT", NCZDG_IdxWaypointBase() + slotIdx, 250.0);
+    // Both 190, sized to the LONGEST label each can ever show rather than to its initial one:
+    // the first retitles between SET MARKER and CLEAR MARKER, the second between TELEPORT and
+    // EXIT VEHICLE - 12 characters at 26px either way. 250 was sized to nothing in particular
+    // and left the first button visibly emptier than the second.
+    let wp = this.MakeSmallButton(actions, "SET WAYPOINT", NCZDG_IdxWaypointBase() + slotIdx, 190.0);
     let tp = this.MakeSmallButton(actions, "TELEPORT", NCZDG_IdxTeleportBase() + slotIdx, 190.0);
 
     let proxy = new NCZDGGuideProxy();
