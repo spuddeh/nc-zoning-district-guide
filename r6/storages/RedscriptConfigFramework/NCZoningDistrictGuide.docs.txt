@@ -1,0 +1,46 @@
+[color=#00f0ff][size=5][b]NC ZONING BOARD — INSTRUMENT NC-ZB-02[/b][/size][/color]
+[color=#8892b0][i]NIGHT CORP // URBAN PLANNING DIVISION[/i][/color]
+[line]
+[color=#00f0ff][size=5][b]0. WHAT THIS IS[/b][/size][/color]
+The District Guide brings the NC Zoning map into the game. It knows which district you are standing in, and tells you what the Board has on file for it.
+
+Everything you see comes from the NC Zoning registry at nczoning.net, fetched by NCZoningCore. This mod displays it. If a location mod is missing here, it is missing from the registry - and the map is open for submissions.
+[line]
+[color=#00f0ff][size=5][b]1. THE FOUR SURFACES[/b][/size][/color]
+[*][b]District notice.[/b] Cross into a new district and a panel appears under the game's own banner: how many mapped locations are here, and the nearest by name.
+[*][b]World map.[/b] Hover any district and its info panel gains a count and a category breakdown, in the map's own type and colours.
+[*][b]The guide.[/b] One key opens a full browser - every district, every location, with images and search.
+[*][b]Fast travel.[/b] Arriving fires no district banner in vanilla, so the notice shows up on its own.
+
+Each can be switched off on its own in this panel. With all four off, the game behaves exactly as if the mod were not installed - every hook here adds, none replaces.
+[line]
+[color=#00f0ff][size=5][b]2. USING THE GUIDE[/b][/size][/color]
+[*][b]Open it[/b] with the key set under District Guide. Default is the apostrophe, because N is photo mode.
+[*][b]Browse[/b] by district and subdistrict. It opens on wherever you are standing.
+[*][b]Search[/b] by name, author or tag.
+[*][b]SET MARKER[/b] puts the location on your world map, with its name on the pin.
+[*][b]TELEPORT[/b] takes you there. Not available while you are in a vehicle - get out first.
+[*][b]Click a card's image[/b] for the full-size photograph. Click anywhere to close it.
+[*][b]Green "RECENTLY UPDATED"[/b] marks locations changed lately. They sort to the front, so a district you know still shows you what is new.
+[line]
+[color=#00f0ff][size=5][b]3. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
+A marker set from the guide draws no route until you open the world map once. That is the game's own behaviour, not a setting and not a fault here: only the map can adopt a script-placed pin as your tracked waypoint. Open the map, and the route appears.
+[line]
+[color=#00f0ff][size=5][b]4. WHAT YOU HAVE, AND WHAT YOU DO NOT[/b][/size][/color]
+With Cyber Engine Tweaks installed, the guide marks which of these location mods are already on your machine, and one button cycles the list between ALL, INSTALLED, MISSING and UNKNOWN.
+
+[b]MISSING is the point.[/b] "What is in this district that I do not have" is the question worth asking, and an installed/not-installed toggle cannot ask it.
+
+[b]UNKNOWN is a real answer.[/b] Some mods cannot be detected by anything - AMM location mods ship only a file into CET's own sandboxed folder, where no mod can see it. Those are never called missing, because telling you to download something you already have is worse than saying nothing.
+
+[color=#ffb300]Without Cyber Engine Tweaks the filter button is hidden[/color] rather than shown doing nothing. Everything else is unchanged.
+[line]
+[color=#00f0ff][size=5][b]5. IF SOMETHING LOOKS WRONG[/b][/size][/color]
+[*][b]No counts anywhere, or "NO LOCATION DATA".[/b] The registry did not load. That is NCZoningCore's job, not this mod's - check its requirements, and whether you have RedHttpClient or a hand-placed data file.
+[*][b]A district reads zero.[/b] Some genuinely have none on file - NCX Spaceport and Morro Rock among them. Zero is an answer; "no data" is a different one, and the guide says which.
+[*][b]Cards show a placeholder instead of a photograph.[/b] RedIMGRetriever is missing, or that location has no image on file.
+[*][b]The open key does nothing.[/b] Check it under District Guide here, and that Input Loader is installed.
+[*][b]Anything else.[/b] The log is at r6\logs\mods\NCZoningDistrictGuide__<date_time>.log, one file per session. It opens with a [CFG] line listing every setting and a [READY] line saying how much data arrived - between them those answer most of it. You can read it in this hub under LOGS.
+[line]
+[color=#8892b0][i]Filed with the NC Zoning Board. Survey NC-ZB-02. Consult before you build.[/i][/color]
+[color=#8892b0][i]nczoning.net[/i][/color]

@@ -1,0 +1,112 @@
+[center][color=#00f0ff][size=6][b]NC ZONING BOARD[/b][/size][/color]
+[color=#8892b0]NIGHT CORP // URBAN PLANNING DIVISION[/color]
+[color=#00f0ff][size=5][b]INSTRUMENT NC-ZB-02 — THE DISTRICT GUIDE[/b][/size][/color]
+[i]Which location mods are in the district around you — in game, on the map, and on a shelf you can browse.[/i][/center]
+[line]
+[color=#00f0ff][size=5][b]0. NATURE OF THIS INSTRUMENT[/b][/size][/color]
+The [b]NC Zoning District Guide[/b] brings the [url=https://nczoning.net]NC Zoning[/url] map into the game. It knows which district you are standing in, and it tells you what the Board has on file for it.
+
+Four surfaces, all built out of the game's own UI — no ImGui window, no overlay that looks bolted on:
+[list]
+[*][b]A district notice.[/b] Cross into a new district and a panel appears under the game's own district banner: how many mapped locations are here, and the nearest one by name.
+[*][b]The world map.[/b] Hover any district and its info panel gains a count and a category breakdown, in the map's own type and colours.
+[*][b]The guide.[/b] One key opens a full browser: every district, every location, with images, search, and a jump straight to any of them.
+[*][b]Fast travel.[/b] Arriving somewhere fires no district banner in vanilla, so the notice shows up on its own.
+[/list]
+[color=#ffb300][b]It never suppresses or alters anything the game already draws.[/b][/color] Every hook adds; none replaces. With every feature switched off, the game behaves exactly as if the mod were not installed.
+[line]
+[color=#00f0ff][size=5][b]1. THE GUIDE[/b][/size][/color]
+A three-across gallery of location mods, filed by district.
+[list]
+[*][b]Browse by district and subdistrict[/b] — the list opens on wherever you are standing.
+[*][b]Search[/b] by name, author or tag.
+[*][b]Photographs.[/b] Each card carries the location's survey image where the registry has one.
+[*][b]Set a marker[/b] on any location and it appears on your world map, with the name on the pin.
+[*][b]Teleport[/b] straight to it, if you would rather skip the drive.
+[*][b]Recently updated[/b] locations are flagged in green and sorted to the front, so a district you know still shows you what changed.
+[/list]
+
+[color=#00f0ff][size=5][b]1a. WHAT YOU ALREADY HAVE, AND WHAT YOU DO NOT[/b][/size][/color]
+With [b]Cyber Engine Tweaks[/b] installed, the guide can tell which of these location mods are already on your machine. Each card is marked, and one button cycles the whole list between [b]ALL[/b], [b]INSTALLED[/b], [b]MISSING[/b] and [b]UNKNOWN[/b].
+
+[b]MISSING is the point.[/b] "What is in this district that I do not have yet" is the question that sends you to Nexus, and a two-way installed/not-installed toggle cannot ask it.
+
+[b]UNKNOWN is its own answer, not a failure.[/b] Some mods cannot be detected by anything — AMM location mods ship only a file into CET's own sandboxed folder, where no mod can see it. Those are never reported as missing, because telling you to download something you already have is worse than saying nothing.
+
+[i]Without CET, the filter button is hidden rather than shown doing nothing. Everything else works exactly as described.[/i]
+[line]
+[color=#00f0ff][size=5][b]2. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
+A marker set from the guide draws no route until you open the world map once. That is the game's own behaviour, not a setting and not a bug in this mod: only the map can adopt a script-placed pin as your tracked waypoint. Open the map, and the route appears.
+[line]
+[color=#00f0ff][size=5][b]3. SETTINGS[/b][/size][/color]
+Everything is in the [b]Redscript Configuration Framework[/b] overlay — press [b]F8[/b] in game.
+[list]
+[*]Turn any of the four surfaces on or off independently.
+[*]Rebind the guide key, and optionally require a modifier key held with it (any key, not just Shift/Alt/Ctrl).
+[*]Choose which filter the guide opens on.
+[*]Narrow every count to your subdistrict rather than the whole district.
+[/list]
+The mod runs on its defaults without RCF; you simply cannot rebind anything.
+[line]
+[color=#00f0ff][size=5][b]4. CONDITIONS OF ISSUE[/b][/size][/color]
+[b]Required:[/b]
+[list]
+[*]RED4ext
+[*]redscript
+[*]Codeware
+[*][url=https://www.nexusmods.com/cyberpunk2077/mods/31920]RedLogger[/url]
+[*][b]NCZoningCore[/b] — and its own requirements, which include RedData and RedFileSystem
+[*]Input Loader — for the rebindable key
+[/list]
+[color=#ffb300][b]NCZoningCore 1.0.0 or newer is a hard requirement.[/b][/color] An older Core does not degrade gracefully: redscript compiles every installed mod as one unit, so a missing function is a compile failure that takes down [i]every[/i] redscript mod on your machine, not just this one. The two release together for exactly this reason.
+
+[b]Strongly recommended:[/b]
+[list]
+[*][b]Redscript Configuration Framework[/b] — the only settings UI. Without it nothing can be rebound.
+[*][b]Cyber Engine Tweaks[/b] — what detects which location mods you already have.
+[*][b]RedIMGRetriever[/b] — what fetches the card images. Without it the cards show a placeholder and everything else is unchanged.
+[/list]
+[i]The mod is whole without the three optional ones. Each removes a feature, not the mod.[/i]
+[line]
+[color=#00f0ff][size=5][b]5. INSTALLATION[/b][/size][/color]
+[list=1]
+[*]Install the requirements above, NCZoningCore included.
+[*]Download this mod and extract the [font=Courier New]r6[/font] folder into your Cyberpunk 2077 root directory.
+[i]Final path should look like:[/i] [font=Courier New]Cyberpunk 2077\r6\scripts\NCZoningDistrictGuide\[/font]
+[*]Load a save. Press [b]'[/b] (apostrophe) to open the guide, or rebind it in the F8 panel.
+[/list]
+Works with mod managers, or install manually.
+
+[i]The default key is the apostrophe because N is photo mode.[/i]
+[line]
+[color=#00f0ff][size=5][b]6. WHERE THE DATA COMES FROM[/b][/size][/color]
+Everything shown here is the [b]NC Zoning[/b] registry, maintained by the community at [url=https://nczoning.net]nczoning.net[/url]. This mod displays it; [b]NCZoningCore[/b] fetches it. If a location mod is missing from the guide, it is missing from the registry — and the map is open for submissions.
+[list]
+[*][b]Explore the map:[/b] [url=https://nczoning.net]nczoning.net[/url]
+[*][b]Join the community:[/b] [url=https://discord.gg/sc4yEx2fNf]Locations Hub Discord[/url]
+[/list]
+[line]
+[color=#00f0ff][size=5][b]7. COMPATIBILITY[/b][/size][/color]
+This mod is additive by charter. Every hook it places calls the original code first and unconditionally, and then adds a widget beside it — so other mods touching the same controllers keep working, and the vanilla UI is untouched whether or not you have this installed.
+
+It is pure redscript with no [font=Courier New].archive[/font] file, so it cannot conflict with anything over game assets.
+[line]
+[color=#00f0ff][size=5][b]8. A NOTE ON GAME UPDATES[/b][/size][/color]
+Pure redscript survives game patches on its own, but the plugins underneath (Codeware, RED4ext and the Red* plugins) usually need a rebuild by their authors after each Cyberpunk update. Right after a game update this mod can be temporarily unavailable until those catch up.
+[line]
+[color=#00f0ff][size=5][b]9. ACKNOWLEDGEMENTS[/b][/size][/color]
+[list]
+[*][b][url=https://www.nexusmods.com/profile/Kaoziun]Kaoziun[/url][/b] for the original NC Zoning vision and community leadership.
+[*][b][url=https://www.nexusmods.com/profile/Akiway]Akiway[/url][/b] for improvements to the NC Zoning map UI and UX.
+[*][b][url=https://www.nexusmods.com/profile/psiberx/mods]psiberx[/url][/b] for Codeware, without which none of this UI exists.
+[*][b]DigitalVixen[/b] for the Redscript Configuration Framework, RedLogger and RedIMGRetriever.
+[*][b][url=https://www.nexusmods.com/profile/RayshaderFR]rayshader[/url][/b] for RedData and RedFileSystem.
+[*]The location-mod authors this guide exists to point at, and the Locations Hub community.
+[/list]
+[line]
+[color=#00f0ff][size=5][b]10. DISCLAIMER[/b][/size][/color]
+This mod was developed with the assistance of an LLM. All in-game testing and code validation was performed by a human. No rogue AIs were permitted through the Blackwall.
+[line]
+[center][color=#8892b0][i]Filed with the NC Zoning Board — Night Corp Urban Planning Division.
+Survey NC-ZB-02. Consult before you build.[/i][/color]
+[url=https://nczoning.net]nczoning.net[/url][/center]
