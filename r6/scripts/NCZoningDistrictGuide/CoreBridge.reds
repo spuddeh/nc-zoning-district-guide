@@ -202,15 +202,58 @@ public class NCZDGCoreBridge extends ScriptableSystem {
   //
   // Refreshes do not repeat it. A refresh is the same fact arriving again, and a line per
   // refresh is a line per timer tick.
+  //
+  // IT IS DEFERRED, NECESSARILY. "The registry is usable" is not the same instant as "the
+  // registry has finished populating", and install detection settles later still - the CET
+  // scan that feeds it lands after Session/Ready. Read at this moment, the line reports
+  // locations=0 installDetection=off on a session holding 297 locations with detection
+  // working. A readiness line that reports a state nothing has reached yet is worse than no
+  // line: it is a wrong answer in the place someone goes for the right one.
   private func OnCoreDataUsable(isRefresh: Bool) -> Void {
     if isRefresh || this.m_announced {
       return;
     }
     this.m_announced = true;
-    NCZDGLog(s"[READY] core=\(NCZDG_CoreVersion()) locations=\(NCZDG_TotalLocations()) installDetection=\(NCZDG_InstallDetection() ? "on" : "off")");
+    this.ScheduleReadyLine(0);
+  }
+
+  // Re-checks until both facts have settled, then reports once. Detection being OFF is a
+  // legitimate resting state (it needs CET), so this cannot wait for it to become true - the
+  // attempt cap is what bounds that, and whatever is true when the cap runs out is what gets
+  // reported. A line still reading locations=0 after ten seconds is not a bad log line; it is
+  // the bug, stated.
+  private func ScheduleReadyLine(attempt: Int32) -> Void {
+    let cb = new NCZDGReadyCallback();
+    cb.gi = this.GetGameInstance();
+    cb.attempt = attempt;
+    GameInstance.GetDelaySystem(this.GetGameInstance()).DelayCallback(cb, 2.0);
+  }
+
+  public func ReportReady(attempt: Int32) -> Void {
+    let locations = NCZDG_TotalLocations();
+    let detection = NCZDG_InstallDetection();
+    if (locations <= 0 || !detection) && attempt < 5 {
+      this.ScheduleReadyLine(attempt + 1);
+      return;
+    }
+    NCZDGLog(s"[READY] core=\(NCZDG_CoreVersion()) locations=\(locations) installDetection=\(detection ? "on" : "off")");
   }
 
   public func IsReady() -> Bool {
     return this.m_ready && NCZDG_CoreReady();
+  }
+}
+
+// Carries the attempt count so the retry is bounded by a value that travels with the callback
+// rather than by state on the system - a second session cannot then inherit a spent counter.
+public class NCZDGReadyCallback extends DelayCallback {
+  public let gi: GameInstance;
+  public let attempt: Int32;
+
+  public func Call() -> Void {
+    let bridge = GameInstance.GetScriptableSystemsContainer(this.gi).Get(n"NCZoningDistrictGuide.Bridge.NCZDGCoreBridge") as NCZDGCoreBridge;
+    if IsDefined(bridge) {
+      bridge.ReportReady(this.attempt);
+    }
   }
 }
