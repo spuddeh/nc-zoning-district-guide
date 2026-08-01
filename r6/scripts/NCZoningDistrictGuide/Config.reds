@@ -84,8 +84,8 @@ public class NCZDGConfig extends ScriptableService {
 // and that XML attribute are ONE name in three places - rename any of them and the bind
 // silently stops working with no error anywhere.
 //
-// N is photo mode, so the default is the apostrophe: EInputKey.IK_SingleQuote (222, verified
-// against the RTTI dump). There is no IK_Apostrophe.
+// The default is the apostrophe: EInputKey.IK_SingleQuote (222, verified against the RTTI
+// dump). There is no IK_Apostrophe.
 //
 // openGuideModifier is any key, not a Shift/Alt/Ctrl choice. IK_None means no modifier. It
 // is a `localOnly` RCF row, so RCF never pushes it to the plugin and it is resolved in

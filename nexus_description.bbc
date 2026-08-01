@@ -26,14 +26,15 @@ A three-across gallery of location mods, filed by district.
 [*][b]Recently updated[/b] locations are flagged in green and sorted to the front, so a district you know still shows you what changed.
 [/list]
 
-[color=#00f0ff][size=5][b]1a. WHAT YOU ALREADY HAVE, AND WHAT YOU DO NOT[/b][/size][/color]
-With [b]Cyber Engine Tweaks[/b] installed, the guide can tell which of these location mods are already on your machine. Each card is marked, and one button cycles the whole list between [b]ALL[/b], [b]INSTALLED[/b], [b]MISSING[/b] and [b]UNKNOWN[/b].
-
-[b]MISSING is the point.[/b] "What is in this district that I do not have yet" is the question that sends you to Nexus, and a two-way installed/not-installed toggle cannot ask it.
-
-[b]UNKNOWN is its own answer, not a failure.[/b] Some mods cannot be detected by anything — AMM location mods ship only a file into CET's own sandboxed folder, where no mod can see it. Those are never reported as missing, because telling you to download something you already have is worse than saying nothing.
-
-[i]Without CET, the filter button is hidden rather than shown doing nothing. Everything else works exactly as described.[/i]
+[color=#00f0ff][size=5][b]1a. THE INSTALL FILTER[/b][/size][/color]
+With [b]Cyber Engine Tweaks[/b] installed, the guide marks which of these location mods you already have. One button cycles the whole list:
+[list]
+[*][b]ALL[/b] — every location on file.
+[*][b]INSTALLED[/b] — only the ones already on your machine.
+[*][b]MISSING[/b] — only the ones you do not have.
+[*][b]UNKNOWN[/b] — the ones that cannot be detected either way. AMM location mods are the usual case: they ship a single file into CET's own folder, which no mod can read.
+[/list]
+[i]Without CET the filter button is hidden. Everything else works exactly as described.[/i]
 [line]
 [color=#00f0ff][size=5][b]2. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
 A marker set from the guide draws no route until you open the world map once. That is the game's own behaviour, not a setting and not a bug in this mod: only the map can adopt a script-placed pin as your tracked waypoint. Open the map, and the route appears.
@@ -41,12 +42,19 @@ A marker set from the guide draws no route until you open the world map once. Th
 [color=#00f0ff][size=5][b]3. SETTINGS[/b][/size][/color]
 Everything is in the [b]Redscript Configuration Framework[/b] overlay — press [b]F8[/b] in game.
 [list]
-[*]Turn any of the four surfaces on or off independently.
-[*]Rebind the guide key, and optionally require a modifier key held with it (any key, not just Shift/Alt/Ctrl).
-[*]Choose which filter the guide opens on.
-[*]Narrow every count to your subdistrict rather than the whole district.
+[*][b]Narrow to Subdistrict.[/b] Scopes every count to your subdistrict when you are in one, rather than the whole district. Applies to all four surfaces.
+[*][b]Enable District Guide.[/b] Turns the browser on or off.
+[*][b]Open Guide Key.[/b] The key that opens it. Needs Input Loader.
+[*][b]Open Guide Modifier.[/b] An optional key to hold alongside it. Any key, not just Shift, Alt or Ctrl. Leave unset for none.
+[*][b]Open Guide Showing.[/b] Which locations the guide lists when it opens. Needs Cyber Engine Tweaks.
+[*][b]Show on World Map.[/b] Adds the count and category breakdown to the map's district info panel.
+[*][b]Enable District Notice.[/b] The panel under the game's district banner.
+[*][b]Name the Nearest Location.[/b] Also names the closest location in the area. Off shows only the count.
+[*][b]Show on Fast Travel.[/b] The arrival panel after a fast travel. Off leaves fast travel entirely to the game.
 [/list]
 The mod runs on its defaults without RCF; you simply cannot rebind anything.
+
+[i]The full documentation is also readable in game, in the RCF hub under DOCS.[/i]
 [line]
 [color=#00f0ff][size=5][b]4. CONDITIONS OF ISSUE[/b][/size][/color]
 [b]Required:[/b]
@@ -76,8 +84,6 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 [*]Load a save. Press [b]'[/b] (apostrophe) to open the guide, or rebind it in the F8 panel.
 [/list]
 Works with mod managers, or install manually.
-
-[i]The default key is the apostrophe because N is photo mode.[/i]
 [line]
 [color=#00f0ff][size=5][b]6. WHERE THE DATA COMES FROM[/b][/size][/color]
 Everything shown here is the [b]NC Zoning[/b] registry, maintained by the community at [url=https://nczoning.net]nczoning.net[/url]. This mod displays it; [b]NCZoningCore[/b] fetches it. If a location mod is missing from the guide, it is missing from the registry — and the map is open for submissions.

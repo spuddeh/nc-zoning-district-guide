@@ -26,7 +26,7 @@ Initial development. Not yet released.
   RED4ext plugin, so the split stopped being forced and the dependency was dropped. *One
   owner per setting* is unchanged — it never rested on the keybind limitation, and only which
   framework owns the keybind changed.
-- Open-guide keybind via Input Loader (default apostrophe; N is photo mode), rebindable in
+- Open-guide keybind via Input Loader (default apostrophe), rebindable in
   the RCF panel and debounced against key-repeat. The row key, the `NCZDGKeybind.openGuideKey`
   field and `overridableUI="openGuideKey"` in `nczdg.xml` are one name in three places;
   RCF pushes the captured key through `RCFInput.SetKeyOverride`, and the listener still

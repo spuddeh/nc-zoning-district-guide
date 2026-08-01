@@ -12,35 +12,55 @@ Everything you see comes from the NC Zoning registry at nczoning.net, fetched by
 [*][b]The guide.[/b] One key opens a full browser - every district, every location, with images and search.
 [*][b]Fast travel.[/b] Arriving fires no district banner in vanilla, so the notice shows up on its own.
 
-Each can be switched off on its own in this panel. With all four off, the game behaves exactly as if the mod were not installed - every hook here adds, none replaces.
+Each can be switched off on its own. With all four off, the game behaves exactly as if the mod were not installed.
 [line]
 [color=#00f0ff][size=5][b]2. USING THE GUIDE[/b][/size][/color]
-[*][b]Open it[/b] with the key set under District Guide. Default is the apostrophe, because N is photo mode.
+[*][b]Open it[/b] with the key set under District Guide. The default is the apostrophe.
 [*][b]Browse[/b] by district and subdistrict. It opens on wherever you are standing.
 [*][b]Search[/b] by name, author or tag.
 [*][b]SET MARKER[/b] puts the location on your world map, with its name on the pin.
 [*][b]TELEPORT[/b] takes you there. Not available while you are in a vehicle - get out first.
 [*][b]Click a card's image[/b] for the full-size photograph. Click anywhere to close it.
-[*][b]Green "RECENTLY UPDATED"[/b] marks locations changed lately. They sort to the front, so a district you know still shows you what is new.
+[*][b]Green "RECENTLY UPDATED"[/b] marks locations changed lately. They sort to the front.
 [line]
-[color=#00f0ff][size=5][b]3. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
-A marker set from the guide draws no route until you open the world map once. That is the game's own behaviour, not a setting and not a fault here: only the map can adopt a script-placed pin as your tracked waypoint. Open the map, and the route appears.
+[color=#00f0ff][size=5][b]3. SETTINGS[/b][/size][/color]
+All of them are in this hub, under NC Zoning District Guide.
+
+[b]Locations[/b]
+[*][b]Narrow to Subdistrict.[/b] Scopes every count to your subdistrict when you are in one, rather than the whole district. Applies to all four surfaces.
+
+[b]District Guide[/b]
+[*][b]Enable District Guide.[/b] Turns the browser on or off.
+[*][b]Open Guide Key.[/b] The key that opens it. Needs Input Loader.
+[*][b]Open Guide Modifier.[/b] An optional key to hold alongside it. Any key, not just Shift, Alt or Ctrl. Leave unset for none.
+[*][b]Open Guide Showing.[/b] Which locations the guide lists when it opens. You can still switch inside the guide. Needs Cyber Engine Tweaks.
+
+[b]World Map[/b]
+[*][b]Show on World Map.[/b] Adds the count and category breakdown to the map's district info panel.
+
+[b]District Notice[/b]
+[*][b]Enable District Notice.[/b] The panel under the game's district banner.
+[*][b]Name the Nearest Location.[/b] Also names the closest location in the area. Off shows only the count.
+[*][b]Show on Fast Travel.[/b] The arrival panel after a fast travel. Off leaves fast travel entirely to the game.
 [line]
-[color=#00f0ff][size=5][b]4. WHAT YOU HAVE, AND WHAT YOU DO NOT[/b][/size][/color]
-With Cyber Engine Tweaks installed, the guide marks which of these location mods are already on your machine, and one button cycles the list between ALL, INSTALLED, MISSING and UNKNOWN.
+[color=#00f0ff][size=5][b]4. THE INSTALL FILTER[/b][/size][/color]
+With Cyber Engine Tweaks installed, the guide marks which of these location mods you already have, and one button cycles the list:
+[*][b]ALL[/b] - every location on file.
+[*][b]INSTALLED[/b] - only the ones already on your machine.
+[*][b]MISSING[/b] - only the ones you do not have.
+[*][b]UNKNOWN[/b] - the ones that cannot be detected either way. AMM location mods are the usual case: they ship a single file into CET's own folder, which no mod can read.
 
-[b]MISSING is the point.[/b] "What is in this district that I do not have" is the question worth asking, and an installed/not-installed toggle cannot ask it.
-
-[b]UNKNOWN is a real answer.[/b] Some mods cannot be detected by anything - AMM location mods ship only a file into CET's own sandboxed folder, where no mod can see it. Those are never called missing, because telling you to download something you already have is worse than saying nothing.
-
-[color=#ffb300]Without Cyber Engine Tweaks the filter button is hidden[/color] rather than shown doing nothing. Everything else is unchanged.
+[color=#ffb300]Without Cyber Engine Tweaks the filter button is hidden.[/color] Everything else is unchanged.
 [line]
-[color=#00f0ff][size=5][b]5. IF SOMETHING LOOKS WRONG[/b][/size][/color]
-[*][b]No counts anywhere, or "NO LOCATION DATA".[/b] The registry did not load. That is NCZoningCore's job, not this mod's - check its requirements, and whether you have RedHttpClient or a hand-placed data file.
-[*][b]A district reads zero.[/b] Some genuinely have none on file - NCX Spaceport and Morro Rock among them. Zero is an answer; "no data" is a different one, and the guide says which.
+[color=#00f0ff][size=5][b]5. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
+A marker set from the guide draws no route until you open the world map once. Only the map can adopt a script-placed pin as your tracked waypoint. Open the map, and the route appears.
+[line]
+[color=#00f0ff][size=5][b]6. IF SOMETHING LOOKS WRONG[/b][/size][/color]
+[*][b]No counts anywhere, or "NO LOCATION DATA".[/b] The registry did not load. That is NCZoningCore's side - check its requirements, and whether you have RedHttpClient or a hand-placed data file.
+[*][b]A district reads zero.[/b] Some have none on file; NCX Spaceport / Morro Rock is one. Zero and "no data" are different answers, and the guide says which.
 [*][b]Cards show a placeholder instead of a photograph.[/b] RedIMGRetriever is missing, or that location has no image on file.
-[*][b]The open key does nothing.[/b] Check it under District Guide here, and that Input Loader is installed.
-[*][b]Anything else.[/b] The log is at r6\logs\mods\NCZoningDistrictGuide__<date_time>.log, one file per session. It opens with a [CFG] line listing every setting and a [READY] line saying how much data arrived - between them those answer most of it. You can read it in this hub under LOGS.
+[*][b]The open key does nothing.[/b] Check it under District Guide, and that Input Loader is installed.
+[*][b]Anything else.[/b] The log is at r6\logs\mods\NCZoningDistrictGuide__<date_time>.log, one file per session. It opens with a [CFG] line listing every setting and a [READY] line saying how much data arrived. You can read it in this hub under LOGS.
 [line]
 [color=#8892b0][i]Filed with the NC Zoning Board. Survey NC-ZB-02. Consult before you build.[/i][/color]
 [color=#8892b0][i]nczoning.net[/i][/color]

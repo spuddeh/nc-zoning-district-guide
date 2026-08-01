@@ -4,8 +4,7 @@
   Processed by: Input Loader (RED4ext plugin by jackhumbert)
   https://github.com/jackhumbert/cyberpunk2077-input-loader
 
-  Defines NCZDG_ToggleGuide, bound to ' (IK_SingleQuote) by default. N is taken by
-  photo mode, so it is not a safe default.
+  Defines NCZDG_ToggleGuide, bound to ' (IK_SingleQuote) by default.
 
   MODIFIERS ARE NO LONGER DECLARED HERE. This file used to register NCZDG_ModShift /
   NCZDG_ModAlt / NCZDG_ModCtrl as three actions of their own, purely so the input listener
