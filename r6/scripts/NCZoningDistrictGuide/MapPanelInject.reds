@@ -214,15 +214,15 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
   // 0 is a real, resolved answer - say so rather than hiding, which reads as broken. The web
   // panel hides the breakdown line in this case too.
   if count <= 0 {
-    this.nczdg_mapCount.SetText("NO REGISTERED LOCATIONS");
+    this.nczdg_mapCount.SetText(NCZDG_T("NCZDG.mapEmpty"));
     this.nczdg_mapCount.BindProperty(n"tintColor", n"MainColors.Grey");
     this.nczdg_mapBreakdown.SetVisible(false);
     this.nczdg_mapRecent.SetVisible(false);
     return;
   }
 
-  let plural = count == 1 ? " LOCATION" : " LOCATIONS";
-  this.nczdg_mapCount.SetText(s"\(count)\(plural)");
+  let countKey = count == 1 ? "NCZDG.mapCountOne" : "NCZDG.mapCountMany";
+  this.nczdg_mapCount.SetText(NCZDG_T1(countKey, "{n}", IntToString(count)));
   this.nczdg_mapCount.BindProperty(n"tintColor", n"MainColors.White");
 
   // Category breakdown, in the web panel's order: new -> overhaul -> other.
@@ -244,10 +244,12 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
     i += 1;
   }
 
+  // The registry's own category values, not labels - AddBreakdown picks the singular or
+  // plural label for whichever one it needs.
   let first = true;
-  first = this.NCZDG_AddBreakdown(newCount, "NEW LOCATION", n"MainColors.Gold", first);
-  first = this.NCZDG_AddBreakdown(overhaulCount, "OVERHAUL", n"MainColors.Blue", first);
-  first = this.NCZDG_AddBreakdown(otherCount, "OTHER", n"MainColors.Grey", first);
+  first = this.NCZDG_AddBreakdown(newCount, "new-location", n"MainColors.Gold", first);
+  first = this.NCZDG_AddBreakdown(overhaulCount, "location-overhaul", n"MainColors.Blue", first);
+  first = this.NCZDG_AddBreakdown(otherCount, "other", n"MainColors.Grey", first);
   this.nczdg_mapBreakdown.SetVisible(true);
 
   // Recency, mirroring the web district panel's "N recently updated". A sum over the server's
@@ -261,18 +263,22 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
     ri += 1;
   }
   if recentCount > 0 {
-    this.nczdg_mapRecent.SetText(s"\(recentCount) RECENTLY UPDATED");
+    this.nczdg_mapRecent.SetText(NCZDG_T1("NCZDG.mapRecent", "{n}", IntToString(recentCount)));
     this.nczdg_mapRecent.SetVisible(true);
   } else {
     this.nczdg_mapRecent.SetVisible(false);
   }
 }
 
-// Append "N LABEL(S)" to the breakdown row, preceded by a separator dot unless it is the first
+// Append "N LABEL" to the breakdown row, preceded by a separator dot unless it is the first
 // segment. Zero-count categories are omitted (as the web does). Returns the new `first` state.
+//
+// Takes the registry's CATEGORY VALUE, not a label: the plural is a separate translated
+// string, not the singular with "S" stuck on the end, which is a rule that holds in English
+// and nowhere reliable beyond it.
 @if(ModuleExists("NCZoning.Api"))
 @addMethod(WorldMapMenuGameController)
-private final func NCZDG_AddBreakdown(count: Int32, label: String, colour: CName, first: Bool) -> Bool {
+private final func NCZDG_AddBreakdown(count: Int32, category: String, colour: CName, first: Bool) -> Bool {
   if count <= 0 {
     return first;
   }
@@ -280,8 +286,8 @@ private final func NCZDG_AddBreakdown(count: Int32, label: String, colour: CName
     let dot = this.NCZDG_MakeMapText(" - ", n"MainColors.Grey", NCZDG_MapDetailSize());
     dot.Reparent(this.nczdg_mapBreakdown);
   }
-  let plural = count == 1 ? "" : "S";
-  let seg = this.NCZDG_MakeMapText(s"\(count) \(label)\(plural)", colour, NCZDG_MapDetailSize());
+  let label = count == 1 ? NCZDG_CategoryLabel(category) : NCZDG_CategoryLabelPlural(category);
+  let seg = this.NCZDG_MakeMapText(s"\(count) \(label)", colour, NCZDG_MapDetailSize());
   seg.Reparent(this.nczdg_mapBreakdown);
   return false;
 }
@@ -334,7 +340,7 @@ private final func NCZDG_EnsureMapSection() -> Bool {
   panel.SetMargin(new inkMargin(0.0, 24.0, 0.0, 0.0));
   panel.Reparent(host);
 
-  let caption = this.NCZDG_MakeMapText("NC ZONING:", n"MainColors.Blue", NCZDG_MapLabelSize());
+  let caption = this.NCZDG_MakeMapText(NCZDG_T("NCZDG.mapCaption"), n"MainColors.Blue", NCZDG_MapLabelSize());
   caption.SetName(n"nczdg_map_caption");
   caption.Reparent(panel);
 

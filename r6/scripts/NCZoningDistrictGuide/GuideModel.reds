@@ -38,9 +38,11 @@ public class NCZDGArea {
   public let count: Int32;
   public let recentCount: Int32;   // of `count`, how many carry the API's recently_updated flag
 
+  // Only the All row is translated. A district or subdistrict name is registry data and is
+  // shown exactly as the board publishes it.
   public func Label() -> String {
     if this.isAll {
-      return "ALL LOCATIONS";
+      return NCZDG_T("NCZDG.areaAll");
     }
     return this.isSub ? this.subdistrict : this.district;
   }

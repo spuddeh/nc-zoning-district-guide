@@ -164,5 +164,5 @@ public func SetData(const data: script_ref<WorldMapTooltipData>, menu: ref<World
     return;
   }
   inkTextRef.SetText(this.m_titleText, parts[1]);
-  inkTextRef.SetText(this.m_descText, "NC ZONING BOARD");
+  inkTextRef.SetText(this.m_descText, NCZDG_T("NCZDG.title"));
 }

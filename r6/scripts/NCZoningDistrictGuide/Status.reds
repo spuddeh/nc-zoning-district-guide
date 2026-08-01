@@ -59,5 +59,5 @@ public func NCZDG_StatusText() -> String {
 // The short form, for surfaces with no room for a sentence (the map's corner block). It carries no
 // reason detail, so it cannot contradict the core's message.
 public func NCZDG_NoDataLabel() -> String {
-  return "NO LOCATION DATA";
+  return NCZDG_T("NCZDG.noData");
 }

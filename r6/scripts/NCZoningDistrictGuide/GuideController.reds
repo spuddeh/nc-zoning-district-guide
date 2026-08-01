@@ -275,10 +275,10 @@ public func NCZDG_FilterUnknown() -> Int32 { return 3; }
 public func NCZDG_FilterCount() -> Int32 { return 4; }
 
 public func NCZDG_FilterLabel(f: Int32) -> String {
-  if f == NCZDG_FilterInstalled() { return "SHOWING: INSTALLED"; }
-  if f == NCZDG_FilterMissing() { return "SHOWING: MISSING"; }
-  if f == NCZDG_FilterUnknown() { return "SHOWING: UNKNOWN"; }
-  return "SHOWING: ALL";
+  if f == NCZDG_FilterInstalled() { return NCZDG_T("NCZDG.filterInstalled"); }
+  if f == NCZDG_FilterMissing() { return NCZDG_T("NCZDG.filterMissing"); }
+  if f == NCZDG_FilterUnknown() { return NCZDG_T("NCZDG.filterUnknown"); }
+  return NCZDG_T("NCZDG.filterAll");
 }
 
 // True when the location passes the given filter. One place, so the card list and the nav
@@ -496,15 +496,15 @@ public class NCZDGGuidePopup extends InGamePopup {
     // screen-wide glow outside the container that should keep framing the panel.
 
     this.m_header = InGamePopupHeader.Create();
-    this.m_header.SetTitle("NC ZONING BOARD");
+    this.m_header.SetTitle(NCZDG_T("NCZDG.title"));
     // Both fluff slots default to an unresolved LocKey (TRN_TCLAS_*), which renders as raw key text.
     // The voice is Night Corp: official, authoritative, slightly sterile.
-    this.m_header.SetFluffLeft("NIGHT CORP // URBAN PLANNING DIVISION");
-    this.m_header.SetFluffRight("NC-ZB-01");
+    this.m_header.SetFluffLeft(NCZDG_T("NCZDG.headerLeft"));
+    this.m_header.SetFluffRight(NCZDG_T("NCZDG.headerRight"));
     this.m_header.Reparent(this);
 
     this.m_footer = InGamePopupFooter.Create();
-    this.m_footer.SetFluffText("NC ZONING BOARD");
+    this.m_footer.SetFluffText(NCZDG_T("NCZDG.title"));
     this.m_footer.Reparent(this);
 
     // Codeware's chrome is bound to MainColors.Red - its alert styling. Rebrand it to Zoning Cyan.
@@ -533,7 +533,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.m_search.SetWidth(NCZDG_NavWidth());
     this.m_search.SetMaxLength(64);
     this.m_search.SetLetterCase(textLetterCase.OriginalCase);
-    this.m_search.SetDefaultText("SEARCH NAME, AUTHOR, TAG");
+    this.m_search.SetDefaultText(NCZDG_T("NCZDG.searchHint"));
     this.m_search.Reparent(body);
     this.m_search.RegisterToCallback(n"OnInput", this, n"OnSearchChanged");
 
@@ -570,7 +570,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     clearFrame.SetOpacity(0.8);
     clearFrame.Reparent(clearBox);
 
-    let clearTxt = this.MakeText("CLEAR", NCZDG_Cyan(), 34);
+    let clearTxt = this.MakeText(NCZDG_T("NCZDG.btnClear"), NCZDG_Cyan(), 34);
     clearTxt.SetHAlign(inkEHorizontalAlign.Center);
     clearTxt.SetVAlign(inkEVerticalAlign.Center);
     clearTxt.SetAnchor(inkEAnchor.Centered);
@@ -666,13 +666,13 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.m_status = count;
     // Clearing the pin must not require finding the card it came from - the player may have
     // searched or paged away from it, and a pin they cannot see is a pin they cannot remove.
-    this.m_clearWp = this.MakeButton(pager, "CLEAR MARKER", NCZDG_IdxClearWaypoint());
+    this.m_clearWp = this.MakeButton(pager, NCZDG_T("NCZDG.btnClearMarker"), NCZDG_IdxClearWaypoint());
     this.m_clearWp.SetVisible(false);
     this.m_clearWp.SetSize(new Vector2(280.0, 52.0));
     // Held so Refresh can grey them when there is nowhere to page to. A button that looks
     // active and does nothing reads as a broken button, not as an empty list.
-    this.m_prevBtn = this.MakeButton(pager, "< PREV", NCZDG_IdxPrevPage());
-    this.m_nextBtn = this.MakeButton(pager, "NEXT >", NCZDG_IdxNextPage());
+    this.m_prevBtn = this.MakeButton(pager, NCZDG_T("NCZDG.btnPrev"), NCZDG_IdxPrevPage());
+    this.m_nextBtn = this.MakeButton(pager, NCZDG_T("NCZDG.btnNext"), NCZDG_IdxNextPage());
 
     // --- body: districts | cards ----------------------------------------------------------
     // Starts below the filter button and loses exactly that much height, so the two columns
@@ -813,7 +813,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     // Of that total, how many are recently updated - green, to the left of the amber total, and only
     // when there are any. The colour ties back to the green RECENTLY UPDATED badge on the cards.
     if area.recentCount > 0 {
-      let recent = this.MakeText(s"\(area.recentCount) RECENT", NCZDG_Green(), 22);
+      let recent = this.MakeText(NCZDG_T1("NCZDG.navRecent", "{n}", IntToString(area.recentCount)), NCZDG_Green(), 22);
       recent.SetName(n"recent");
       recent.SetAnchor(inkEAnchor.CenterRight);
       recent.SetAnchorPoint(new Vector2(1.0, 0.5));
@@ -947,16 +947,19 @@ public class NCZDGGuidePopup extends InGamePopup {
     let shownTo = start + NCZDG_PageSize() < n ? start + NCZDG_PageSize() : n;
     let counts: String;
     if StrLen(this.m_query) > 0 {
-      counts = s"\(n) OF \(area.count) IN \(area.Label())";
+      counts = NCZDG_T3("NCZDG.countSearch", "{n}", IntToString(n),
+                        "{total}", IntToString(area.count), "{area}", area.Label());
     } else {
       if n > NCZDG_PageSize() {
-        counts = s"\(shownFrom)-\(shownTo) OF \(n) IN \(area.Label())";
+        counts = NCZDG_T4("NCZDG.countPaged", "{from}", IntToString(shownFrom),
+                          "{to}", IntToString(shownTo), "{n}", IntToString(n),
+                          "{area}", area.Label());
       } else {
-        counts = s"\(n) IN \(area.Label())";
+        counts = NCZDG_T2("NCZDG.countPlain", "{n}", IntToString(n), "{area}", area.Label());
       }
     }
     if marked && !routing {
-      counts += "   ·   FOR DIRECTIONS: OPEN THE WORLD MAP, HOVER THE NC MARKER, TRACK WAYPOINT";
+      counts += NCZDG_T("NCZDG.routingHint");
     }
     // Not logged. Refresh runs on every nav click, every page turn and every keystroke in the
     // search box - it is the single noisiest thing the guide does.
@@ -1170,11 +1173,11 @@ public class NCZDGGuidePopup extends InGamePopup {
     // script can track a mappin, only the player can, from the map - so it belongs in a hint, not on
     // a control that does something different from what it reads.
     let pinned = IsDefined(actions) && actions.IsPinned(loc.Id());
-    slot.wpLabel.SetText(pinned ? "CLEAR MARKER" : "SET MARKER");
+    slot.wpLabel.SetText(pinned ? NCZDG_T("NCZDG.btnClearMarker") : NCZDG_T("NCZDG.btnSetMarker"));
     slot.wpLabel.BindProperty(n"tintColor", NCZDG_Cyan());
 
     let canTp = NCZDG_CanTeleport(this.m_gi);
-    slot.tpLabel.SetText(canTp ? "TELEPORT" : "EXIT VEHICLE");
+    slot.tpLabel.SetText(canTp ? NCZDG_T("NCZDG.btnTeleport") : NCZDG_T("NCZDG.btnExitVehicle"));
     slot.tpLabel.BindProperty(n"tintColor", canTp ? NCZDG_Cyan() : NCZDG_Gray());
   }
 
@@ -1220,7 +1223,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     img.SetVisible(false);
     img.Reparent(box);
 
-    let caption = this.MakeText("LOADING...", NCZDG_Cyan(), 30);
+    let caption = this.MakeText(NCZDG_T("NCZDG.imgLoading"), NCZDG_Cyan(), 30);
     caption.SetHAlign(inkEHorizontalAlign.Center);
     caption.SetAnchor(inkEAnchor.BottomCenter);
     caption.SetAnchorPoint(new Vector2(0.5, 1.0));
@@ -1250,7 +1253,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
     this.m_lightboxImg.SetVisible(false);
     this.m_lightboxCaption.SetVisible(true);
-    this.m_lightboxCaption.SetText("LOADING...   -   CLICK ANYWHERE TO CLOSE");
+    this.m_lightboxCaption.SetText(NCZDG_T("NCZDG.imgLoadingClose"));
     this.m_lightbox.SetVisible(true);
     // The full-size picture is a SECOND fetch - the card holds the thumbnail. slotIdx -1 keeps
     // it out of the per-slot replacement logic, which is about cards and not about this.
@@ -1356,7 +1359,7 @@ public class NCZDGGuidePopup extends InGamePopup {
           if NCZDG_Img.Failed(p.url) {
             NCZDGWarn(s"images: gave up on \(p.url)");
             if p.slotIdx < 0 && IsDefined(this.m_lightboxCaption) {
-              this.m_lightboxCaption.SetText("IMAGE UNAVAILABLE   -   CLICK ANYWHERE TO CLOSE");
+              this.m_lightboxCaption.SetText(NCZDG_T("NCZDG.imgFailed"));
             }
             // A card whose image will never arrive shows the placeholder instead. Nothing
             // reflows now: the box is reserved either way, so this only swaps what fills it.
@@ -1400,7 +1403,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     // The lightbox (slot -1) shows a LOADING caption in place of the image; swap it for the
     // close hint once there is something to look at.
     if p.slotIdx < 0 && IsDefined(this.m_lightboxCaption) {
-      this.m_lightboxCaption.SetText("CLICK ANYWHERE TO CLOSE");
+      this.m_lightboxCaption.SetText(NCZDG_T("NCZDG.imgClose"));
     }
   }
 
@@ -1575,7 +1578,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     phIcon.Reparent(imgBox);
 
     // Night Corp's voice: official, faintly bureaucratic, never apologetic.
-    let phText = this.MakeText("NO SURVEY IMAGE ON FILE", NCZDG_Gray(), 26);
+    let phText = this.MakeText(NCZDG_T("NCZDG.noImage"), NCZDG_Gray(), 26);
     phText.SetName(n"ph_text");
     phText.SetHAlign(inkEHorizontalAlign.Center);
     phText.SetVAlign(inkEVerticalAlign.Center);
@@ -1630,7 +1633,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     // Green (the brand's Approval colour, unused elsewhere in the guide) so it reads apart from
     // the category-tinted meta line. Built once and hidden; BindCard toggles it per mod from the
     // core's server-computed RecentlyUpdated() - there is no in-game clock to derive it.
-    let badge = this.MakeText("RECENTLY UPDATED", NCZDG_Green(), 22);
+    let badge = this.MakeText(NCZDG_T("NCZDG.badgeRecent"), NCZDG_Green(), 22);
     badge.SetFontStyle(n"Semi-Bold");
     badge.SetLetterCase(textLetterCase.UpperCase);
     badge.SetHAlign(inkEHorizontalAlign.Right);
@@ -1689,8 +1692,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     // the first retitles between SET MARKER and CLEAR MARKER, the second between TELEPORT and
     // EXIT VEHICLE - 12 characters at 26px either way. 250 was sized to nothing in particular
     // and left the first button visibly emptier than the second.
-    let wp = this.MakeSmallButton(actions, "SET WAYPOINT", NCZDG_IdxWaypointBase() + slotIdx, 190.0);
-    let tp = this.MakeSmallButton(actions, "TELEPORT", NCZDG_IdxTeleportBase() + slotIdx, 190.0);
+    let wp = this.MakeSmallButton(actions, NCZDG_T("NCZDG.btnSetWaypoint"), NCZDG_IdxWaypointBase() + slotIdx, 190.0);
+    let tp = this.MakeSmallButton(actions, NCZDG_T("NCZDG.btnTeleport"), NCZDG_IdxTeleportBase() + slotIdx, 190.0);
 
     let proxy = new NCZDGGuideProxy();
     proxy.popup = this;

@@ -230,3 +230,25 @@ Initial development. Not yet released.
   now hardcoded with its derivation in `FastTravelWatcher.reds`.
 - The marker watcher's state trace, and with it the autodrive route probe and the `m_lastWatch`
   dedup field. `Watch()` now does one thing: detect arrival and clear the marker.
+
+### Added
+
+- **Localisation.** Every player-facing string is a key resolved at draw time; 72 keys in
+  `translations/English.reds`, which is now the single source of truth for the mod's text. Uses
+  Codeware's `ModLocalizationPackage` / `ModLocalizationProvider` — **no TweakXL, no locale JSON and
+  no LocKey registration**, because Codeware is already a hard dependency here. Adding a language is
+  one file plus one line in `Provider.reds`; the fallback covers anything a translation misses.
+  - **Reads through the global `GetLocalizedText`, not `LocalizationSystem.GetText`.** Codeware's
+    native service hooks the game's own text load and merges every provider's entries into the base
+    game's on-screen table, so an `NCZDG.*` key *is* a LocKey. That means no surface has to be handed
+    a `GameInstance` to read a string — `Brand.reds` and `GuideModel.reds` keep their signatures.
+  - **A missing key renders as the key.** An empty string would draw an empty widget, which reads as
+    a layout bug and sends you to the wrong file.
+  - **Sentences are stored whole, with `{n}` / `{area}` / `{name}` placeholders**, rather than built
+    by concatenation. Word order is a translator's decision, and `s"\(count) in \(area)"` puts it
+    somewhere a translator cannot reach.
+  - **Plurals are one key per form, never a stem plus "S".** The map's category breakdown was
+    appending a literal `"S"`; it now picks between `NCZDG.catNew` and `NCZDG.catNewPlural`.
+  - **The RCF panel passes keys, not text** — `DVRCF_HubPopup.LocalizeSchema` resolves tab, section,
+    label, tooltip and caption itself. It does **not** touch the dropdown options array, so the three
+    filter options are the one place that still resolves its own strings before handing them over.

@@ -99,15 +99,28 @@ public func NCZDG_CategoryColor(category: String) -> CName {
   return NCZDG_Gray();
 }
 
-// The website's own labels for the same three categories.
+// The website's own labels for the same three categories. The category VALUES are registry
+// data and are matched as-is; only the labels are translated.
 public func NCZDG_CategoryLabel(category: String) -> String {
   if UnicodeStringEqual(category, "new-location") {
-    return "NEW LOCATION";
+    return NCZDG_T("NCZDG.catNew");
   }
   if UnicodeStringEqual(category, "location-overhaul") {
-    return "OVERHAUL";
+    return NCZDG_T("NCZDG.catOverhaul");
   }
-  return "OTHER";
+  return NCZDG_T("NCZDG.catOther");
+}
+
+// The map breakdown counts them, so it needs the plural as its own string rather than the
+// singular plus "S" - which is an English rule, and only English's.
+public func NCZDG_CategoryLabelPlural(category: String) -> String {
+  if UnicodeStringEqual(category, "new-location") {
+    return NCZDG_T("NCZDG.catNewPlural");
+  }
+  if UnicodeStringEqual(category, "location-overhaul") {
+    return NCZDG_T("NCZDG.catOverhaulPlural");
+  }
+  return NCZDG_T("NCZDG.catOtherPlural");
 }
 
 // --- re-skinning a Codeware popup -------------------------------------------------------

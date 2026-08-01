@@ -76,7 +76,7 @@ public func NCZDG_BuildPanel(parent: wref<inkCompoundWidget>, posX: Float, posY:
 
   let title = new inkText();
   title.SetName(n"nczdg_title");
-  title.SetText("NC ZONING BOARD");
+  title.SetText(NCZDG_T("NCZDG.title"));
   title.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
   title.SetFontStyle(n"Bold");
   title.SetFontSize(52);
@@ -100,10 +100,13 @@ public func NCZDG_BuildPanel(parent: wref<inkCompoundWidget>, posX: Float, posY:
     countTxt.BindProperty(n"tintColor", n"MainColors.Red");
   } else {
     if count <= 0 {
-      countTxt.SetText(s"No registered locations in \(area) yet");
+      countTxt.SetText(NCZDG_T1("NCZDG.panelEmpty", "{area}", area));
     } else {
-      let plural = count == 1 ? " location" : " locations";
-      countTxt.SetText(s"\(count) registered\(plural) in \(area)");
+      // Whole sentence per plural form, not a stem plus a suffix: the count and the area
+      // can then swap places, and a language with more than two forms has somewhere to put
+      // them.
+      let key = count == 1 ? "NCZDG.panelCountOne" : "NCZDG.panelCountMany";
+      countTxt.SetText(NCZDG_T2(key, "{n}", IntToString(count), "{area}", area));
     }
     countTxt.BindProperty(n"tintColor", n"MainColors.White");
   }
@@ -133,7 +136,7 @@ public func NCZDG_BuildPanel(parent: wref<inkCompoundWidget>, posX: Float, posY:
     if IsDefined(closest) {
       let nearest = new inkText();
       nearest.SetName(n"nczdg_nearest");
-      nearest.SetText(s"Nearest: \(closest.Name())");
+      nearest.SetText(NCZDG_T1("NCZDG.panelNearest", "{name}", closest.Name()));
       nearest.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
       nearest.SetFontStyle(n"Regular");
       nearest.SetFontSize(26);

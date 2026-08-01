@@ -77,35 +77,43 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     // Dropdown takes an array<String>, not a delimited string, and the INDEX is what the
     // provider stores - so this order is the contract with NCZDG_Filter*() and must not be
     // reordered without changing them.
+    //
+    // THE DROPDOWN OPTIONS ARE THE ONE PLACE THAT PASSES TEXT RATHER THAN A KEY.
+    // DVRCF_HubPopup.LocalizeSchema walks tab.name, section.name, row.label, row.tooltip,
+    // row.caption and row.caption2 - and stops there. The options array is not on that list,
+    // so a key put here renders to the player as "NCZDG.dropAll".
     let filterOptions: array<String>;
-    ArrayPush(filterOptions, "All");
-    ArrayPush(filterOptions, "Installed only");
-    ArrayPush(filterOptions, "Missing only");
+    ArrayPush(filterOptions, NCZDG_T("NCZDG.dropAll"));
+    ArrayPush(filterOptions, NCZDG_T("NCZDG.dropInstalled"));
+    ArrayPush(filterOptions, NCZDG_T("NCZDG.dropMissing"));
 
-    return DVRCF_SchemaBuilder.New("NC Zoning District Guide")
-      .Section("Locations")
-        .Toggle(NCZDG_KeySubdistrict(), "Narrow to Subdistrict")
-          .Tip("Scope every count to your subdistrict when you are in one, rather than the whole district. Applies to the guide, the map panel and the district notice.")
-      .Section("District Guide")
-        .Toggle(NCZDG_KeyGuide(), "Enable District Guide")
-          .Tip("Browse the location mods in any district, with search, a map waypoint and a teleport.")
-        .Keybind(NCZDG_KeyOpenKey(), "Open Guide Key")
-          .Tip("Key that opens the district guide. Requires Input Loader.")
-        .ModifierKeybind(NCZDG_KeyOpenModifier(), "Open Guide Modifier")
-          .Tip("Optional key to hold alongside the open key. Any key will do, not just Shift, Alt or Ctrl. Leave unset for no modifier.")
-        .Dropdown(NCZDG_KeyDefaultFilter(), "Open Guide Showing", filterOptions)
-          .Tip("Which locations the guide lists when it opens. You can still switch between them inside the guide. Requires Cyber Engine Tweaks, which is what detects your installed mods.")
-        .Label("A waypoint set from the guide only draws its route once you open the world map. That is a game limitation, not a setting.")
-      .Section("World Map")
-        .Toggle(NCZDG_KeyMapPanel(), "Show on World Map")
-          .Tip("Add a location mod count and category breakdown to the map's district info panel.")
-      .Section("District Notice")
-        .Toggle(NCZDG_KeyToast(), "Enable District Notice")
-          .Tip("When you enter a district, add a panel below the game's district banner. Never suppresses the banner itself.")
-        .Toggle(NCZDG_KeyShowNearest(), "Name the Nearest Location")
-          .Tip("Also name the closest location mod in the area. Off shows only the count.")
-        .Toggle(NCZDG_KeyFastTravel(), "Show on Fast Travel")
-          .Tip("Fast travel fires no district banner, so the notice appears on arrival instead. Off leaves fast travel entirely to the game.")
+    // Everything below is a LocKey, not a label. RCF resolves each one itself and falls back
+    // to the raw string when a lookup comes back empty - so a key missing from English.reds
+    // shows up as the key, in the panel, where it is hard to miss.
+    return DVRCF_SchemaBuilder.New("NCZDG.modName")
+      .Section("NCZDG.secLocations")
+        .Toggle(NCZDG_KeySubdistrict(), "NCZDG.optSubdistrict")
+          .Tip("NCZDG.tipSubdistrict")
+      .Section("NCZDG.secGuide")
+        .Toggle(NCZDG_KeyGuide(), "NCZDG.optGuide")
+          .Tip("NCZDG.tipGuide")
+        .Keybind(NCZDG_KeyOpenKey(), "NCZDG.optKey")
+          .Tip("NCZDG.tipKey")
+        .ModifierKeybind(NCZDG_KeyOpenModifier(), "NCZDG.optModifier")
+          .Tip("NCZDG.tipModifier")
+        .Dropdown(NCZDG_KeyDefaultFilter(), "NCZDG.optShowing", filterOptions)
+          .Tip("NCZDG.tipShowing")
+        .Label("NCZDG.noteWaypoint")
+      .Section("NCZDG.secMap")
+        .Toggle(NCZDG_KeyMapPanel(), "NCZDG.optMap")
+          .Tip("NCZDG.tipMap")
+      .Section("NCZDG.secNotice")
+        .Toggle(NCZDG_KeyToast(), "NCZDG.optNotice")
+          .Tip("NCZDG.tipNotice")
+        .Toggle(NCZDG_KeyShowNearest(), "NCZDG.optNearest")
+          .Tip("NCZDG.tipNearest")
+        .Toggle(NCZDG_KeyFastTravel(), "NCZDG.optFastTravel")
+          .Tip("NCZDG.tipFastTravel")
       .Build();
   }
 
@@ -218,9 +226,12 @@ public class NCZDGRcfLoader extends ScriptableSystem {
     provider.Init(this.GetGameInstance());
     DVRCF.Register(
       this.GetGameInstance(),
+      // The mod id is STORAGE and is never translated - it names the JSON file in
+      // r6/storages. The display name and description are LocKeys: RCF runs displayName
+      // through Loc() everywhere it draws it, as its own logs provider does.
       "NCZoningDistrictGuide",
-      "NC Zoning District Guide",
-      "Which location mods are in the district around you.",
+      "NCZDG.modName",
+      "NCZDG.modDesc",
       provider
     );
     NCZDGLog("registered with RCF");
