@@ -156,9 +156,8 @@ Initial development. Not yet released.
   must never become a `Logs.reds` — the latter carries a `native func` declaration, and
   redscript compiles every installed mod into one unit, so two mods each shipping one is a
   duplicate declaration that breaks every redscript mod on the machine. RedLogger's signature
-  ships once inside the plugin. `InkDebug.reds` is still stripped before release: it is a
-  widget-tree dumper, not logging, and the distinction now matters because "strip it with the
-  rest of the logging" would read as an instruction to keep it.
+  ships once inside the plugin. The dev *instruments* were a separate question from logging and
+  were deleted outright — see Removed.
 - Recently-updated surfacing: reads NCZoningCore's server-computed `RecentlyUpdated()` (the /v1
   API's per-location recency bool - redscript has no in-game clock to derive it) and shows it in
   three places, all in green: a "RECENTLY UPDATED" badge on each mod card, an "N RECENT" count on
@@ -187,3 +186,20 @@ Initial development. Not yet released.
     frames switched from style-bound to direct tint to allow it. Hide sites (`CLEAR`, `CLEAR
     MARKER`) reset the hover state by hand - a button hidden mid-hover never receives its
     `OnLeave` and would reappear white.
+
+### Removed
+
+- The dev instruments, whole files plus their call sites. They were *instruments*, not logging:
+  `NCZDGLog` and `Logging.reds` ship, and these went for the opposite reason — they exist to
+  answer a question that has been answered.
+  - `InkDebug.reds` — `NCZDG_DumpWidget`, a recursive widget-tree dumper that emits hundreds of
+    lines per call. It is what made the ink positioning solvable; restore it from git history for
+    a debugging session rather than keeping it in the shipped tree.
+  - `MapWakeProbe.reds` — the `NCZDGMapDiff` scriptable system, the mappin create/destroy/state
+    diff across a map session, and the `[INST]` controller-instance census (`nczdg_instId`,
+    attach/detach balance). Built to find out why a script-registered pin draws no route until
+    the map is opened once; it found the stray-waypoint cause instead, which is fixed.
+  - The `[PRESS]` probe in `MapMarker.reds` — a `TryTrackQuestOrSetWaypoint` wrap that logged the
+    selected mappin's trackability. It read `nczdg_instId`, so it could not outlive `MapWakeProbe`.
+  - The `NCZDG_DumpWidget` call in `MapPanelInject.reds`, which dumped the district info block on
+    every map section build.

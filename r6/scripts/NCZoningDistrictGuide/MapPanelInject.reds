@@ -324,10 +324,6 @@ private final func NCZDG_EnsureMapSection() -> Bool {
     return false;
   }
 
-  // DEV ONLY. Strip with the rest of the logging before release.
-  NCZDGLog("[MAP] district info block tree:");
-  NCZDG_DumpWidget(host, 0, 4);
-
   // A plain right-aligned text stack. No logo: a brand mark in the native district-icon slot
   // crowds this block. The banner panel carries the logo instead.
   let panel = new inkVerticalPanel();

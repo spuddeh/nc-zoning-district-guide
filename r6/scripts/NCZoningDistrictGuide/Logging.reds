@@ -16,8 +16,9 @@
 //              the entire reason these calls may ship.
 //
 //              STILL STRIPPED BEFORE RELEASE: FTLog, Log, LogChannel*, LogWarning,
-//              LogError - and InkDebug.reds, which is a widget-tree dumper, not logging.
-//              Do not conflate InkDebug.reds with this file.
+//              LogError. The dev instruments that were stripped alongside them
+//              (InkDebug.reds, MapWakeProbe.reds) are gone as of 1.0.0 - they were
+//              instruments, not logging, and the distinction is why this file stayed.
 //
 //              RedLog.Append takes no level; encode any level in the line text.
 //              [[CP2077-Mods/wiki/decisions/redlogger-is-the-shipping-logging-path]]
