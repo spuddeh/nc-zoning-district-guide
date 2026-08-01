@@ -203,3 +203,30 @@ Initial development. Not yet released.
     selected mappin's trackability. It read `nczdg_instId`, so it could not outlive `MapWakeProbe`.
   - The `NCZDG_DumpWidget` call in `MapPanelInject.reds`, which dumped the district info block on
     every map section build.
+
+### Changed
+
+- **Editorial pass on what logging actually ships.** 54 `NCZDGLog` call sites became 28. The test
+  applied to each: *does this line answer a bug report you cannot reproduce?* What went was
+  per-event trace — the map-hover callback (fires continuously while the cursor moves), the guide's
+  `Refresh` (every nav click, page turn and search keystroke), the banner's step-by-step resolve,
+  the marker watcher's state dump, `guide key: FIRED`, and every build trace (`card pool built`,
+  `nav built`, `usable WxH`, `panel built`).
+- **Three log functions instead of one**, since `RedLog.Append` has no level parameter: `NCZDGLog`
+  (`[INFO ]`), `NCZDGWarn` (`[WARN ]`), `NCZDGError` (`[ERROR]`). The level is in the line text
+  because the API gives nowhere else to put it, but it is written at the wrapper, so it cannot be
+  typed wrong at any of the 28 call sites. The prefixes are padded to one width: **the log is read
+  in-game**, as a column of plain labels in RCF's hub viewer, with nothing to filter by.
+- **One `[CFG]` line at session ready, in place of the per-event "disabled in settings" lines.**
+  It reports every setting and both keybinds, and it is emitted *before* the core-present check, so
+  it is in the log even when the mod is dormant — which is the state a "nothing appears" report
+  most often describes. The lines it replaced fired once per fast travel, once per keypress and once
+  per banner, and covered only the three settings that happened to have a log call.
+
+### Removed
+
+- `NCZDG_LogPosInBrackets` in `PopupInject.reds` — a parent-chain position walker that existed only
+  to log. Never called from anywhere; the position it was written to find is the measured (56, 653)
+  now hardcoded with its derivation in `FastTravelWatcher.reds`.
+- The marker watcher's state trace, and with it the autodrive route probe and the `m_lastWatch`
+  dedup field. `Watch()` now does one thing: detect arrival and clear the marker.

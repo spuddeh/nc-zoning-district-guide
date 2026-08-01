@@ -90,10 +90,11 @@ protected cb func OnUninitialize() -> Bool {
 @if(ModuleExists("NCZoning.Api"))
 @addMethod(NewLocationNotification)
 public func NCZDG_UpdatePanel() -> Void {
-  NCZDGLog("popup: UpdatePanel fired");
+  // Nothing is logged on the ordinary path through this method. It runs once per district
+  // banner, and a banner is a routine event - the [CFG] line at session ready already says
+  // whether the feature is on, which is the only part a bug report needs.
   let cfg = NCZDGConfig.Get();
   if !IsDefined(cfg) || !cfg.enablePopupToast {
-    NCZDGLog("popup: bail - no cfg or toast off");
     return;   // feature off: add nothing
   }
   // Gate on the core being CALLABLE (installed, compatible ApiVersion) - NOT on it having data.
@@ -101,7 +102,7 @@ public func NCZDG_UpdatePanel() -> Void {
   // the no-data state: the surface that exists to explain the failure was itself switched off by
   // the failure. Whether there is data is NCZDG_HasData(), and the panel renders either way.
   if !NCZDG_CoreUsable() {
-    NCZDGLog("popup: bail - core absent or too old");
+    NCZDGWarn("popup: bail - core absent or too old");
     return;
   }
 
@@ -109,7 +110,6 @@ public func NCZDG_UpdatePanel() -> Void {
   // is not exposed at this controller level, but GetPlayerControlledObject() is.
   let player = this.GetPlayerControlledObject();
   if !IsDefined(player) {
-    NCZDGLog("popup: bail - no player");
     return;
   }
 
@@ -124,20 +124,19 @@ public func NCZDG_UpdatePanel() -> Void {
   if IsDefined(this.m_questNotificationData) {
     enumName = this.m_questNotificationData.text;
   }
-  NCZDGLog(s"popup: banner enumName='\(enumName)'");
-
   let here = NCZDG_ResolveFromEnumName(enumName);
   if !IsDefined(here) {
-    NCZDGLog("popup: enum-name resolve missed, trying live");
+    // Conditional, not per-banner: the frozen enum name is the path that keeps the count
+    // matching the banner text, so a fall through to the live district means the banner and
+    // the count can disagree. Worth a line every time it happens.
+    NCZDGWarn(s"popup: enum-name resolve missed for '\(enumName)' - falling back to the live district");
     here = NCZDG_ResolveCurrent(gi);
   }
   // Off-map with a live registry: say nothing. With NO registry data the panel still shows, to
   // report that rather than let a later surface imply the district is empty.
   if !IsDefined(here) && NCZDG_HasData() {
-    NCZDGLog("popup: bail - off-map");
     return;
   }
-  NCZDGLog(s"popup: resolved \(IsDefined(here) ? here.district : "<none>") hasData=\(NCZDG_HasData())");
   this.NCZDG_EnsurePanel(here, player, cfg.showNearest);
 }
 
@@ -181,36 +180,4 @@ private func NCZDG_EnsurePanel(here: ref<NCZDistrictName>, player: ref<GameObjec
 
   this.nczdg_panel = NCZDG_BuildPanel(canvas, flowPos.X, flowPos.Y + blockHeight + 40.0,
                                       here, player, showNearest);
-  if IsDefined(this.nczdg_panel) {
-    NCZDGLog("popup: panel built");
-  }
-}
-
-// Walks up from `w` to the 'BracketsContainer' ancestor, summing GetChildPosition at each step, and
-// logs the total. Gives the widget's position in the container's 4K coordinate space.
-@if(ModuleExists("NCZoning.Api"))
-@addMethod(NewLocationNotification)
-private func NCZDG_LogPosInBrackets(w: wref<inkWidget>) -> Void {
-  let totalX: Float = 0.0;
-  let totalY: Float = 0.0;
-  let node: wref<inkWidget> = w;
-  let steps = 0;
-  while IsDefined(node) && steps < 12 {
-    let parent = node.parentWidget as inkCompoundWidget;
-    if !IsDefined(parent) {
-      break;
-    }
-    let p = parent.GetChildPosition(node);
-    totalX += p.X;
-    totalY += p.Y;
-    let pname = NameToString(parent.GetName());
-    NCZDGLog(s"pos: step\(steps) parent='\(pname)' childPos=(\(p.X),\(p.Y)) running=(\(totalX),\(totalY))");
-    if UnicodeStringEqual(pname, "BracketsContainer") {
-      NCZDGLog(s"pos: >>> banner panel in BracketsContainer space = (\(totalX),\(totalY)) <<<");
-      return;
-    }
-    node = parent;
-    steps += 1;
-  }
-  NCZDGLog(s"pos: did not reach BracketsContainer (ran \(steps) steps, total=(\(totalX),\(totalY)))");
 }

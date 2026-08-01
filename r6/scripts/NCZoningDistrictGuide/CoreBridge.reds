@@ -21,6 +21,7 @@ import NCZoning.Data.*
 // a type that only exists when the core is installed.
 @if(ModuleExists("NCZoning.Api"))
 import NCZoningDistrictGuide.District.*
+import NCZoningDistrictGuide.Config.*
 
 // The lowest core ApiVersion this mod knows how to talk to.
 public func NCZDG_RequiredApiVersion() -> Int32 { return 1; }
@@ -122,12 +123,18 @@ public class NCZDGCoreBridge extends ScriptableSystem {
     if IsDefined(reqs) && reqs.IsPreGame() {
       return;
     }
+    // Emitted BEFORE the core checks, so it is present even in the dormant case - which is
+    // exactly the case where someone is asking why nothing appeared. The per-event "disabled
+    // in settings" lines were cut in favour of this one: they said the same thing once per
+    // fast travel, and only about the three settings that happened to have a log call.
+    NCZDG_LogConfig();
+
     if !NCZDG_HasCore() {
-      NCZDGLog("NCZoningCore not installed; features dormant");
+      NCZDGWarn("NCZoningCore not installed; features dormant");
       return;
     }
     if !NCZDG_CoreUsable() {
-      NCZDGLog("NCZoningCore ApiVersion too old; features dormant");
+      NCZDGWarn("NCZoningCore ApiVersion too old; features dormant");
       return;
     }
     NCZDGLog(s"bridged to NCZoningCore \(NCZDG_CoreVersion())");
@@ -155,7 +162,7 @@ public class NCZDGCoreBridge extends ScriptableSystem {
   @if(ModuleExists("NCZoning.Api"))
   protected cb func OnCoreDataError(event: ref<NCZoningDataEvent>) -> Void {
     // IsReady() may still be true when the offline cache is serving.
-    NCZDGLog(s"core reported a fetch error; ready=\(NCZDG_CoreReady())");
+    NCZDGError(s"core reported a fetch error; ready=\(NCZDG_CoreReady())");
   }
 
   // Single funnel for "the registry is usable now".

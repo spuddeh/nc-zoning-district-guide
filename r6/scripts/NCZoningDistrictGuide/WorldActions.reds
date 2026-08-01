@@ -54,8 +54,7 @@ public class NCZDGWorldActions extends ScriptableSystem {
   private let m_pinnedId: String;      // the NCZLocation.Id() the marker belongs to; "" = none
   private let m_pinnedPos: Vector4;
   private let m_confirmed: Bool;       // the mappin has resolved at least once; registration is async
-  private let m_watching: Bool;        // DEV
-  private let m_lastWatch: String;     // DEV
+  private let m_watching: Bool;        // one arrival poll at a time
 
   public final static func Get(gi: GameInstance) -> ref<NCZDGWorldActions> {
     return GameInstance.GetScriptableSystemsContainer(gi)
@@ -183,31 +182,17 @@ public class NCZDGWorldActions extends ScriptableSystem {
     return true;
   }
 
-  // DEV ONLY. Polls the marker and reports only what CHANGED, so a flag the game clears in the middle
-  // of gameplay is timestamped instead of merely noticed later. A poll that logged every tick would
-  // bury the one line that matters.
+  // Polls the marker for ARRIVAL, and nothing else. A 2s poll is the only way to catch it: a
+  // mappin fires no proximity event, so the distance has to be asked for.
   public func Watch() -> Void {
     let gi = this.GetGameInstance();
     let ms = GameInstance.GetMappinSystem(gi);
     if !IsDefined(ms) || this.m_mappinId.value == 0ul {
       this.m_watching = false;
-      NCZDGLog("[WATCH] no marker - watcher stopping");
       return;
     }
 
-    let slot = ms.GetManuallyTrackedMappinID();
     let mappin = ms.GetMappin(this.m_mappinId);
-
-    // Autodrive is the only witness to the ROUTE. Its destination type is None / PlayerTracked /
-    // Quest, so PlayerTracked means the game has derived a routable road destination from the tracked
-    // mappin - and None, on a mappin that IS tracked, means the position cannot be routed to at all.
-    // Tracking and routing fail separately and look identical on screen.
-    let road = "no autodrive system";
-    let ad = GameInstance.GetScriptableSystemsContainer(gi).Get(n"AutoDriveSystem") as AutoDriveSystem;
-    if IsDefined(ad) {
-      let dest = ad.GetAutodriveDestinationMappinID();
-      road = s"destType=\(EnumInt(ad.GetAutodriveDestinationType())) destMappin=\(dest.value) dest=\(ad.GetAutodriveDestination())";
-    }
 
     // A waypoint the player has reached is clutter. The game's own custom waypoint clears itself on
     // arrival; a POI marker does not, so the arrival has to be detected here.
@@ -217,18 +202,6 @@ public class NCZDGWorldActions extends ScriptableSystem {
       this.ClearWaypoint(gi);
       this.m_watching = false;
       return;
-    }
-
-    let now: String;
-    if IsDefined(mappin) {
-      now = s"tracked=\(mappin.IsPlayerTracked()) active=\(mappin.IsActive()) visible=\(mappin.IsVisible()) pos=\(mappin.GetWorldPosition()) slot=\(slot.value) slotIsOurs=\(slot.value == this.m_mappinId.value) | \(road)";
-    } else {
-      now = s"THE MAPPIN NO LONGER RESOLVES slot=\(slot.value) | \(road)";
-    }
-
-    if !UnicodeStringEqual(now, this.m_lastWatch) {
-      NCZDGLog(s"[WATCH] \(this.m_pinnedId): \(now)");
-      this.m_lastWatch = now;
     }
 
     let cb = new NCZDGMarkerWatchCallback();
@@ -241,7 +214,6 @@ public class NCZDGWorldActions extends ScriptableSystem {
       return;
     }
     this.m_watching = true;
-    this.m_lastWatch = "";
     let cb = new NCZDGMarkerWatchCallback();
     cb.gi = gi;
     GameInstance.GetDelaySystem(gi).DelayCallback(cb, 2.0);

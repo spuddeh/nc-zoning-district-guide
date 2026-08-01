@@ -73,14 +73,12 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     // Fast travel shows no game banner, so this panel stands alone. Opt out to leave fast travel
     // entirely to the game.
     if !cfg.enableFastTravelNotice {
-      NCZDGLog("ft: fast-travel notice disabled in settings");
       return;
     }
     let here = NCZDG_ResolveCurrent(gi);
     // Off-map with a live registry: show nothing (0-vs-null). With NO registry data the panel
     // still shows, to report that rather than imply the area is empty.
     if !IsDefined(here) && NCZDG_HasData() {
-      NCZDGLog("ft: off-map, no panel");
       return;
     }
 
@@ -88,12 +86,12 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     // persistent root to parent into. Place at the banner's usual position (4K reference).
     let layer = GameInstance.GetInkSystem().GetLayer(n"inkGameNotificationsLayer");
     if !IsDefined(layer) {
-      NCZDGLog("ft: no notifications layer");
+      NCZDGError("ft: no notifications layer - the arrival panel cannot be shown");
       return;
     }
     let root = layer.GetVirtualWindow();
     if !IsDefined(root) {
-      NCZDGLog("ft: no virtual window");
+      NCZDGError("ft: no virtual window - the arrival panel cannot be shown");
       return;
     }
 
@@ -120,7 +118,6 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     // sits BELOW that block: it is translated +190 within the banner canvas (4K units), which in
     // Base Window (screen) space is 190 * scale. So add it.
     let panelY = 653.0 + (190.0 * scale);
-    NCZDGLog(s"ft: building panel for \(here.district) at (56,\(panelY)) [slot 653 + 190*\(scale)]");
     this.m_ftPanel = NCZDG_BuildPanel(root, 56.0, panelY, here, player, cfg.showNearest);
     if IsDefined(this.m_ftPanel) {
       this.m_ftPanel.SetRenderTransformPivot(new Vector2(0.0, 0.0));

@@ -167,7 +167,7 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
     this.nczdg_mapBreakdown.RemoveAllChildren();
     this.nczdg_mapBreakdown.SetVisible(false);
     this.nczdg_mapRecent.SetVisible(false);
-    NCZDGLog("[MAP] no registry data - showing the no-data label");
+    NCZDGWarn("[MAP] no registry data - showing the no-data label");
     return;
   }
 
@@ -194,7 +194,6 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
   // Only if that also fails (core data not ready) does the panel hide.
   if !IsDefined(here) {
     this.nczdg_mapPanel.SetVisible(false);
-    NCZDGLog(s"[MAP] hover d=\(EnumInt(district)) sub=\(EnumInt(subdistrict)) -> unresolved, hidden");
     return;
   }
   this.nczdg_mapPanel.SetVisible(true);
@@ -206,8 +205,9 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
   } else {
     locs = NCZDG_LocationsHere(here);
   }
+  // Not logged: the hover callback fires continuously as the cursor crosses the map, so a line
+  // here buries a whole session's worth of everything else.
   let count = ArraySize(locs);
-  NCZDGLog(s"[MAP] hover d=\(EnumInt(district)) sub=\(EnumInt(subdistrict)) badlandsDefault=\(badlandsDefault) count=\(count)");
 
   this.nczdg_mapBreakdown.RemoveAllChildren();
 
@@ -320,7 +320,7 @@ private final func NCZDG_EnsureMapSection() -> Bool {
 
   let host = inkWidgetRef.Get(this.m_locationAndGangsContainer) as inkCompoundWidget;
   if !IsDefined(host) {
-    NCZDGLog("[MAP] locationAndGangsContainer is not a compound widget - cannot inject");
+    NCZDGError("[MAP] locationAndGangsContainer is not a compound widget - cannot inject");
     return false;
   }
 

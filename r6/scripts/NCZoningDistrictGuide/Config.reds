@@ -99,3 +99,27 @@ public class NCZDGKeybind extends ScriptableService {
       .GetService(n"NCZoningDistrictGuide.Config.NCZDGKeybind") as NCZDGKeybind;
   }
 }
+
+// --- the session's effective settings, in one line ---------------------------------------
+// Every surface used to log its own "disabled in settings" the moment it declined to draw:
+// once per fast travel, once per keypress, once per banner. That is per-event noise that
+// says nothing new, and it covered only the three settings that happened to have a call.
+//
+// This says all of it once, at session ready, BEFORE the core-present check - so it is in
+// the log even when the mod is dormant, which is the case a bug report is most likely to
+// describe. "Nothing appears" and "banner=off" is a closed report; without the line it is a
+// round trip asking the player to open the settings panel and read it out.
+public func NCZDG_LogConfig() -> Void {
+  let cfg = NCZDGConfig.Get();
+  let keys = NCZDGKeybind.Get();
+  if !IsDefined(cfg) || !IsDefined(keys) {
+    NCZDGWarn("[CFG] settings service is not up - the defaults below are NOT what is running");
+    return;
+  }
+  NCZDGLog(s"[CFG] guide=\(NCZDG_OnOff(cfg.enableStandaloneGuide)) map=\(NCZDG_OnOff(cfg.enableMapPanel)) banner=\(NCZDG_OnOff(cfg.enablePopupToast)) nearest=\(NCZDG_OnOff(cfg.showNearest)) fastTravel=\(NCZDG_OnOff(cfg.enableFastTravelNotice)) subdistrict=\(NCZDG_OnOff(cfg.matchSubdistrict)) filter=\(cfg.defaultInstallFilter)");
+  NCZDGLog(s"[CFG] openKey=\(EnumValueToString("EInputKey", Cast<Int64>(EnumInt(keys.openGuideKey)))) modifier=\(EnumValueToString("EInputKey", Cast<Int64>(EnumInt(keys.openGuideModifier))))");
+}
+
+private func NCZDG_OnOff(v: Bool) -> String {
+  return v ? "on" : "off";
+}

@@ -57,7 +57,6 @@ public class NCZDGInputListener {
     // Every setting, the keybind included, lives in RCF's panel.
     let cfg = NCZDGConfig.Get();
     if !IsDefined(cfg) || !cfg.enableStandaloneGuide {
-      NCZDGLog("guide key: ignored, guide disabled in settings");
       return false;
     }
     // A missing watcher means no modifier can be confirmed held. Treat that as satisfied
@@ -65,10 +64,10 @@ public class NCZDGInputListener {
     // stops being required, and the log line says which happened.
     let watch = NCZDGModifierWatch.Get(player.GetGame());
     if !IsDefined(watch) {
-      NCZDGLog("guide key: modifier watcher missing, opening without a modifier check");
+      NCZDGWarn("guide key: modifier watcher missing, opening without a modifier check");
     } else if !watch.Satisfied() {
-      // Right key, wrong modifier: leave the press for whoever else wants it.
-      NCZDGLog(s"guide key: ignored, modifier not held [\(watch.DebugState())]");
+      // Right key, wrong modifier: leave the press for whoever else wants it. Not logged - it
+      // fires on every press of a key someone else has bound, which is most of them.
       return false;
     }
 
@@ -88,7 +87,6 @@ public class NCZDGInputListener {
 
 // Kept separate from the listener so the input plumbing and the UI stay independently testable.
 public func NCZDG_ToggleGuide(player: ref<PlayerPuppet>) -> Void {
-  NCZDGLog("guide key: FIRED");
   if !IsDefined(player) {
     return;
   }

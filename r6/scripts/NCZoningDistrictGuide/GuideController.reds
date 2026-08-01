@@ -347,7 +347,6 @@ public class NCZDGGuideSystem extends ScriptableSystem {
   public func Open() -> Void {
     let cfg = NCZDGConfig.Get();
     if !IsDefined(cfg) || !cfg.enableStandaloneGuide {
-      NCZDGLog("guide: disabled in settings");
       return;
     }
     // No panel at the main menu; there is no player and no HUD layer to host it.
@@ -360,7 +359,6 @@ public class NCZDGGuideSystem extends ScriptableSystem {
     }
     let gi = this.GetGameInstance();
     this.m_popup = NCZDGGuidePopup.Show(gi);
-    NCZDGLog(s"guide: open requested (popup=\(IsDefined(this.m_popup)))");
   }
 }
 
@@ -457,7 +455,6 @@ public class NCZDGGuidePopup extends InGamePopup {
     // Drop every in-flight fetch. A pending tick can still fire after this - the DelaySystem
     // callback is already scheduled - but it reads m_isClosed and stops the chain there.
     ArrayClear(this.m_pending);
-    NCZDGLog("guide: popup detached (ESC, right-click, CLOSE, or the queue)");
     super.OnDetach();   // must chain: this is what un-pauses and pops the game context
   }
 
@@ -699,8 +696,6 @@ public class NCZDGGuidePopup extends InGamePopup {
                                            NCZDG_TopStripHeight(), NCZDG_CardsWidth(),
                                            NCZDG_BodyHeight(), false);
 
-    NCZDGLog(s"guide: usable \(NCZDG_UsableWidth())x\(NCZDG_UsableHeight()), nav \(NCZDG_NavWidth()), cards \(NCZDG_CardsWidth()), card \(NCZDG_CardWidth())");
-
     this.BuildCardPool();
     this.BuildNav();
     // The saved default may not be ALL, in which case the nav is already wrong the moment it is
@@ -710,7 +705,6 @@ public class NCZDGGuidePopup extends InGamePopup {
     // with no z-index, so this is the only way the overlay covers the header and footer too.
     // Note `this` is an inkCustomController, NOT a widget - reach the widget explicitly.
     this.BuildLightbox(this.GetRootCompoundWidget());
-    NCZDGLog("guide: popup created");
   }
 
   // Every keystroke re-queries and re-binds the pool. No debounce is needed: nothing is allocated,
@@ -750,7 +744,10 @@ public class NCZDGGuidePopup extends InGamePopup {
       this.MakeNavRow(area, i);
       i += 1;
     }
-    NCZDGLog(s"guide: nav built - \(n) areas, \(this.m_model.Total()) locations");
+    // The one line the guide gets per open. BuildNav is called once, from the popup build, so
+    // this doubles as "the guide opened" - and it carries the location total, which is what
+    // separates "the guide is empty" from "the registry is empty".
+    NCZDGLog(s"guide: opened - \(n) areas, \(this.m_model.Total()) locations");
 
     // Open on the area the player is standing in. Layer 2 resolves subdistricts in-world, which the
     // map screen cannot do, so this is more specific than the map panel can be. Off-map falls to All.
@@ -961,8 +958,9 @@ public class NCZDGGuidePopup extends InGamePopup {
     if marked && !routing {
       counts += "   ·   FOR DIRECTIONS: OPEN THE WORLD MAP, HOVER THE NC MARKER, TRACK WAYPOINT";
     }
+    // Not logged. Refresh runs on every nav click, every page turn and every keystroke in the
+    // search box - it is the single noisiest thing the guide does.
     this.m_status.SetText(counts);
-    NCZDGLog(s"guide: '\(area.Label())' q='\(this.m_query)' -> \(n) results, page \(this.m_page + 1)/\(pages)");
   }
 
   // Narrows m_shown to the current filter. A no-op when the filter is ALL, and ALSO a no-op
@@ -1079,7 +1077,6 @@ public class NCZDGGuidePopup extends InGamePopup {
     // Nav first: it can change the selected area, and Refresh reads that.
     this.ApplyNavFilter();
     this.Refresh();
-    NCZDGLog(s"guide: filter -> \(NCZDG_FilterLabel(this.m_filter))");
   }
 
   private func BindCard(slot: ref<NCZDGCardSlot>, loc: ref<NCZLocation>) -> Void {
@@ -1259,7 +1256,6 @@ public class NCZDGGuidePopup extends InGamePopup {
     // it out of the per-slot replacement logic, which is about cards and not about this.
     this.QueueImage(url, this.m_lightboxImg,
                     NCZDG_PopupWidth() - 320.0, NCZDG_PopupHeight() - 320.0, -1);
-    NCZDGLog(s"images: lightbox opened for \(url)");
   }
 
   public func CloseLightbox() -> Void {
@@ -1358,7 +1354,7 @@ public class NCZDGGuidePopup extends InGamePopup {
           drop = true;
         } else {
           if NCZDG_Img.Failed(p.url) {
-            NCZDGLog(s"images: gave up on \(p.url)");
+            NCZDGWarn(s"images: gave up on \(p.url)");
             if p.slotIdx < 0 && IsDefined(this.m_lightboxCaption) {
               this.m_lightboxCaption.SetText("IMAGE UNAVAILABLE   -   CLICK ANYWHERE TO CLOSE");
             }
@@ -1466,7 +1462,6 @@ public class NCZDGGuidePopup extends InGamePopup {
       }
       r += 1;
     }
-    NCZDGLog(s"guide: card pool built - \(ArraySize(this.m_cards)) slots in \(rows) rows");
   }
 
   private func MakeCard(parent: wref<inkCompoundWidget>, slotIdx: Int32, gapLeft: Bool) -> ref<NCZDGCardSlot> {
