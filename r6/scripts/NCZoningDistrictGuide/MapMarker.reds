@@ -25,6 +25,8 @@
 // Credits: Spuddeh
 // ======================================================================================
 
+import NCZoningDistrictGuide.MapFocus.*
+
 // The loading-screen monogram, not the advert logo. It is small and WHITE, and tint MULTIPLIES - so a
 // white source is the only one that can be tinted to an arbitrary colour. The advert atlas
 // (world\adverts\nightcorp) is a grey wordmark and can only ever be darkened.
@@ -68,12 +70,9 @@ protected final func NCZDG_BrandIcon(width: Float) -> Void {
   if !this.NCZDG_IsOurMarker() {
     return;
   }
-  // Do not tint. The game rewrites a mappin's colour on tracked-state change, through
-  // UpdateTrackedState - which is not hooked here - so any tint set in UpdateIcon is stomped and
-  // restored at random, and the icon flickers. The source monogram is white and the game highlights a
-  // tracked pin on its own.
   inkImageRef.SetAtlasResource(this.iconWidget, NCZDG_MarkerAtlas());
   inkImageRef.SetTexturePart(this.iconWidget, NCZDG_MarkerPart());
+  this.NCZDG_TintIcon();
 
   // FitToContent is cleared first or the widget snaps back to the source's own 35x20.
   //
@@ -82,6 +81,49 @@ protected final func NCZDG_BrandIcon(width: Float) -> Void {
   inkWidgetRef.SetFitToContent(this.iconWidget, false);
   inkWidgetRef.SetSize(this.iconWidget, new Vector2(width, width / NCZDG_MarkerAspect()));
   inkWidgetRef.SetScale(this.iconWidget, new Vector2(1.0, 1.0));
+}
+
+// Cyan at rest, gold once tracked. The monogram is WHITE in its atlas and tint MULTIPLIES, so it can
+// be driven to any colour - the same property that made it the right source in the first place.
+//
+// UNBIND FIRST, THEN TINT DIRECTLY. A style-BOUND tintColor is re-evaluated every time the widget's
+// state changes, and UpdateRootState calls SetState on the root on every icon update; a direct tint
+// survives that, a bound one does not (Brand.reds carries the same rule for the guide's chrome).
+// Unbinding is what stops the two fighting: without it the bind is still live and wins on the next
+// state change.
+@addMethod(BaseMappinBaseController)
+protected final func NCZDG_TintIcon() -> Void {
+  let icon = inkWidgetRef.Get(this.iconWidget);
+  if !IsDefined(icon) {
+    return;
+  }
+  icon.UnbindProperty(n"tintColor");
+
+  let mappin = this.GetMappin();
+  let tracked = IsDefined(mappin) && mappin.IsPlayerTracked();
+  icon.SetTintColor(tracked ? NCZDG_MarkerTrackedColor() : NCZDG_MarkerColor());
+}
+
+// Tracking is the state the colour reports, so the colour has to be re-applied when it changes.
+// UpdateIcon does not run on a track/untrack - the icon is unchanged, only its meaning is - so
+// without these two the marker would go gold on its next icon refresh instead of on the click.
+//
+// UpdateTrackedState is declared on BaseMappinBaseController and OVERRIDDEN by
+// GameplayMappinController, so the base wrap does not reach that one. Same split as UpdateIcon.
+@wrapMethod(BaseMappinBaseController)
+protected func UpdateTrackedState() -> Void {
+  wrappedMethod();
+  if this.NCZDG_IsOurMarker() {
+    this.NCZDG_TintIcon();
+  }
+}
+
+@wrapMethod(GameplayMappinController)
+protected func UpdateTrackedState() -> Void {
+  wrappedMethod();
+  if this.NCZDG_IsOurMarker() {
+    this.NCZDG_TintIcon();
+  }
 }
 
 // The marker cannot be forced in front of other pins on the world map, and ReorderChild does not do it.
@@ -99,10 +141,21 @@ protected final func UpdateIcon() -> Void {
   this.NCZDG_BrandIcon(NCZDG_MarkerFitWidth() * 0.8);
 }
 
+// Also the capture point for MapFocus. A mappin controller cannot be looked up, but every one the
+// map draws passes through here, so the marker's own controller is handed over for free - and this
+// is the only place in the mod that ever holds one.
 @wrapMethod(BaseWorldMapMappinController)
 protected func UpdateIcon() -> Void {
   wrappedMethod();
+  if !this.NCZDG_IsOurMarker() {
+    return;
+  }
   this.NCZDG_BrandIcon(NCZDG_MarkerFitWidth());
+
+  let focus = NCZDGMapFocus.Get();
+  if IsDefined(focus) {
+    focus.SetController(this);
+  }
 }
 
 @wrapMethod(QuestMappinController)

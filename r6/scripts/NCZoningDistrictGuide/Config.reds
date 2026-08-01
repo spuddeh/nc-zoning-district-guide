@@ -52,6 +52,17 @@ public class NCZDGConfig extends ScriptableService {
   // control entirely rather than offering one that cannot work.
   public let defaultInstallFilter: Int32 = 0;
 
+  // What SHOW ON MAP does beyond placing the marker.
+  //
+  // Opening the map costs the player nothing and solves the actual problem - a pin they cannot find
+  // is a pin that may as well not exist - so it is on.
+  //
+  // Taking the tracked slot is a different kind of act: there is exactly ONE, and filling it
+  // discards whatever the player was following, a quest included. That is theirs to spend, so it is
+  // off until they say otherwise.
+  public let openMapOnMarker: Bool = true;
+  public let autoTrackMarker: Bool = false;
+
   // World map panel
   public let enableMapPanel: Bool = true;
 

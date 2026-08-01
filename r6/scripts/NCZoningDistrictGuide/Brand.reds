@@ -73,6 +73,17 @@ public func NCZDG_CyanColor() -> Color {
   return new Color(Cast<Uint8>(0u), Cast<Uint8>(240u), Cast<Uint8>(255u), Cast<Uint8>(255u));
 }
 
+// The marker's two states, as direct tints. Cyan at rest, which separates the marker from the game's
+// white pins; gold once the player has tracked it. Gold is the same amber the map breakdown and the
+// card accent use for "new location", and on the marker it means "this is the one you are following".
+public func NCZDG_MarkerColor() -> Color {
+  return NCZDG_CyanColor();
+}
+
+public func NCZDG_MarkerTrackedColor() -> Color {
+  return new Color(Cast<Uint8>(255u), Cast<Uint8>(179u), Cast<Uint8>(0u), Cast<Uint8>(255u));
+}
+
 // The site renders its panels at 0.95 so the map stays faintly visible beneath.
 public func NCZDG_PanelOpacity() -> Float { return 0.95; }
 

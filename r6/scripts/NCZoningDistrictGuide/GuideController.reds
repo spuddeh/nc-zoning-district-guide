@@ -29,6 +29,7 @@ module NCZoningDistrictGuide.Guide
 import Codeware.UI.*
 import NCZoningDistrictGuide.Config.*
 import NCZoningDistrictGuide.Bridge.*
+import NCZoningDistrictGuide.MapFocus.*
 import NCZoningDistrictGuide.Images.*
 @if(ModuleExists("NCZoning.Api"))
 import NCZoning.Api.*
@@ -1873,10 +1874,29 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
     if actions.IsPinned(loc.Id()) {
       actions.ClearWaypoint(this.m_gi);
-    } else {
-      actions.SetWaypoint(this.m_gi, loc.Pos(), loc.Id(), loc.Name());
+      // Re-bind so every card's button reflects the one pin the game allows.
+      this.Refresh();
+      this.SelectCard(slotIdx);
+      return;
     }
-    // Re-bind so every card's button reflects the one pin the game allows.
+
+    actions.SetWaypoint(this.m_gi, loc.Pos(), loc.Id(), loc.Name());
+
+    // Placing the pin is not the feature - being shown where it is, is. A player who has never heard
+    // of this location cannot pick its pin out of a map full of them, so the request to be taken to
+    // it is queued here and consumed the next time the world map opens (MapFocus.reds).
+    let cfg = NCZDGConfig.Get();
+    if IsDefined(cfg) && cfg.openMapOnMarker {
+      let focus = NCZDGMapFocus.Get();
+      if IsDefined(focus) {
+        focus.Request();
+      }
+      // Close the guide either way: the next thing the player does is open the map, and the popup
+      // owns ModalPopup until it goes.
+      this.Close();
+      return;
+    }
+
     this.Refresh();
     this.SelectCard(slotIdx);
   }
