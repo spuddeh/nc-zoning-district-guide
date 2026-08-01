@@ -234,6 +234,5 @@ public class NCZDGRcfLoader extends ScriptableSystem {
       "NCZDG.modDesc",
       provider
     );
-    NCZDGLog("registered with RCF");
   }
 }

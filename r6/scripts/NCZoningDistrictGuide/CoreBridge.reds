@@ -90,12 +90,23 @@ public func NCZDG_InstallStateOf(loc: ref<NCZLocation>) -> NCZInstallState {
   return GetInstallState(loc);
 }
 
+// How much data arrived, for the one readiness line. Same guarded-arm rule as everything else
+// here: array<ref<NCZLocation>> is a core type, so the fallback returns a bare 0 rather than
+// trying to name it.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_TotalLocations() -> Int32 {
+  return ArraySize(GetAllLocations());
+}
+@if(!ModuleExists("NCZoning.Api"))
+public func NCZDG_TotalLocations() -> Int32 { return 0; }
+
 // --- the bridge system -----------------------------------------------------------
 // Subscribes to the core's Codeware CallbackSystem events. A redscript consumer gets
 // these directly (unlike CET Lua, which has to Observe the facade).
 
 public class NCZDGCoreBridge extends ScriptableSystem {
   private let m_ready: Bool;
+  private let m_announced: Bool;   // the [READY] line is once per session, not once per refresh
 
   private func OnAttach() -> Void {
     let cs = GameInstance.GetCallbackSystem();
@@ -123,6 +134,17 @@ public class NCZDGCoreBridge extends ScriptableSystem {
     if IsDefined(reqs) && reqs.IsPreGame() {
       return;
     }
+    // FIRST, and unconditionally. Every player-facing string in the mod is read through
+    // NCZDG_T, which cannot reach Codeware's LocalizationSystem without a GameInstance - and
+    // this is a ScriptableSystem, so it is one of the few places that has one to give. Bound
+    // before the core checks because the UI is localised whether or not the core is present.
+    let loc = NCZDGLocCache.Get();
+    if IsDefined(loc) {
+      loc.Bind(this.GetGameInstance());
+    } else {
+      NCZDGError("localization cache service is missing - every string will render as its key");
+    }
+
     // Emitted BEFORE the core checks, so it is present even in the dormant case - which is
     // exactly the case where someone is asking why nothing appeared. The per-event "disabled
     // in settings" lines were cut in favour of this one: they said the same thing once per
@@ -137,7 +159,6 @@ public class NCZDGCoreBridge extends ScriptableSystem {
       NCZDGWarn("NCZoningCore ApiVersion too old; features dormant");
       return;
     }
-    NCZDGLog(s"bridged to NCZoningCore \(NCZDG_CoreVersion())");
 
     // The core may have fired DataReady from its offline cache before this system
     // attached, so never wait on the event alone.
@@ -172,8 +193,21 @@ public class NCZDGCoreBridge extends ScriptableSystem {
   // DistrictManager is seeded, so GetCurrentDistrict() returns null at this point. Every
   // feature resolves on demand instead: the toast and guide off the district-change hook
   // (DistrictWatcher.reds), the map panel off its own hover callback.
+  // ONE READINESS LINE, ONCE. An automated event that always happens says nothing by
+  // happening - it is only worth a line if it FAILED to. So the injections, the listener
+  // registrations, the RCF handshake and every guide open are silent, and this single line
+  // stands for all of them: the dependency version, how much data arrived, and whether
+  // install detection is available. What still logs per occurrence is what the PLAYER did -
+  // setting a marker, arriving at one, teleporting.
+  //
+  // Refreshes do not repeat it. A refresh is the same fact arriving again, and a line per
+  // refresh is a line per timer tick.
   private func OnCoreDataUsable(isRefresh: Bool) -> Void {
-    NCZDGLog(s"registry usable (refresh=\(isRefresh))");
+    if isRefresh || this.m_announced {
+      return;
+    }
+    this.m_announced = true;
+    NCZDGLog(s"[READY] core=\(NCZDG_CoreVersion()) locations=\(NCZDG_TotalLocations()) installDetection=\(NCZDG_InstallDetection() ? "on" : "off")");
   }
 
   public func IsReady() -> Bool {

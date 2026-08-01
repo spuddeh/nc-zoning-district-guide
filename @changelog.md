@@ -238,10 +238,13 @@ Initial development. Not yet released.
   Codeware's `ModLocalizationPackage` / `ModLocalizationProvider` — **no TweakXL, no locale JSON and
   no LocKey registration**, because Codeware is already a hard dependency here. Adding a language is
   one file plus one line in `Provider.reds`; the fallback covers anything a translation misses.
-  - **Reads through the global `GetLocalizedText`, not `LocalizationSystem.GetText`.** Codeware's
-    native service hooks the game's own text load and merges every provider's entries into the base
-    game's on-screen table, so an `NCZDG.*` key *is* a LocKey. That means no surface has to be handed
-    a `GameInstance` to read a string — `Brand.reds` and `GuideModel.reds` keep their signatures.
+  - **Reads through Codeware's `LocalizationSystem.GetText`, cached on a `ScriptableService`.** The
+    global `GetLocalizedText` does **not** resolve these keys — it reads the base game's table, and
+    returns "" for every `NCZDG.*` key, which renders the whole mod as its own key names. The
+    system is resolved once at `Session/Ready` (by `NCZDGCoreBridge`, which as a `ScriptableSystem`
+    has a `GameInstance` to give) and cached, because
+    `GameInstance.GetScriptableServiceContainer()` takes no `GameInstance` — so `Brand.reds`,
+    `GuideModel.reds` and `Status.reds` keep their free-function signatures.
   - **A missing key renders as the key.** An empty string would draw an empty widget, which reads as
     a layout bug and sends you to the wrong file.
   - **Sentences are stored whole, with `{n}` / `{area}` / `{name}` placeholders**, rather than built
@@ -252,3 +255,11 @@ Initial development. Not yet released.
   - **The RCF panel passes keys, not text** — `DVRCF_HubPopup.LocalizeSchema` resolves tab, section,
     label, tooltip and caption itself. It does **not** touch the dropdown options array, so the three
     filter options are the one place that still resolves its own strings before handing them over.
+
+- **One `[READY]` line replaces every lifecycle and injection log.** An automated event that always
+  happens says nothing by happening — it is only worth a line when it *fails* to. So the map-section
+  injection, the fast-travel listener registration, the RCF handshake, every guide open and every
+  district crossing are now silent, and a single line carries what they were collectively reporting:
+  `[READY] core=<version> locations=<n> installDetection=on|off`. It is emitted once per session,
+  not once per data refresh. What still logs per occurrence is what the **player** did — setting a
+  marker, arriving at one, clearing it, teleporting.

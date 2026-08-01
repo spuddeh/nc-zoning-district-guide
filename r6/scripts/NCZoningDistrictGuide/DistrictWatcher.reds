@@ -68,8 +68,8 @@ public func NCZDG_OnDistrictChanged(gi: GameInstance) -> Void {
   if count <= 0 {
     return;
   }
-
-  NCZDGLog(s"district changed: \(NCZDG_AreaLabel(here)) - \(count) registry locations");
+  // Not logged. Crossing a district is something the world does, not something the player
+  // chose, and it happens continuously while driving.
 }
 
 // Whether to narrow to the subdistrict: only when the player is in one AND the setting

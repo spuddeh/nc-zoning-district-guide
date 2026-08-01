@@ -744,11 +744,6 @@ public class NCZDGGuidePopup extends InGamePopup {
       this.MakeNavRow(area, i);
       i += 1;
     }
-    // The one line the guide gets per open. BuildNav is called once, from the popup build, so
-    // this doubles as "the guide opened" - and it carries the location total, which is what
-    // separates "the guide is empty" from "the registry is empty".
-    NCZDGLog(s"guide: opened - \(n) areas, \(this.m_model.Total()) locations");
-
     // Open on the area the player is standing in. Layer 2 resolves subdistricts in-world, which the
     // map screen cannot do, so this is more specific than the map panel can be. Off-map falls to All.
     let idx = 0;

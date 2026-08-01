@@ -2,12 +2,10 @@
 // Mod Name: NC Zoning District Guide
 // File: FastTravelWatcher.reds
 // Author: Spuddeh
-// Description: DIAGNOSTIC (for now). Listens for fast-travel arrival and logs what is
-//              available at that moment: the live district, the frozen UI_Map blackboard
-//              enum name (what a banner would show), and the FastTravelSystem blackboard.
-//              Confirmed in-game: a cross-district fast travel fires NO district
-//              banner, so the banner hook never runs and this builds a
-//              standalone fast-travel panel.
+// Description: Listens for fast-travel arrival and builds the standalone arrival panel.
+//              Confirmed in-game: a cross-district fast travel fires NO district banner, so
+//              the banner hook never runs and there is nothing to attach to - hence a panel
+//              of its own, placed where the banner-attached one would have gone.
 //
 //              The hook is the FastTRavelSystem blackboard bool FastTravelLoadingScreenFinished
 //              (verified from bossHealthBar.RegisterFastTravelCallback).
@@ -46,7 +44,6 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     let bb = GameInstance.GetBlackboardSystem(this.GetGameInstance()).Get(GetAllBlackboardDefs().FastTRavelSystem);
     if IsDefined(bb) && !IsDefined(this.m_ftCallbackID) {
       this.m_ftCallbackID = bb.RegisterListenerBool(GetAllBlackboardDefs().FastTRavelSystem.FastTravelLoadingScreenFinished, this, n"OnFastTravelFinished");
-      NCZDGLog("ft: registered fast-travel listener");
     }
   }
 

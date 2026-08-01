@@ -2,18 +2,24 @@
 // Mod Name: NC Zoning District Guide
 // File: Loc.reds
 // Author: Spuddeh
-// Description: How every surface reads a string. Global scope, no module, so any file can
-//              call it with no import - the same shape as Logging.reds, for the same
-//              reason.
+// Description: How every surface reads a string. NCZDG_T is global scope, no module, so any
+//              file can call it with no import - the same shape as Logging.reds, for the
+//              same reason.
 //
-//              WHY GetLocalizedText AND NOT LocalizationSystem.GetText: Codeware's native
-//              LocalizationService hooks the game's own text load and MERGES every
-//              provider's entries into the base game's on-screen table, hashed by key
-//              (src/App/Localization/LocalizationService.cpp). An NCZDG.* key is therefore
-//              a real LocKey, and the global resolver reaches it - so nothing has to thread
-//              a GameInstance through Brand.reds, GuideModel.reds or a static helper.
-//              LocalizationSystem.GetText is the route to take if this mod ever needs
-//              gender-sensitive strings, which it does not.
+//              READS GO THROUGH Codeware's LocalizationSystem.GetText, NOT the global
+//              GetLocalizedText. GetLocalizedText resolves the BASE GAME's text table and
+//              returns "" for an NCZDG.* key, which renders every string in the mod as its
+//              own key. Codeware's native service does merge provider entries into the
+//              game's on-screen table, but that merge is not what the global resolver
+//              reads. RCF hits the same keys correctly through GetText, which is what
+//              proved where the fault was.
+//
+//              GetText NEEDS A GameInstance, and most of this mod's string sites have none
+//              - Brand.reds, GuideModel.reds and Status.reds are free functions. Rather
+//              than thread a GameInstance through every caller to reach them, the system is
+//              resolved once and cached on a ScriptableService, because
+//              GameInstance.GetScriptableServiceContainer() is a static that takes no
+//              GameInstance. NCZDGCoreBridge binds it at Session/Ready.
 //
 //              A MISSING KEY RENDERS AS THE KEY, deliberately. Returning "" would draw an
 //              empty widget, which looks exactly like a layout bug and sends you to the
@@ -22,9 +28,44 @@
 // Credits: psiberx (Codeware)
 // ======================================================================================
 
+import Codeware.Localization.*
+
+// Holds the LocalizationSystem so a free function can reach it. Global scope, so the service
+// name is the bare class name.
+public class NCZDGLocCache extends ScriptableService {
+  private let m_loc: ref<LocalizationSystem>;
+
+  public final static func Get() -> ref<NCZDGLocCache> {
+    return GameInstance.GetScriptableServiceContainer().GetService(n"NCZDGLocCache") as NCZDGLocCache;
+  }
+
+  // Called from NCZDGCoreBridge.OnSessionReady, which is a ScriptableSystem and therefore has
+  // a GameInstance to give. Re-binding on a later session is harmless and is what keeps this
+  // correct across a load.
+  public func Bind(gi: GameInstance) -> Void {
+    this.m_loc = LocalizationSystem.GetInstance(gi);
+    // Unbound means every string in the mod renders as its key, on every surface at once.
+    // That is loud on screen but says nothing about WHY, so it says so here.
+    if !IsDefined(this.m_loc) {
+      NCZDGError("Codeware LocalizationSystem not found - every string will render as its key");
+    }
+  }
+
+  public func Text(key: String) -> String {
+    if !IsDefined(this.m_loc) {
+      return key;
+    }
+    let s = this.m_loc.GetText(key);
+    return StrLen(s) > 0 ? s : key;
+  }
+}
+
 public func NCZDG_T(key: String) -> String {
-  let s = GetLocalizedText(key);
-  return StrLen(s) > 0 ? s : key;
+  let cache = NCZDGLocCache.Get();
+  if !IsDefined(cache) {
+    return key;
+  }
+  return cache.Text(key);
 }
 
 // Substitutes one placeholder. The sentences live whole in the translation file so a

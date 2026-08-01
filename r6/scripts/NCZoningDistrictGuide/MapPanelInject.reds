@@ -368,6 +368,5 @@ private final func NCZDG_EnsureMapSection() -> Bool {
   this.nczdg_mapCount = count;
   this.nczdg_mapBreakdown = breakdown;
   this.nczdg_mapRecent = recent;
-  NCZDGLog("[MAP] section injected into the district info block");
   return true;
 }
