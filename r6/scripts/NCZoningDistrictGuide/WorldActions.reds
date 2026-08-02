@@ -7,19 +7,19 @@
 //              Unguarded: it only ever sees Vector4 / Float / String, never an NCZLocation, so it
 //              needs no @if(ModuleExists) and holds whatever the core's state.
 //
-//              THE MARKER IS NOT A WAYPOINT, and that distinction is the whole design.
+//              THE MARKER IS NOT A WAYPOINT.
 //
 //              CustomPositionVariant (21) is a ROLE, not a look: the game assumes exactly one mappin
 //              holds it, looks that mappin up, and WRITES to it. Registering a second one makes the
-//              game write to the wrong mappin - measured, it moved a script-registered pin to a
-//              coordinate nobody chose and spawned a third waypoint. It is the cause of the "random
-//              waypoints" reports against the checklist mods (spuddeh/perk-shard-checklist#2).
+//              game write to the wrong mappin - it moves a script-registered pin to a coordinate
+//              nobody chose and spawns a third waypoint. That is the cause of the "random waypoints"
+//              reports against the checklist mods (spuddeh/perk-shard-checklist#2).
 //
 //              So this registers an ordinary POI marker instead, on a variant the waypoint logic does
 //              not own. The player's own waypoint is never touched, and two markers can never
 //              collide with it.
 //
-//              Routing then comes for free, because of two measured facts:
+//              Routing then works because of two things:
 //                1. ANY non-quest mappin can be player-tracked from the world map
 //                   (CanPlayerTrackMappin = !CanQuestTrackMappin, and a quest-trackable mappin needs
 //                   a journal entry in a Quest group - a POI marker has neither).
@@ -31,9 +31,8 @@
 //              turned that off. From then on the guide repositions the same pin and the trail
 //              follows. SetWaypoint therefore MOVES the existing mappin and never creates a second.
 //
-//              A CLEAR DESTROYS IT. Deactivating and keeping it would save a re-track, but a cleared
-//              waypoint that still exists is one the player can still see; ClearWaypoint explains the
-//              three steps that leave nothing behind.
+//              A CLEAR DESTROYS IT, in three steps - see ClearWaypoint. A deactivated mappin that is
+//              kept is one the player can still see on the minimap and HUD.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh (SimpleLocationManager, the CET original)
 // ======================================================================================
@@ -49,13 +48,12 @@ public func NCZDG_MarkerCaption(title: String) -> String {
 // Close enough to count as arrived. Registry coordinates sit at a door, on a roof or inside a room,
 // so this tolerates the last few metres the player cannot walk in a straight line.
 //
-// 20 was too generous for interiors: the coordinate is inside, the player reaches the DOOR, and 20m
-// counts that as arrival - the waypoint vanished on the threshold, before they were in. 10 keeps the
-// tolerance for an unreachable coordinate while letting the player actually get through the door.
+// 20 is too generous for interiors: the coordinate is inside, and the player reaching the DOOR
+// counts as arrival, so the waypoint clears on the threshold. 10 keeps the tolerance for an
+// unreachable coordinate while letting the player get through the door.
 //
-// THIS IS THE DIAL. Too large and it clears early; too small and a coordinate the player cannot
-// physically stand on never clears at all. It works with the arming rule in NotifyMarkerDistance,
-// not alone.
+// Too large and it clears early; too small and a coordinate the player cannot physically stand on
+// never clears at all. It works together with the arming rule in NotifyMarkerDistance.
 public func NCZDG_ArrivalRadius() -> Float { return 10.0; }
 
 // Owns the single marker. A ScriptableSystem so it outlives the popup: a marker set from the guide

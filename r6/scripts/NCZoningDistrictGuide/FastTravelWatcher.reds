@@ -104,8 +104,8 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     let winSize = root.GetSize();
     let scale = winSize.Y > 1.0 ? (winSize.Y / 2160.0) : 0.667;
 
-    // Remove any previous FT panel (this system persists across fast travels; without this they
-    // stack up - an earlier dump showed 3 copies accumulating).
+    // Remove any previous FT panel. This system persists across fast travels, so without the
+    // removal the panels stack up.
     root.RemoveChildByName(n"nczdg_panel");
     this.m_ftPanel = null;
 

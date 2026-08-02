@@ -6,15 +6,13 @@
 //              renders a count it cannot stand behind.
 //
 //              A ZERO COUNT AND NO-DATA MUST NEVER LOOK THE SAME. "0 registered locations in
-//              Kabuki" is a real, resolved answer and an invitation to a modder. "No location
-//              data" means the registry never loaded and nothing is known about Kabuki at all.
-//              Every count in this mod comes from a query that returns an empty array in BOTH
-//              cases, so a surface that does not check IsReady() first will tell the player a
-//              district is empty when the truth is that the fetch failed.
+//              Kabuki" is a resolved answer; "No location data" means the registry never loaded
+//              and nothing is known about Kabuki at all. Every count in this mod comes from a
+//              query that returns an empty array in BOTH cases, so a surface that does not check
+//              IsReady() first will tell the player a district is empty when the fetch failed.
 //
 //              The wording belongs to the core (NCZoning.Api.GetStatusMessage), which owns the
-//              single copy that its own red banner also uses. Do not restate it here: two copies
-//              drift, and then the mod and the framework blame different things for one failure.
+//              single copy its own banner reads. Do not restate it here.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================

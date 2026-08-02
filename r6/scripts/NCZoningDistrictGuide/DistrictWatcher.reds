@@ -23,9 +23,9 @@ import NCZoning.Data.*
 import NCZoningDistrictGuide.District.*
 import NCZoningDistrictGuide.Config.*
 
-// The last district reported, so a single boundary crossing does not fire twice.
-// Verified in-game: stepping from an interior out to the street queues OnDistrictChanged
-// once per district entered, so Little China reported twice within the same second.
+// The last district reported, so a single boundary crossing does not fire twice. Stepping from an
+// interior out to the street queues OnDistrictChanged once per district entered, which reports the
+// same district twice within a second.
 @if(ModuleExists("NCZoning.Api"))
 @addField(PlayerPuppet)
 public let nczdg_lastDistrict: TweakDBID;

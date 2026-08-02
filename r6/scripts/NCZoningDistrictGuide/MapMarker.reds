@@ -4,10 +4,9 @@
 // Author: Spuddeh
 // Description: Gives the guide's marker a NightCorp face on the map, the minimap and in the world.
 //
-//              The marker is an ordinary POI mappin (WorldActions.reds explains why it must not be a
-//              waypoint), so out of the box it wears whatever its variant looks like - an apartment
-//              pin with apartment text. The player has to be able to find and TRACK it on the map,
-//              and a pin they cannot tell apart from a real apartment is a pin they cannot find.
+//              The marker is an ordinary POI mappin (WorldActions.reds says why it must not be a
+//              waypoint), so untouched it wears whatever its variant looks like - an apartment pin
+//              with apartment text. The player has to be able to pick it out on the map to track it.
 //
 //              The icon is overridden on the mappin CONTROLLERS, not in the mappin data. MappinData
 //              has no icon field, and a controller holds an inkImage, which takes any cooked atlas
@@ -39,9 +38,9 @@ public func NCZDG_MarkerPart() -> CName { return n"nc_logo"; }
 // 0.05714 x 0.07955 UV = 64.0 x 63.0 px). The monogram is NOT square: nc_logo is 35x20 px in a 160x24
 // atlas, an aspect of 1.75:1. It can never fill a square box without being stretched.
 //
-// A landscape emblem fitted to a square icon's WIDTH covers only 57% of its area, and next to square
-// icons it reads as small - measured: the world pin's icon box is 64x64, and 64 x 36.6 looked half the
-// size of everything around it. Fitting to the icons' HEIGHT instead gives it the same visual weight.
+// A landscape emblem fitted to a square icon's WIDTH covers only 57% of its area, and beside square
+// icons it reads as small: the world pin's icon box is 64x64, and 64 x 36.6 looks half the size of
+// everything around it. Fitting to the icons' HEIGHT gives it the same visual weight.
 //
 // The surfaces do not agree on this. The world map scales its own container (its icon widget measures
 // 2x2 before anything touches it), so a width fit reads correctly there. The world pin does not.
@@ -52,23 +51,22 @@ public func NCZDG_MarkerFitWidth() -> Float { return 64.0; }
 
 // The world/HUD pin, which sits among unscaled 64x64 icons.
 //
-// A full height fit (64 * 1.75 = 112 wide) matches their height but is 1.75x their WIDTH, and reads
-// as oversized next to them - measured in game. A pure width fit (64 wide, 36.6 tall) reads as
-// half-size. 88 is between the two: wider than a vanilla icon, visibly shorter than one.
+// A full height fit (64 * 1.75 = 112 wide) matches their height but is 1.75x their WIDTH and reads
+// as oversized beside them. A pure width fit (64 wide, 36.6 tall) reads as half-size. 88 sits
+// between the two: wider than a vanilla icon, visibly shorter than one.
 public func NCZDG_MarkerFitHeight() -> Float { return 88.0; }
 
-// CACHED IDENTITY, AND IT EXISTS TO AVOID A CRASH - do not "simplify" it back to a live lookup.
+// CACHED IDENTITY, AND IT PREVENTS A CRASH - do not "simplify" it back to a live lookup.
 //
-// Asking the mappin who it is is only safe while the mappin is bound, which is true in UpdateIcon
-// and NOT true in UpdateTrackedState: vanilla's own UpdateTrackedState returns at
+// Asking the mappin who it is is only safe while the mappin is bound. That holds in UpdateIcon and
+// NOT in UpdateTrackedState: vanilla's own UpdateTrackedState returns at
 // `ArraySize(m_taggedWidgets) == 0` before touching the mappin, and it is also called while mappins
 // are being destroyed. GetMappin() hands back a wref, a wref to a destroyed mappin is not null, so
-// IsDefined() passes it through and GetDisplayName() takes the game down. Measured: CTD on every
-// world-map open, 2026-08-02.
+// IsDefined() passes it through and GetDisplayName() crashes the game on every world-map open.
 //
-// So identity is resolved once in the icon path, where the mappin is guaranteed live, and every
-// other hook reads this Bool instead. Controllers are pooled, so a recycled one can carry a stale
-// value until its next icon update - that is a wrong tint for one frame, not a crash.
+// Identity is therefore resolved once in the icon path, where the mappin is live, and every other
+// hook reads this Bool. Controllers are pooled, so a recycled one can carry a stale value until its
+// next icon update - a wrong tint for one frame, not a crash.
 @addField(BaseMappinBaseController)
 let nczdg_isOurs: Bool;
 
@@ -105,13 +103,12 @@ protected final func NCZDG_BrandIcon(width: Float) -> Void {
 }
 
 // Cyan at rest, gold once tracked. The monogram is WHITE in its atlas and tint MULTIPLIES, so it can
-// be driven to any colour - the same property that made it the right source in the first place.
+// be driven to any colour.
 //
 // UNBIND FIRST, THEN TINT DIRECTLY. A style-BOUND tintColor is re-evaluated every time the widget's
 // state changes, and UpdateRootState calls SetState on the root on every icon update; a direct tint
 // survives that, a bound one does not (Brand.reds carries the same rule for the guide's chrome).
-// Unbinding is what stops the two fighting: without it the bind is still live and wins on the next
-// state change.
+// Without the unbind the live bind wins on the next state change.
 @addMethod(BaseMappinBaseController)
 protected final func NCZDG_TintIcon() -> Void {
   let icon = inkWidgetRef.Get(this.iconWidget);
@@ -136,11 +133,11 @@ protected final func NCZDG_TintIcon() -> Void {
 //
 // ADAPTED FROM MapWaypointBugFixes/ArrivalPhantomFix, WHICH CANNOT BE COPIED DIRECTLY. That mod
 // notices arrival by watching the manually-tracked SLOT empty itself, which the game does for
-// CustomPositionVariant (21). This marker is deliberately ApartmentVariant - the whole reason it is
-// not variant 21 is that the game writes to whatever holds that role - so the game never clears the
-// slot for it and there is no slot change to watch. The distance is what is left.
+// CustomPositionVariant (21). This marker is ApartmentVariant - the game writes over whatever holds
+// the variant-21 role - so the slot is never cleared for it and there is no slot change to watch.
+// Distance is the remaining signal.
 //
-// An unowned pin costs one cached field read and returns, which is what keeps this off the hot path.
+// An unowned pin costs one cached field read and returns, which keeps this off the hot path.
 @addMethod(BaseMappinBaseController)
 protected final func NCZDG_CheckArrival() -> Void {
   if !this.nczdg_isOurs {
@@ -218,12 +215,11 @@ protected func UpdateIcon() -> Void {
   // THIS is the trigger, and it runs SYNCHRONOUSLY. No timer, at any duration.
   //
   // DelaySystem runs on GAME time, and an open world map dilates that to nearly a stop: a 0.25s
-  // callback scheduled here fired 9.1 REAL seconds later, by which point the player had closed the
-  // map and both handles were released. Measured 2026-08-02. Every earlier timing-based version
-  // failed the same way and looked like a different bug each time.
+  // callback scheduled here fires ~9 REAL seconds later, by which point the player has closed the
+  // map and both handles are released.
   //
-  // Here, both handles are provably live: `this` is the controller being drawn, and the map cannot
-  // be mid-draw and closed at once. Consume() first, so the re-entrant UpdateIcon that TrackMappin
+  // Here both handles are live: `this` is the controller being drawn, and the map cannot be
+  // mid-draw and closed at once. Consume() first, so the re-entrant UpdateIcon that TrackMappin
   // provokes finds nothing pending.
   if focus.IsPending() {
     let menu = focus.GetMapMenu();

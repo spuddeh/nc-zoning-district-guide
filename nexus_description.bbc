@@ -6,7 +6,7 @@
 [color=#00f0ff][size=5][b]0. NATURE OF THIS INSTRUMENT[/b][/size][/color]
 The [b]NC Zoning District Guide[/b] brings the [url=https://nczoning.net]NC Zoning[/url] map into the game. It knows which district you are standing in, and it tells you what the Board has on file for it.
 
-Four surfaces, all built out of the game's own UI — no ImGui window, no overlay that looks bolted on:
+Four surfaces, all built out of the game's own UI — no ImGui window, no separate overlay:
 [list]
 [*][b]A district notice.[/b] Cross into a new district and a panel appears under the game's own district banner: how many mapped locations are here, and the nearest one by name.
 [*][b]The world map.[/b] Hover any district and its info panel gains a count and a category breakdown, in the map's own type and colours.
@@ -38,7 +38,7 @@ With [b]Cyber Engine Tweaks[/b] installed, the guide marks which of these locati
 [i]Without CET the filter button is hidden. Everything else works exactly as described.[/i]
 [line]
 [color=#00f0ff][size=5][b]2. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
-A waypoint only starts routing once the world map has been opened. That is the game's own behaviour, not a bug in this mod — only the map can adopt a script-placed pin as your tracked waypoint.
+A waypoint only starts routing once the world map has been opened. That is the game's own behaviour: only the map can adopt a script-placed pin as your tracked waypoint.
 
 The guide opens the map and tracks the waypoint for you, so you will not normally meet this. You will if you switch both [b]Open the Map on Show[/b] and [b]Track the Waypoint[/b] off: the pin is placed, and it draws no route until you open the map and track it yourself.
 [line]
@@ -71,7 +71,7 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 [*][b]NCZoningCore[/b] — and its own requirements, which include RedData and RedFileSystem
 [*]Input Loader — for the rebindable key
 [/list]
-[color=#ffb300][b]NCZoningCore 1.0.0 or newer is a hard requirement.[/b][/color] An older Core does not degrade gracefully: redscript compiles every installed mod as one unit, so a missing function is a compile failure that takes down [i]every[/i] redscript mod on your machine, not just this one. The two release together for exactly this reason.
+[color=#ffb300][b]NCZoningCore 1.0.0 or newer is a hard requirement.[/b][/color] Redscript compiles every installed mod as one unit, so an older Core is a compile failure that takes down [i]every[/i] redscript mod on your machine, not just this one. The two release together.
 
 [b]Strongly recommended:[/b]
 [list]
@@ -98,7 +98,7 @@ Everything shown here is the [b]NC Zoning[/b] registry, maintained by the commun
 [/list]
 [line]
 [color=#00f0ff][size=5][b]7. COMPATIBILITY[/b][/size][/color]
-This mod is additive by charter. Every hook it places calls the original code first and unconditionally, and then adds a widget beside it — so other mods touching the same controllers keep working, and the vanilla UI is untouched whether or not you have this installed.
+Every hook this mod places calls the original code first and unconditionally, then adds a widget beside it. Nothing the game already draws is replaced or suppressed, so other mods touching the same controllers keep working.
 
 It is pure redscript with no [font=Courier New].archive[/font] file, so it cannot conflict with anything over game assets.
 [line]

@@ -38,17 +38,16 @@ upload cannot come from CI. Do this once:
    Actions > **Variables**), and set `nexus_mod_id` in `release-manifest.json` to the mod page
    number.
 
-   > **It does not go in the repo.** Before this first upload the id does not exist, so committing
-   > a placeholder commits a lie — which is exactly what `REPLACE_WITH_FILE_ID` was.
+   > **It does not go in the repo.** The id does not exist until this first upload, so there is
+   > nothing valid to commit.
    >
    > **Do NOT take the id from the public v1 API.** That endpoint has a field also called
-   > `file_id`, it is a **different id space**, and the wrong value looks entirely plausible — it
-   > fails only at release time.
+   > `file_id`, in a different id space. The wrong value looks plausible and fails only at
+   > release time.
    >
-   > **A variable, not a secret:** it is an identifier, not a credential. It authorizes nothing
-   > without `NEXUSMODS_API_KEY`, and anyone with that key could enumerate the ids anyway. As a
-   > secret it would render `***` in the logs, making a wrong id — the one mistake that is easy to
-   > make here — much harder to diagnose.
+   > **A variable, not a secret:** it is an identifier, not a credential, and does nothing
+   > without `NEXUSMODS_API_KEY`. As a secret it would render `***` in the logs, which makes a
+   > wrong id much harder to diagnose.
 4. **Add the API key secret.** Create a Nexus personal API key at
    <https://www.nexusmods.com/settings/api-keys> and add it as the repository secret
    **`NEXUSMODS_API_KEY`** (Settings > Secrets and variables > Actions > **Secrets**).

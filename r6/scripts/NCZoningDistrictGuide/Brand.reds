@@ -6,11 +6,10 @@
 //              One place, so the guide, the banner and the map panel cannot drift apart.
 //              Source of truth: cp2077-location-mods-map/docs/branding.md.
 //
-//              The game's palette is already on-brand, which is not a coincidence: the guide
-//              names Zoning Cyan as "the classic Cyberpunk UI cyan", and MainColors.Blue
-//              measures #5EF6FF. Prefer these style binds over a raw Color: a bind follows the
-//              player's UI colour settings and reads correctly under bloom, while a hardcoded
-//              Color does neither.
+//              The game's palette is already close to the brand - the brand guide names Zoning
+//              Cyan as "the classic Cyberpunk UI cyan", and MainColors.Blue measures #5EF6FF.
+//              Prefer these style binds over a raw Color: a bind follows the player's UI colour
+//              settings and reads correctly under bloom, while a hardcoded Color does neither.
 //
 //                Brand                    Hex        Game style              Measured
 //                Zoning Cyan (accent)     #00f0ff    MainColors.Blue         #5EF6FF

@@ -10,9 +10,7 @@
 //              GetLocalizedText. GetLocalizedText resolves the BASE GAME's text table and
 //              returns "" for an NCZDG.* key, which renders every string in the mod as its
 //              own key. Codeware's native service does merge provider entries into the
-//              game's on-screen table, but that merge is not what the global resolver
-//              reads. RCF hits the same keys correctly through GetText, which is what
-//              proved where the fault was.
+//              game's on-screen table, but that merge is not what the global resolver reads.
 //
 //              GetText NEEDS A GameInstance, and most of this mod's string sites have none
 //              - Brand.reds, GuideModel.reds and Status.reds are free functions. Rather
@@ -21,9 +19,8 @@
 //              GameInstance.GetScriptableServiceContainer() is a static that takes no
 //              GameInstance. NCZDGCoreBridge binds it at Session/Ready.
 //
-//              A MISSING KEY RENDERS AS THE KEY, deliberately. Returning "" would draw an
-//              empty widget, which looks exactly like a layout bug and sends you to the
-//              wrong file; "NCZDG.btnTeleport" on a button says what is wrong and where.
+//              A MISSING KEY RENDERS AS THE KEY. Returning "" would draw an empty widget,
+//              which reads as a layout bug; "NCZDG.btnTeleport" on a button names the fault.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: psiberx (Codeware)
 // ======================================================================================
@@ -40,12 +37,12 @@ public class NCZDGLocCache extends ScriptableService {
   }
 
   // Called from NCZDGCoreBridge.OnSessionReady, which is a ScriptableSystem and therefore has
-  // a GameInstance to give. Re-binding on a later session is harmless and is what keeps this
-  // correct across a load.
+  // a GameInstance to give. Re-binding on a later session is harmless and keeps this correct
+  // across a load.
   public func Bind(gi: GameInstance) -> Void {
     this.m_loc = LocalizationSystem.GetInstance(gi);
-    // Unbound means every string in the mod renders as its key, on every surface at once.
-    // That is loud on screen but says nothing about WHY, so it says so here.
+    // Unbound means every string in the mod renders as its key, on every surface at once. The
+    // screen shows that plainly but not why, so name the cause here.
     if !IsDefined(this.m_loc) {
       NCZDGError("Codeware LocalizationSystem not found - every string will render as its key");
     }
@@ -82,10 +79,9 @@ public func NCZDG_T3(key: String, t1: String, v1: String, t2: String, v2: String
   return StrReplace(StrReplace(StrReplace(NCZDG_T(key), t1, v1), t2, v2), t3, v3);
 }
 
-// The first argument stays a KEY at every arity. Nesting one of these inside another almost
-// works - the inner call returns text, the outer looks it up, misses, and returns what it was
-// given - but it only works because a failed lookup echoes its input, so a real translation
-// for that text would silently replace the sentence.
+// The first argument is a KEY at every arity, never a nested lookup's result. Nesting appears to
+// work only because a failed lookup echoes its input, so a real translation for that text would
+// silently replace the sentence.
 public func NCZDG_T4(key: String, t1: String, v1: String, t2: String, v2: String, t3: String, v3: String, t4: String, v4: String) -> String {
   return StrReplace(StrReplace(StrReplace(StrReplace(NCZDG_T(key), t1, v1), t2, v2), t3, v3), t4, v4);
 }

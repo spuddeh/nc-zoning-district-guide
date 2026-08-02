@@ -8,7 +8,7 @@
 //
 //              Resolves the district the player is standing in, then walks the district
 //              record's parent chain until the map answers. Returns null off-map (e.g.
-//              the Dogtown_Brooklyn flashback, deliberately excluded from the map).
+//              the Dogtown_Brooklyn flashback, which the map excludes).
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
@@ -85,8 +85,8 @@ public func NCZDG_ResolveCurrent(gi: GameInstance) -> ref<NCZDistrictName> {
 // coerces), MappinUtils.GetDistrictRecord() hands back a wref (which would not).
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_ResolveFromRecord(startRecord: wref<District_Record>) -> ref<NCZDistrictName> {
-  // Confirmed in-game: an interior carries its own district record that is absent from the
-  // map (e.g. Districts.GrandImperialMall), and one step up resolves it (Districts.Coastview).
+  // An interior carries its own district record that is absent from the map (e.g.
+  // Districts.GrandImperialMall), and one step up resolves it (Districts.Coastview).
   let record: wref<District_Record> = startRecord;
   let steps: Int32 = 0;
   while IsDefined(record) && steps < NCZDG_MaxParentWalk() {

@@ -15,10 +15,8 @@
 //              nczdg.xml and then overridden by RCF's DVRCFInput plugin. So a wrong key in
 //              settings is not something this file can detect or report.
 //
-//              Modifier state moved OUT of this file. It used to be tracked here from three
-//              dedicated input actions; it now lives in NCZDGModifierWatch on Codeware's
-//              n"Input/Key" event. See ModifierWatch.reds for why that workaround existed
-//              and why it was wrong.
+//              MODIFIER STATE IS NOT TRACKED HERE. It lives in NCZDGModifierWatch, on
+//              Codeware's n"Input/Key" event - see ModifierWatch.reds.
 //
 //              Graceful degradation:
 //                - No Input Loader: NCZDG_ToggleGuide never registers, IsAction never

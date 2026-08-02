@@ -27,13 +27,13 @@ import NCZoningDistrictGuide.Config.*
 public func NCZDG_RequiredApiVersion() -> Int32 { return 1; }
 
 // How long to wait for install detection before reporting [READY] without it. Only reached when
-// NCZoning-InstallScanComplete never arrives, which means no CET - a legitimate resting state, not
-// a failure. Long enough that a slow CET scan wins the race and reports the real answer.
+// NCZoning-InstallScanComplete never arrives, which means no CET - a normal state, not a failure.
+// Long enough that a slow CET scan still wins the race.
 public func NCZDG_ReadyFallbackDelay() -> Float { return 10.0; }
 
 // --- core presence ---------------------------------------------------------------
-// Two compile-time variants: with the core installed this reports the real state; without
-// it, the whole mod degrades to "core missing" and every feature stays dormant.
+// Two compile-time variants: with the core installed this reports the live state; without it,
+// every function answers "core missing" and every feature stays dormant.
 
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_HasCore() -> Bool { return true; }
@@ -69,12 +69,12 @@ public func NCZDG_CoreVersion() -> String { return "absent"; }
 // a MODULE, not a function, so with NCZoning.Api present but OLDER than 0.3.0 the guarded arm
 // still compiles and `IsInstallDetectionAvailable()` is an UNRESOLVED_FN - which fails the
 // whole compilation and takes down every redscript mod on that machine, not just this one.
-// There is no @if(FunctionExists) to hide behind. NCZoningCore 0.3.0+ is therefore a hard
-// floor for this mod and must be stated in its requirements.
+// There is no @if(FunctionExists). NCZoningCore 0.3.0+ is a hard floor for this mod and must
+// be stated in its requirements.
 //
 // AVAILABILITY IS A GATE, NOT A BRANCH. False means the answer is unknowable this session -
-// detection needs CET, which this mod does not require - so the filter UI must be HIDDEN
-// rather than shown empty. Same rule as NCZDG_CoreUsable() vs NCZDG_HasData().
+// detection needs CET, which this mod does not require - so the filter UI is HIDDEN rather
+// than shown empty. Same rule as NCZDG_CoreUsable() vs NCZDG_HasData().
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_InstallDetection() -> Bool {
   return NCZDG_CoreUsable() && IsInstallDetectionAvailable();
@@ -82,22 +82,19 @@ public func NCZDG_InstallDetection() -> Bool {
 @if(!ModuleExists("NCZoning.Api"))
 public func NCZDG_InstallDetection() -> Bool { return false; }
 
-// Unknown is a real answer and must render as one. It covers "no CET" and "undetectable in
-// principle" (AMM location mods), and showing either as "not installed" would tell the player
-// to download something they may already have.
+// Unknown is a real answer and must render as one. It covers "no CET" and "cannot be detected
+// at all" (AMM location mods); do not render either as "not installed".
 //
-// GUARDED ARM ONLY, DELIBERATELY - there is no `!ModuleExists` twin, because both the
-// parameter and the return type are core types that do not exist without the core, so a
-// fallback arm could not be written at all. Every caller lives inside a guarded class for the
-// same reason. Same shape as OnCoreDataReady below.
+// GUARDED ARM ONLY - there is no `!ModuleExists` twin, because both the parameter and the
+// return type are core types that do not exist without the core, so a fallback arm cannot be
+// written. Every caller lives inside a guarded class for the same reason.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_InstallStateOf(loc: ref<NCZLocation>) -> NCZInstallState {
   return GetInstallState(loc);
 }
 
-// How much data arrived, for the one readiness line. Same guarded-arm rule as everything else
-// here: array<ref<NCZLocation>> is a core type, so the fallback returns a bare 0 rather than
-// trying to name it.
+// How much data arrived, for the readiness line. array<ref<NCZLocation>> is a core type, so the
+// fallback returns a bare 0 rather than naming it.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_TotalLocations() -> Int32 {
   return ArraySize(GetAllLocations());
@@ -153,10 +150,8 @@ public class NCZDGCoreBridge extends ScriptableSystem {
       NCZDGError("localization cache service is missing - every string will render as its key");
     }
 
-    // Emitted BEFORE the core checks, so it is present even in the dormant case - which is
-    // exactly the case where someone is asking why nothing appeared. The per-event "disabled
-    // in settings" lines were cut in favour of this one: they said the same thing once per
-    // fast travel, and only about the three settings that happened to have a log call.
+    // Emitted BEFORE the core checks, so the settings are on record even when the mod is
+    // dormant - the state a "nothing appeared" report usually describes.
     NCZDG_LogConfig();
 
     if !NCZDG_HasCore() {
@@ -194,12 +189,12 @@ public class NCZDGCoreBridge extends ScriptableSystem {
     NCZDGError(s"core reported a fetch error; ready=\(NCZDG_CoreReady())");
   }
 
-  // The second of the two facts the [READY] line needs, announced rather than waited for. The core
-  // dispatches it from NCZInstalledRegistry.EndScan.
+  // The second of the two facts the [READY] line needs. The core dispatches it from
+  // NCZInstalledRegistry.EndScan.
   //
   // Unlike IsInstallDetectionAvailable(), this does NOT raise the core version floor: an event name
   // is a string, not a symbol, so subscribing to one an older core never registers simply never
-  // fires. The fallback timer covers that case for free.
+  // fires, and the fallback timer covers that case.
   @if(ModuleExists("NCZoning.Api"))
   protected cb func OnCoreInstallScanComplete(event: ref<NCZoningDataEvent>) -> Void {
     this.ReportReadyNow();
@@ -207,27 +202,24 @@ public class NCZDGCoreBridge extends ScriptableSystem {
 
   // Single funnel for "the registry is usable now".
   //
-  // Deliberately does NOT resolve the district here. Verified in-game: Session/Ready (and
-  // therefore the core's DataReady) fires roughly ten seconds BEFORE PreventionSystem's
-  // DistrictManager is seeded, so GetCurrentDistrict() returns null at this point. Every
-  // feature resolves on demand instead: the toast and guide off the district-change hook
-  // (DistrictWatcher.reds), the map panel off its own hover callback.
-  // ONE READINESS LINE, ONCE. An automated event that always happens says nothing by
-  // happening - it is only worth a line if it FAILED to. So the injections, the listener
-  // registrations, the RCF handshake and every guide open are silent, and this single line
-  // stands for all of them: the dependency version, how much data arrived, and whether
-  // install detection is available. What still logs per occurrence is what the PLAYER did -
-  // setting a marker, arriving at one, teleporting.
+  // DO NOT RESOLVE THE DISTRICT HERE. Session/Ready (and therefore the core's DataReady) fires
+  // roughly ten seconds BEFORE PreventionSystem's DistrictManager is seeded, so
+  // GetCurrentDistrict() returns null at this point. Every feature resolves on demand instead:
+  // the toast and guide off the district-change hook (DistrictWatcher.reds), the map panel off
+  // its own hover callback.
   //
-  // Refreshes do not repeat it. A refresh is the same fact arriving again, and a line per
-  // refresh is a line per timer tick.
+  // ONE READINESS LINE, ONCE PER SESSION. The injections, the listener registrations, the RCF
+  // handshake and every guide open are silent; this line carries the dependency version, how
+  // much data arrived, and whether install detection is available. What still logs per
+  // occurrence is what the PLAYER did - setting a marker, arriving at one, teleporting.
   //
-  // IT IS DEFERRED, NECESSARILY. "The registry is usable" is not the same instant as "the
-  // registry has finished populating", and install detection settles later still - the CET
-  // scan that feeds it lands after Session/Ready. Read at this moment, the line reports
-  // locations=0 installDetection=off on a session holding 297 locations with detection
-  // working. A readiness line that reports a state nothing has reached yet is worse than no
-  // line: it is a wrong answer in the place someone goes for the right one.
+  // A refresh does not repeat it: it is the same fact arriving again.
+  //
+  // THE LINE IS DEFERRED, AND HAS TO BE. "The registry is usable" is not the same instant as
+  // "the registry has finished populating", and install detection settles later still, since
+  // the CET scan that feeds it lands after Session/Ready. Written at this moment it would
+  // report locations=0 installDetection=off on a session holding 297 locations with detection
+  // working.
   private func OnCoreDataUsable(isRefresh: Bool) -> Void {
     if isRefresh || this.m_announced {
       return;
@@ -236,14 +228,10 @@ public class NCZDGCoreBridge extends ScriptableSystem {
     this.ScheduleReadyFallback();
   }
 
-  // ONE SHOT, NOT A POLL. The [READY] line needs two facts, and both now announce themselves:
-  // locations arrive with NCZoning-DataReady, detection with NCZoning-InstallScanComplete. This
-  // timer is the third case only - detection that never completes.
-  //
-  // It cannot be dropped, because "no CET" is a legitimate resting state that produces NO event
-  // at all. Waiting on the event alone would mean a CET-less setup never gets a [READY] line, and
-  // that is the setup whose bug reports need one most. So: whichever comes first wins, and
-  // ReportReadyNow is idempotent.
+  // ONE SHOT, NOT A POLL. The [READY] line needs two facts, and both announce themselves:
+  // locations with NCZoning-DataReady, detection with NCZoning-InstallScanComplete. This timer
+  // covers the third case - detection that never completes, because "no CET" produces no event
+  // at all. Whichever arrives first wins; ReportReadyNow is idempotent.
   private func ScheduleReadyFallback() -> Void {
     let cb = new NCZDGReadyCallback();
     cb.gi = this.GetGameInstance();

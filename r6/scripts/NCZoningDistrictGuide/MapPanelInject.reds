@@ -159,8 +159,8 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
   this.nczdg_mapBuilt = true;
 
   // No registry data: say so. Every count below would read 0, and "NO REGISTERED LOCATIONS" for a
-  // district nothing is known about is a lie. The core's own banner carries the fix; the short
-  // label is used here because this block has no room for a sentence.
+  // district nothing is known about is a different claim. The core's own banner carries the fix;
+  // the short label is used here because this block has no room for a sentence.
   if !NCZDG_HasData() {
     this.nczdg_mapPanel.SetVisible(true);
     this.nczdg_mapCount.SetText(NCZDG_NoDataLabel());
@@ -212,8 +212,8 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
 
   this.nczdg_mapBreakdown.RemoveAllChildren();
 
-  // 0 is a real, resolved answer - say so rather than hiding, which reads as broken. The web
-  // panel hides the breakdown line in this case too.
+  // 0 is a resolved answer, so it is stated rather than hidden. The web panel hides the breakdown
+  // line in this case too.
   if count <= 0 {
     this.nczdg_mapCount.SetText(NCZDG_T("NCZDG.mapEmpty"));
     this.nczdg_mapCount.BindProperty(n"tintColor", n"MainColors.Grey");

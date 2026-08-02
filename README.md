@@ -27,9 +27,8 @@ Every feature can be turned off on its own.
   the other.
 
   **Do not pair this with an older NCZoningCore from GitHub.** Redscript compiles every
-  installed mod into one unit, so a missing API function is not a graceful degradation — it
-  fails the compile and takes every redscript mod on your machine down with it, including
-  mods unrelated to either of these.
+  installed mod into one unit, so a missing API function fails the compile and takes every
+  redscript mod on your machine down with it, including mods unrelated to either of these.
 - [RedLogger](https://www.nexusmods.com/cyberpunk2077/mods/31920) (the mod's log file)
 - Input Loader (for the guide keybind)
 
@@ -45,21 +44,17 @@ Optional:
   each location's screenshot on its card, and the full-size image when you click it. Without it
   the guide simply has no images; nothing else changes.
 - **Cyber Engine Tweaks** — lets the guide mark which location mods you already have, and filter
-  the list to installed or missing. Without it the filter is hidden rather than shown doing
-  nothing, and no card claims an install state it cannot know.
+  the list to installed or missing. Without it the filter button is hidden and no card is marked.
 
-  Note that a handful of location mods are **AMM** mods, which can never be detected by anything:
-  their files live in CET's own sandboxed folder. Those stay unmarked and appear under both
-  filters, rather than being wrongly reported as missing.
+  A handful of location mods are **AMM** mods, whose files live in CET's own sandboxed folder and
+  cannot be detected by anything. Those read as UNKNOWN rather than as missing.
 
 Without RCF the mod still runs, but on its defaults only: the guide opens with the
 apostrophe key, there is no modifier, and **nothing can be rebound.** RCF also pulls in
 RED4ext for its bundled keybind plugin.
 
-**Mod Settings is no longer used.** Up to 0.1.0 the keybind lived there, because RCF could
-not capture one. RCF 2.0.0 can, so the keybind moved and the dependency was dropped — every
-setting is now in one menu. If you installed Mod Settings only for this mod, you no longer
-need it.
+**Mod Settings is not used.** Every setting, the keybind included, is in the RCF menu. If you
+installed Mod Settings only for this mod, you no longer need it.
 
 ## Install
 

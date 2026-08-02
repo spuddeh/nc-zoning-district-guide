@@ -4,22 +4,17 @@
 // Author: Spuddeh
 // Description: The standalone guide: a keybind-opened, game-pausing overlay.
 //
-//              Extends Codeware's InGamePopup, which is what RCF's F8 panel does. That supplies,
+//              Extends Codeware's InGamePopup, the same base RCF's F8 panel uses. That supplies,
 //              with no code here: the time dilation that pauses the game, the ModalPopup game
 //              context that blocks player input, the background blur, the mouse cursor, and
-//              ESC-to-close. Hand-rolling any of it would be a worse copy.
+//              ESC-to-close.
 //
 //              NOTHING NATIVE IS WRAPPED. The popup rides Codeware's CustomPopupManager, so the
-//              additive-injection rule holds by construction.
+//              additive-injection rule holds with no hook to keep additive.
 //
-//              M5.0 SCAFFOLD. Only the shell exists: header, footer, a search box and a close
-//              button. It is here to answer two questions that decide the design, and which are
-//              cheaper to test than to reason about:
-//                R1  Does the open keybind still fire while the popup is up, or does the
-//                    ModalPopup input context swallow it? If it is swallowed, the feature is
-//                    "keybind opens, ESC closes", not a toggle.
-//                R3  Does clicking a widget blur the Codeware text input, and does ESC still
-//                    close while the input holds focus?
+//              THE KEYBIND OPENS ONLY, IT DOES NOT TOGGLE. The ModalPopup input context swallows
+//              the key while the popup is up, and the panel owns a text input the key would
+//              otherwise be typed into. ESC closes.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh (NCZoningCore), psiberx (Codeware), DigitalVixen (RCF, the popup pattern)
 // ======================================================================================
@@ -51,15 +46,12 @@ import NCZoningDistrictGuide.District.*
 // to apply screenH/2160 by hand. Inside the popup the scale is inherited.)
 public func NCZDG_PopupWidth() -> Float { return 2800.0; }
 
-// Sized so TWO full rows fit, plus a sliver of the third - the sliver is deliberate, it is what
-// says there is more below.
+// Sized so TWO full rows fit, plus a sliver of the third, which is what shows there is more below.
 //   body   = 1760 - 135 - 118 (InGamePopupContent's own insets) = 1507
 //   cards  = 1507 - 96 (top strip)  = 1411
 //   needed = 2 * 668 + 24 gap       = 1360, leaving ~51 of the third row showing
 //
-// 1600 -> 1700 bought the second row; 1700 -> 1760 bought the reserved button band under the
-// tags (see NCZDG_TextBlockHeight). 1760 of the 2160-unit design height still leaves ~200 clear
-// above and below.
+// 1760 of the 2160-unit design height leaves ~200 clear above and below.
 public func NCZDG_PopupHeight() -> Float { return 1760.0; }
 
 // InGamePopupContent insets itself by (76, 135, 0, 118) - note the RIGHT margin is ZERO, while the
@@ -91,13 +83,8 @@ public func NCZDG_UsableHeight() -> Float {
 //   | districts   |  cards, 2 across                               |  body
 //   | (scrolls)   |  (scrolls)                                     |
 //   +-------------+------------------------------------------------+
-// ONE ROW, so this is just the row plus a little air. It was 150, then 132, and both were
-// driven by the RIGHT-hand side rather than the left: the count sat at y=20 with the pager
-// stacked under it at y=68, ending at 120, while the search box finished at 80. The strip had
-// to clear the taller column, which left visible dead space under the search box - the gap read
-// as a top-strip problem when it was really a stacking problem.
-//
-// The count now sits INSIDE the pager row rather than above it, so everything finishes at 80.
+// ONE ROW, so this is the row plus a little air. The count sits INSIDE the pager row rather than
+// above it, so both columns finish at y=80 and the strip does not have to clear a taller one.
 public func NCZDG_TopStripHeight() -> Float { return 96.0; }
 
 // The install filter sits above the district list rather than in the search row. These size the
@@ -137,18 +124,15 @@ public func NCZDG_CardWidth() -> Float {
 
 // --- gallery card: image on top, text beneath ----------------------------------------------
 //
-// THREE COLUMNS WITH A BANNER IMAGE, replacing a two-column card with a small left thumbnail.
-// The banner was considered and rejected at two columns for a concrete reason - at 902 wide a
-// 16:9 image is 507 tall, and the card would have reached ~750. At three columns the card is
-// ~593 wide, so the same 16:9 image is only ~334 tall and the whole card lands near 620.
-// **Narrower columns are what make a banner affordable at all**; ink still cannot crop, so the
-// image height is dictated by the width and nothing else.
+// THREE COLUMNS WITH A BANNER IMAGE. The column count is what makes the banner fit: ink cannot
+// crop, so image height follows width and nothing else. At two columns the card is 902 wide, a
+// 16:9 image is 507 tall and the card reaches ~750. At three the card is ~593 wide, the image is
+// ~334 and the card lands near 620.
 //
 // Left padding clears the two state bars (category accent + install), so the image starts
 // inside them rather than covering them.
-// The card's two action buttons. DERIVED, NOT TYPED TWICE: the strip that holds them used to carry
-// a hardcoded 404 with "2 * 190 + margins" in a comment beside it, and widening the buttons alone
-// overflowed the strip and pushed them off the card. Change the width here and the box follows.
+// The card's two action buttons. DERIVED, NOT TYPED TWICE: the strip that holds them takes its
+// width from this, so widening a button cannot push the pair off the card.
 public func NCZDG_CardBtnWidth() -> Float { return 230.0; }
 public func NCZDG_CardBtnLead() -> Float { return 12.0; }   // each button's own lead-in margin
 public func NCZDG_ActionsWidth() -> Float {
@@ -175,10 +159,8 @@ public func NCZDG_CardBorder() -> Float { return 4.0; }
 
 // The thumbnail is a banner seated INSIDE the card's frame, not a block aligned to the text margin.
 // Its top-left corner lands exactly where the accent bar's right edge meets the inside of the top
-// border; its right edge stops on the inside of the right border.
-//
-// Earlier attempts got this wrong in both directions: subtracting only CardPadLeft ran it over the
-// right border, and subtracting the text pads at both ends left an obvious gap down each side.
+// border; its right edge stops on the inside of the right border. Subtracting only CardPadLeft runs
+// it over the right border; subtracting the text pads at both ends leaves a gap down each side.
 public func NCZDG_ImageWidth() -> Float {
   return NCZDG_CardWidth() - NCZDG_AccentWidth() - NCZDG_CardBorder();
 }
@@ -196,11 +178,9 @@ public func NCZDG_ImageHeight() -> Float {
 // a 2-line 26px description (~74) + 8 + a 22px tags line (~31) + 12 = ~286 for the text, plus
 // NCZDG_ActionBandHeight() beneath it.
 //
-// THE BAND IS WHY THE TAGS SURVIVE. Earlier versions had the strip share the tags' space and
-// hide them on hover, which punished every card for a problem only long ones had - and the tags
-// appear nowhere else in the mod, so hiding them lost the information outright. Reserving the
-// space costs card height, and that height was bought by growing the popup rather than by
-// shrinking the image or the buttons.
+// THE BAND IS WHAT KEEPS THE TAGS. Sharing the tags' line and hiding them on hover costs every
+// card the tags, which appear nowhere else in the mod. Reserving the band costs card height
+// instead, paid for by the popup height rather than by the image or the buttons.
 public func NCZDG_ActionBandHeight() -> Float { return 60.0; }
 public func NCZDG_TextBlockHeight() -> Float { return 286.0 + NCZDG_ActionBandHeight(); }
 
@@ -215,30 +195,27 @@ public func NCZDG_TextWidth() -> Float {
   return NCZDG_CardWidth() - NCZDG_TextInset() - NCZDG_CardPadRight();
 }
 
-// BOTH MEASURED IN-GAME, not derived. Counting characters on a rendered line beats any estimate
-// here, because there is no way to query a wrapped text's height and the arithmetic was wrong in
-// both directions: ~38 title characters fit one line at 34px, and ~49 description characters fit
-// one line at 26px - well over the ~39 the line-width estimate predicted.
+// BOTH MEASURED IN-GAME, not derived. There is no way to query a wrapped text's height, and width
+// arithmetic gets this wrong: ~38 title characters fit one line at 34px and ~49 description
+// characters fit one line at 26px, against the ~39 a line-width estimate predicts.
 //
-// Title: 2 lines. It is capped at all only since the three-column grid; at ~545 wide an uncapped
-// mod name reaches a third line and pushes the tags into the button band.
+// Title: 2 lines. At ~545 wide an uncapped mod name reaches a third line and pushes the tags into
+// the button band.
 public func NCZDG_TitleCap() -> Int32 { return 74; }
 
 // Description: 3 lines.
 //
-// 128, NOT 147. Multiplying the 49-character first line by three was wrong, because 49 is what
-// fits on ONE line of ONE description - a proportional font gives a different count per line and
-// per string. Measured across seven cards that overflowed at a 145 cap, three lines actually
-// held 133 to 141 characters, the narrowest being a wide-glyph run. 128 clears the worst
-// observed case with a margin for ones not yet seen.
+// 128, NOT 147. Three times the 49-character first line is wrong: a proportional font gives a
+// different count per line and per string. Across seven cards that overflowed at a 145 cap, three
+// lines held 133 to 141 characters, the narrowest being a wide-glyph run. 128 clears the worst
+// case seen with margin for ones not yet seen.
 //
-// A CAP CANNOT BE DERIVED FROM ONE MEASURED LINE. It has to clear the worst line, and the only
-// way to find that is to cap high, look for overflow, and count what spilled.
+// A CAP CANNOT BE DERIVED FROM ONE MEASURED LINE. It has to clear the worst line, which means
+// capping high, looking for overflow, and counting what spilled.
 //
-// The third line fits at all because the height budget is conservative, not because the card
-// grew: the budget assumes ~1.42x font size per rendered line where the real figure is nearer
-// 1.2. That slack is spent now. A fourth line reaches the reserved button band, and ink cannot
-// clip, so it draws over the buttons rather than being trimmed.
+// The third line fits because the height budget assumes ~1.42x font size per rendered line where
+// the real figure is nearer 1.2. That slack is now spent. A fourth line reaches the reserved
+// button band, and ink cannot clip, so it draws over the buttons rather than being trimmed.
 public func NCZDG_DescCap() -> Int32 { return 128; }
 
 // Tags are ONE LINE, ALWAYS. The widget has no wrap position set, so it does not wrap - it runs
@@ -287,18 +264,13 @@ public func NCZDG_IdxCloseLightbox() -> Int32 { return -6; }
 public func NCZDG_IdxCycleFilter() -> Int32 { return -7; }
 
 // --- install filter -----------------------------------------------------------------------
-// Four states, cycled by one button. MISSING is not decoration: the guide is partly a DISCOVERY
-// tool, and "what is in this district that I do not have" is the question that sends someone to
-// Nexus.
+// Four states, cycled by one button. The guide is partly a DISCOVERY tool, so MISSING answers
+// "what is in this district that I do not have".
 //
-// UNKNOWN IS ITS OWN BUCKET, and that is a correction. It first appeared under BOTH installed
-// and missing, on the reasoning that an undetectable mod might be either - which is true, and
-// unusable: AMM location mods then showed up in a list headed INSTALLED that the player had no
-// reason to believe. A state that cannot be determined is its own answer, so it gets its own
-// view and is excluded from the two definite ones.
+// UNKNOWN IS ITS OWN BUCKET, and is excluded from the two definite ones. Listing an undetectable
+// mod under INSTALLED puts AMM location mods in a list the player has no reason to believe.
 //
-// Deliberately NOT offered as the RCF default. Opening on a list of undetectable mods is not a
-// preference anyone holds; it is a thing you go and look at once.
+// NOT offered as the RCF default: the guide should not open on a list of undetectable mods.
 public func NCZDG_FilterAll() -> Int32 { return 0; }
 public func NCZDG_FilterInstalled() -> Int32 { return 1; }
 public func NCZDG_FilterMissing() -> Int32 { return 2; }
@@ -315,11 +287,10 @@ public func NCZDG_FilterLabel(f: Int32) -> String {
 // True when the location passes the given filter. One place, so the card list and the nav
 // counts can never disagree about what a filter means.
 //
-// GUARDED, WITH NO FALLBACK ARM. NCZInstallState is a core type, so this signature cannot even
-// be written without the core - and unlike the classes below, a free function is not implicitly
-// covered by anything. Its only callers are inside guarded classes, so the guarded arm alone is
-// enough. (Caught by the -BothConfigs fallback build, not by the normal one: the real branch has
-// the core installed and compiles this happily.)
+// GUARDED, WITH NO FALLBACK ARM. NCZInstallState is a core type, so this signature cannot be
+// written without the core, and unlike the classes below a free function is not implicitly
+// covered by anything. Its only callers are inside guarded classes, so the guarded arm suffices.
+// Only the -BothConfigs fallback build catches a mistake here; the normal build has the core.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_PassesFilter(st: NCZInstallState, f: Int32) -> Bool {
   if f == NCZDG_FilterInstalled() { return Equals(st, NCZInstallState.Installed); }
@@ -363,11 +334,10 @@ public class NCZDGGuideSystem extends ScriptableSystem {
 
   // The keybind OPENS only; ESC / right-click / the CLOSE button dismiss.
   //
-  // Two reasons, and either alone would settle it. The popup pushes UIGameContext.ModalPopup, which
-  // switches input away from the gameplay contexts the key is bound into, so while the popup is up
-  // the listener never fires at all (verified: pressing it logs nothing). And the panel owns a text
-  // input, so a key that closed the window could not also be typed into the search box - binding the
-  // guide to ' would make ' undismissable as a search character.
+  // The popup pushes UIGameContext.ModalPopup, which switches input away from the gameplay contexts
+  // the key is bound into, so the listener never fires while the popup is up. The panel also owns a
+  // text input: a key that closed the window could not be typed into the search box, so binding the
+  // guide to ' would make ' unusable as a search character.
   public func Toggle() -> Void {
     if this.IsOpen() {
       return;   // unreachable while ModalPopup holds input; harmless if that ever changes
@@ -519,8 +489,8 @@ public class NCZDGGuidePopup extends InGamePopup {
       this.m_vignette.BindProperty(n"tintColor", NCZDG_Cyan());
     }
 
-    // THE PANEL HAS NO BACKDROP, deliberately. The blurred world shows between the cards, and
-    // the cards being the only solid surfaces is what gives them their weight.
+    // THE PANEL HAS NO BACKDROP. The blurred world shows between the cards, leaving the cards as
+    // the only solid surfaces.
     //
     // A backdrop belongs as the FIRST child of m_container, not the popup root: ink draws in
     // child order with no z-index, Codeware's SetContainerWidget routes the header, footer and
@@ -529,8 +499,8 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     this.m_header = InGamePopupHeader.Create();
     this.m_header.SetTitle(NCZDG_T("NCZDG.title"));
-    // Both fluff slots default to an unresolved LocKey (TRN_TCLAS_*), which renders as raw key text.
-    // The voice is Night Corp: official, authoritative, slightly sterile.
+    // Both fluff slots default to an unresolved LocKey (TRN_TCLAS_*), which renders as raw key text,
+    // so both are set. The voice is Night Corp: official, authoritative, slightly sterile.
     this.m_header.SetFluffLeft(NCZDG_T("NCZDG.headerLeft"));
     this.m_header.SetFluffRight(NCZDG_T("NCZDG.headerRight"));
     this.m_header.Reparent(this);
@@ -579,9 +549,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     // MakeButton because it needs an absolute spot in the top strip, and that helper flows its
     // box from the parent's layout. Hidden until there is a query.
     //
-    // FULL 80 HIGH AND TOP-ALIGNED, matching the input. It used to be 52 centred inside the
-    // input's 80, which reads as a small box floating beside a tall one - unnoticeable with one
-    // button, ragged once there were more controls on the row.
+    // FULL 80 HIGH AND TOP-ALIGNED, matching the input. A 52-high box centred inside the input's
+    // 80 reads as a small box floating beside a tall one.
     let clearBox = new inkCanvas();
     clearBox.SetName(n"nczdg_search_clear");
     clearBox.SetSize(new Vector2(160.0, 80.0));
@@ -623,14 +592,14 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     // Install filter. It sits at the TOP OF THE DISTRICT COLUMN, not in the search row, because
     // it filters that column as well as the cards - the counts beside every district change
-    // with it. A control that reshapes a list belongs on the list.
+    // with it.
     //
-    // Placed as a sibling ABOVE the nav scroll rather than as its first row: a row would scroll
-    // away with the districts, and this has to stay reachable.
+    // Placed as a sibling ABOVE the nav scroll rather than as its first row, or it would scroll
+    // away with the districts.
     //
     // Its visibility is a GATE, not a preference: without CET nothing is detectable, so the
-    // control is hidden rather than shown filtering nothing. Refresh() re-applies that, because
-    // the scan completes on session ready and the guide may be built either side of it.
+    // control is hidden. Refresh() re-applies that, because the scan completes on session ready
+    // and the guide may be built either side of it.
     let filterBox = new inkCanvas();
     filterBox.SetName(n"nczdg_filter");
     filterBox.SetSize(new Vector2(NCZDG_NavWidth() - NCZDG_ScrollBarStrip(), NCZDG_NavFilterHeight()));
@@ -674,8 +643,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     // Paging. The card column scrolls, but a pool of 30 cannot show 295 locations, so ALL needs a
     // way through.
     //
-    // ONE RIGHT-ALIGNED ROW, sharing the search box's 80-high band. The count used to sit ABOVE
-    // this and the whole strip had to be tall enough for both, which is what put dead space under
+    // ONE RIGHT-ALIGNED ROW, sharing the search box's 80-high band. The count belongs inside this
+    // row: stacked above it, the strip has to be tall enough for both and leaves dead space under
     // the search box.
     let pager = new inkHorizontalPanel();
     pager.SetName(n"nczdg_pager");
@@ -696,13 +665,13 @@ public class NCZDGGuidePopup extends InGamePopup {
     count.SetMargin(new inkMargin(0.0, 0.0, 24.0, 0.0));
     count.Reparent(pager);
     this.m_status = count;
-    // Clearing the pin must not require finding the card it came from - the player may have
-    // searched or paged away from it, and a pin they cannot see is a pin they cannot remove.
+    // Clearing the pin does not require finding the card it came from: the player may have
+    // searched or paged away from it.
     this.m_clearWp = this.MakeButton(pager, NCZDG_T("NCZDG.btnClearMarker"), NCZDG_IdxClearWaypoint());
     this.m_clearWp.SetVisible(false);
     this.m_clearWp.SetSize(new Vector2(280.0, 52.0));
-    // Held so Refresh can grey them when there is nowhere to page to. A button that looks
-    // active and does nothing reads as a broken button, not as an empty list.
+    // Held so Refresh can grey them out and drop them from the input path when there is nowhere
+    // to page to.
     this.m_prevBtn = this.MakeButton(pager, NCZDG_T("NCZDG.btnPrev"), NCZDG_IdxPrevPage());
     this.m_nextBtn = this.MakeButton(pager, NCZDG_T("NCZDG.btnNext"), NCZDG_IdxNextPage());
 
@@ -978,17 +947,15 @@ public class NCZDGGuidePopup extends InGamePopup {
         counts = NCZDG_T2("NCZDG.countPlain", "{n}", IntToString(n), "{area}", area.Label());
       }
     }
-    // Not logged. Refresh runs on every nav click, every page turn and every keystroke in the
-    // search box - it is the single noisiest thing the guide does.
+    // Not logged. Refresh runs on every nav click, every page turn and every search keystroke.
     this.m_status.SetText(counts);
   }
 
   // Narrows m_shown to the current filter. A no-op when the filter is ALL, and ALSO a no-op
   // when detection is unavailable - without CET every record is Unknown, so filtering would
-  // either empty the list or change nothing, and both are lies about the data.
+  // either empty the list or change nothing, and neither answer is true.
   //
-  // Unknown is excluded from INSTALLED and MISSING and has its own view - see the note on the
-  // filter constants for why showing it in both was wrong.
+  // Unknown is excluded from INSTALLED and MISSING and has its own view.
   private func ApplyInstallFilter() -> Void {
     if this.m_filter == NCZDG_FilterAll() || !NCZDG_InstallDetection() {
       return;
@@ -1077,8 +1044,8 @@ public class NCZDGGuidePopup extends InGamePopup {
   // widget states override style-bound tints.
   //
   // Interactivity is cleared as well as dimmed. A button that still brightens on hover reads as
-  // active however faint it is, and a non-interactive widget also cannot eat an OnEnter it will
-  // never balance with an OnLeave - which is how the CLEAR button used to stick white.
+  // active however faint it is, and a non-interactive widget cannot eat an OnEnter it will never
+  // balance with an OnLeave, which leaves the button stuck white.
   private func SetButtonEnabled(box: wref<inkCanvas>, on: Bool) -> Void {
     if !IsDefined(box) {
       return;
@@ -1115,9 +1082,8 @@ public class NCZDGGuidePopup extends InGamePopup {
       this.QueueImage(thumbUrl, slot.image, NCZDG_ImageWidth(), NCZDG_ImageHeight(), slot.slotIdx);
     }
 
-    // Capped, which it never used to be. At ~545 wide a long mod name wraps to three lines and
-    // pushes the tags out of the bottom of the card - and ink cannot clip, so they would draw
-    // over the card below rather than being trimmed.
+    // Capped: at ~545 wide a long mod name wraps to three lines and pushes the tags out of the
+    // bottom of the card. Ink cannot clip, so they draw over the card below rather than trimming.
     let title = loc.Name();
     slot.name.SetText(StrLen(title) > NCZDG_TitleCap()
       ? StrLeft(title, NCZDG_TitleCap() - 3) + "..."
@@ -1129,9 +1095,8 @@ public class NCZDGGuidePopup extends InGamePopup {
       authors += (a > 0 ? ", " : "") + loc.AuthorAt(a);
       a += 1;
     }
-    // Capped to the row's own width now, not around a badge - the badge moved onto the thumbnail
-    // and the meta line has the full row. 40 chars was the old clearance figure; 54 is what fits
-    // the row itself at 26px.
+    // Capped to the row's own width, not around a badge - the badge sits on the thumbnail, so the
+    // meta line has the full row. 54 characters is what fits it at 26px.
     let cat = NCZDG_CategoryLabel(loc.Category());
     let metaStr = StrLen(authors) > 0 ? s"\(cat)  -  \(authors)" : cat;
     slot.meta.SetText(StrLen(metaStr) > 54 ? StrLeft(metaStr, 51) + "..." : metaStr);
@@ -1149,10 +1114,10 @@ public class NCZDGGuidePopup extends InGamePopup {
       : d);
 
     // Capped by count AND length, and the length check is done on the PROSPECTIVE string. The
-    // old form tested the length already accumulated and then appended anyway, so the result
-    // could exceed the cap by an entire tag - a 15-character tag arriving at 59 gave 74. That is
-    // not a tidiness slip: the tags widget has no wrap position, so it does not wrap onto a
-    // second line, it runs off the right edge of the card, and ink will not clip it.
+    // length must be tested on the PROSPECTIVE string: testing what has accumulated and then
+    // appending anyway overshoots the cap by an entire tag. This is a correctness bound, not a
+    // tidiness one - the tags widget has no wrap position, so it runs off the right edge of the
+    // card instead of wrapping, and ink will not clip it.
     let tags = "";
     let t = 0;
     while t < loc.TagCount() && t < NCZDG_TagsMax() {
@@ -1171,13 +1136,11 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     // INSTALLED ONLY, AND ONLY WHILE SHOWING ALL.
     //
-    // The badge answers "do I already have this one?", which is a question the player only has
-    // while the list is mixed. Under SHOWING: INSTALLED every card would wear it and it says
-    // nothing; under SHOWING: MISSING none would.
+    // The badge answers "do I already have this one?", which only arises while the list is mixed.
+    // Under SHOWING: INSTALLED every card would wear it; under SHOWING: MISSING none would.
     //
-    // Nothing is drawn for NotInstalled or Unknown. Absence is not a claim: an AMM mod is
-    // undetectable in principle and without CET nothing is detectable at all, so a "not installed"
-    // badge would state as fact something the guide cannot know.
+    // Nothing is drawn for NotInstalled or Unknown. An AMM mod cannot be detected at all, and
+    // without CET nothing can, so a "not installed" badge would assert what the guide cannot know.
     if IsDefined(slot.installBadge) {
       let showInstalled = Equals(NCZDG_InstallStateOf(loc), NCZInstallState.Installed)
                           && this.m_filter == NCZDG_FilterAll();
@@ -1186,9 +1149,8 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     // The waypoint button reflects the CURRENT pin, so it is right on every re-bind.
     let actions = NCZDGWorldActions.Get(this.m_gi);
-    // A button says what CLICKING it does, and nothing else. Routing state is not an action - no
-    // script can track a mappin, only the player can, from the map - so it belongs in a hint, not on
-    // a control that does something different from what it reads.
+    // The label says what CLICKING it does, and nothing else. Routing state is not an action - no
+    // script can track a mappin, only the player can, from the map - so it belongs in a hint.
     let pinned = IsDefined(actions) && actions.IsPinned(loc.Id());
     slot.wpLabel.SetText(pinned ? NCZDG_T("NCZDG.btnClearMarker") : NCZDG_T("NCZDG.btnSetMarker"));
     slot.wpLabel.BindProperty(n"tintColor", NCZDG_Cyan());
@@ -1204,10 +1166,9 @@ public class NCZDGGuidePopup extends InGamePopup {
   // draws in child order and offers no z-index, which is also why it cannot simply live inside
   // the card it was opened from.
   //
-  // IT CLOSES ON CLICK, ANYWHERE. ESC is Codeware's and closes the whole guide, and there is no
-  // supported way to intercept it ahead of the popup - so rather than half-capture it, the
-  // scrim is one big button. ESC while the lightbox is open therefore closes the guide outright;
-  // that is a known wart, not an oversight.
+  // IT CLOSES ON CLICK, ANYWHERE. ESC belongs to Codeware and closes the whole guide, and there is
+  // no supported way to intercept it ahead of the popup, so the scrim is one large button. ESC
+  // while the lightbox is open closes the guide outright - a known limit.
   private func BuildLightbox(parent: wref<inkCompoundWidget>) -> Void {
     let box = new inkCanvas();
     box.SetName(n"nczdg_lightbox");
@@ -1223,8 +1184,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     //
     // FULLY OPAQUE, AND SIZED EXPLICITLY. The first cut used inkEAnchor.Fill at 0.96 opacity and
     // read clearly translucent in-game - the nav column and card text were legible straight
-    // through it. Both halves of that are now pinned down rather than trusted: an explicit size
-    // instead of Fill, and 1.0 instead of a fraction.
+    // through it. Both halves are pinned down: an explicit size instead of Fill, and 1.0 opacity
+    // instead of a fraction.
     let scrim = new inkRectangle();
     scrim.SetSize(new Vector2(NCZDG_PopupWidth(), NCZDG_PopupHeight()));
     scrim.SetAnchor(inkEAnchor.Centered);
@@ -1334,8 +1295,8 @@ public class NCZDGGuidePopup extends InGamePopup {
   }
 
   // One poll chain at a time, started on demand and left to die when the queue empties or the
-  // popup closes. Deliberately NOT an onUpdate: this is a UI fetch, not game logic, and it must
-  // stop dead the moment the guide is gone.
+  // popup closes. NOT an onUpdate: this is a UI fetch, not game logic, and it must stop the
+  // moment the guide is gone.
   private func EnsureImagePoll() -> Void {
     if this.m_polling || this.m_isClosed || ArraySize(this.m_pending) == 0 {
       return;
@@ -1346,13 +1307,12 @@ public class NCZDGGuidePopup extends InGamePopup {
 
   // THIS POLL IS THE DOCUMENTED WAY TO USE THE API. DO NOT "FIX" IT INTO AN EVENT.
   //
-  // Two other timers in this mod were removed for being polls, and this one looks like them. It is
-  // not the same thing. RedIMGRetriever exposes a POLL-DRIVEN native API by design - its own
-  // documentation says so, its sample is a poll, and its author's own consumer (RCF's DVRCF_Hub)
-  // polls at 0.05s. There is no event to subscribe to and no missing one to wait for.
+  // RedIMGRetriever exposes a poll-driven native API by design: its documentation says so, its
+  // sample is a poll, and its author's own consumer (RCF's DVRCF_Hub) polls at 0.05s. There is no
+  // event to subscribe to.
   //
   // 0.25s, five times slower than the reference client, and the chain does not start unless an
-  // image is actually outstanding.
+  // image is outstanding.
   private func ScheduleImagePoll() -> Void {
     let cb = new NCZDGImagePollCB();
     cb.popup = this;
@@ -1434,10 +1394,8 @@ public class NCZDGGuidePopup extends InGamePopup {
   }
 
   // The strip has its own reserved band under the tags (NCZDG_ActionBandHeight), so revealing it
-  // overlaps nothing and hides nothing. THE TAGS ARE NEVER TOUCHED HERE - an earlier version
-  // swapped the two, and that was wrong twice over: it punished every card for a problem only
-  // long ones had, and the tags appear nowhere else in the mod, so hiding them lost the
-  // information rather than deferring it.
+  // overlaps nothing and hides nothing. THE TAGS ARE NEVER TOUCHED HERE. Swapping the two costs
+  // every card its tags, which appear nowhere else in the mod.
   private func SetCardActions(slot: ref<NCZDGCardSlot>, on: Bool) -> Void {
     if IsDefined(slot.actions) {
       slot.actions.SetVisible(on);
@@ -1538,11 +1496,9 @@ public class NCZDGGuidePopup extends InGamePopup {
     accent.BindProperty(n"tintColor", NCZDG_Cyan());
     accent.Reparent(card);
 
-    // The banner image, across the top. ALWAYS PRESENT AND ALWAYS THE SAME SIZE - it is not
-    // toggled per bind any more. In a three-across grid a card that collapses its image sits a
-    // third as tall as the two beside it, and a row that does not line up reads as broken; a
-    // reserved box with an honest placeholder does not. That reverses the collapse behaviour
-    // the two-column list had, and the reason is the grid, not a change of mind about images.
+    // The banner image, across the top. ALWAYS PRESENT AND ALWAYS THE SAME SIZE, never toggled
+    // per bind. In a three-across grid a card that collapses its image sits a third as tall as
+    // the two beside it, and the row no longer lines up; a reserved box with a placeholder does.
     let imgBox = new inkCanvas();
     imgBox.SetName(n"nczdg_thumb");
     imgBox.SetSize(new Vector2(NCZDG_ImageWidth(), NCZDG_ImageHeight()));
@@ -1638,8 +1594,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     name.Reparent(stack);
 
     // Meta row: category + authors. A fixed-height canvas so it sits outside the vertical budget
-    // and no description can push it off the card. The recency badge used to share this row and
-    // now overlays the thumbnail, so the whole width is the meta string's.
+    // and no description can push it off the card. The recency badge overlays the thumbnail, so
+    // the whole width belongs to the meta string.
     let metaRow = new inkCanvas();
     metaRow.SetSize(new Vector2(NCZDG_TextWidth(), 34.0));
     metaRow.SetMargin(new inkMargin(0.0, 0.0, 0.0, 10.0));
@@ -1674,9 +1630,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     // is always there whether or not the strip is drawn in it, so revealing on hover moves
     // nothing and hides nothing.
     //
-    // Two earlier placements, both rejected in play: on the image, which put a control panel
-    // across the photograph; and sharing the tags' line with the tags hidden on hover, which
-    // punished every card for a problem only long-titled ones had.
+    // Not on the image, which lays a control panel across the photograph, and not on the tags'
+    // line with the tags hidden on hover, which costs every card its tags.
     //
     // NO SHARED BACKING PLATE. This canvas is transparent: each button carries its own fill,
     // because one rectangle spanning both of them - and the gap between them - reads as a slab
@@ -1702,8 +1657,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     // WAYPOINT is the longest at 14 characters. The width lives in NCZDG_CardBtnWidth so the
     // strip that holds them stays in step.
     //
-    // ONE KEY, used here and in the refresh path. Two keys for one label is how the button kept
-    // its old text after a rename: creation said one thing, the next Refresh overwrote it.
+    // ONE KEY, used here and in the refresh path. Two keys for one label leaves creation and the
+    // next Refresh disagreeing about what the button says.
     let wp = this.MakeSmallButton(actions, NCZDG_T("NCZDG.btnSetMarker"), NCZDG_IdxWaypointBase() + slotIdx, NCZDG_CardBtnWidth());
     let tp = this.MakeSmallButton(actions, NCZDG_T("NCZDG.btnTeleport"), NCZDG_IdxTeleportBase() + slotIdx, NCZDG_CardBtnWidth());
 
@@ -1749,10 +1704,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     box.SetInteractive(true);
     box.Reparent(parent);
 
-    // Each button carries its OWN fill, chamfered to match its own frame. The strip used to sit
-    // on one shared rectangle spanning both buttons and the gap between them, which reads as a
-    // slab laid over the card - and cell_fg's interior is translucent, so without any fill the
-    // card's tags would read straight through the buttons instead.
+    // Each button carries its OWN fill, chamfered to match its own frame. One shared rectangle
+    // spanning both buttons and the gap between them reads as a slab laid over the card, and
+    // cell_fg's interior is translucent, so with no fill at all the card's tags read straight
+    // through the buttons.
     let bg = new inkImage();
     bg.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
     bg.SetTexturePart(n"cell_bg");
@@ -1898,9 +1853,9 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     actions.SetWaypoint(this.m_gi, loc.Pos(), loc.Id(), loc.Name());
 
-    // Placing the pin is not the feature - being shown where it is, is. A player who has never heard
-    // of this location cannot pick its pin out of a map full of them, so the request to be taken to
-    // it is queued here and consumed the next time the world map opens (MapFocus.reds).
+    // Placing the pin is not enough on its own: a player who has never heard of this location
+    // cannot pick its pin out of a map full of them. The request to be taken to it is queued here
+    // and consumed the next time the world map opens (MapFocus.reds).
     let cfg = NCZDGConfig.Get();
     if IsDefined(cfg) && cfg.openMapOnMarker {
       let focus = NCZDGMapFocus.Get();
@@ -1909,9 +1864,9 @@ public class NCZDGGuidePopup extends InGamePopup {
       }
       // Armed here, fired from OnHidden - NOT on a timer. Close() only QUEUES the hide; the popup
       // does not pop UIGameContext.ModalPopup until it detaches, and opening the map before that
-      // lands it underneath a live modal context: the map draws, nothing accepts input, and the
-      // context stack is left unbalanced. A soft lock, and no delay is the right length because
-      // the wait is for an event, not a duration.
+      // lands it underneath a live modal context: the map draws, nothing accepts input, the
+      // context stack is left unbalanced and the game soft-locks. No delay is the right length,
+      // because the wait is for an event rather than a duration.
       this.m_openMapOnHidden = true;
       this.Close();
       return;
@@ -1998,8 +1953,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     barArea.SetAnchorPoint(new Vector2(1.0, 0.0));
 
     // Tinted DIRECTLY, not through a style bind. The handle is interactive, so it gets widget
-    // states, and a state overrides a bound tintColor while leaving SetTintColor alone - which is
-    // what left the handle red at rest and cyan only on hover.
+    // states, and a state overrides a bound tintColor while leaving SetTintColor alone. A bind
+    // here leaves the handle red at rest and cyan only on hover.
     let track = new inkRectangle();
     track.SetAnchor(inkEAnchor.Fill);
     track.SetTintColor(NCZDG_CyanColor());

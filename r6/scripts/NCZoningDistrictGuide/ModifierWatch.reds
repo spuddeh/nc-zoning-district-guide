@@ -4,21 +4,16 @@
 // Author: Spuddeh
 // Description: Tracks whether the configured guide-key MODIFIER is currently held.
 //
-//              THIS REPLACES A WORKAROUND WHOSE JUSTIFICATION WAS FALSE. r6/input/nczdg.xml
-//              used to register NCZDG_ModShift / NCZDG_ModAlt / NCZDG_ModCtrl as three of
-//              their own input actions purely so the listener could watch them, because
-//              "IsShiftDown()/IsControlDown() live on inkInputEvent, a UI event, and are not
-//              reachable from a gameplay ListenerAction callback". The ListenerAction half
-//              of that is true. The conclusion was not: Codeware's CallbackSystem event
-//              n"Input/Key" delivers a KeyInputEvent, which is not a UI event and carries
-//              GetKey(), GetAction(), IsShiftDown(), IsControlDown() and IsAltDown()
-//              (verified in _source/cp2077-codeware KeyInputEvent.reds). So three input
-//              actions, three XML mappings and three listener branches existed to work
-//              around something the dependency already did.
+//              MODIFIER STATE COMES FROM Codeware's n"Input/Key" EVENT, not from dedicated
+//              input actions. IsShiftDown() / IsControlDown() live on inkInputEvent and are
+//              unreachable from a gameplay ListenerAction callback, but n"Input/Key" delivers
+//              a KeyInputEvent, which is not a UI event and carries GetKey(), GetAction(),
+//              IsShiftDown(), IsControlDown() and IsAltDown()
+//              (_source/cp2077-codeware KeyInputEvent.reds).
 //
-//              Watching the raw key rather than IsShiftDown() is deliberate: RCF's modifier
-//              row stores an arbitrary EInputKey, so the modifier is ANY key the player
-//              picks, not a choice of three. The three predicates would only cover three.
+//              THE RAW KEY IS WATCHED, NOT IsShiftDown(). RCF's modifier row stores an
+//              arbitrary EInputKey, so the modifier is ANY key the player picks; the three
+//              predicates would only cover three of them.
 //
 //              This mirrors DVRCF_Hub.RefreshModifierWatch / OnModifierKey exactly. RCF does
 //              NOT expose that as a reusable helper: a `localOnly` row is stored and handed

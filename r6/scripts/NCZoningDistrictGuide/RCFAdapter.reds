@@ -12,22 +12,17 @@
 //              Every item is guarded by @if(ModuleExists("RedscriptConfigFramework")), so
 //              the whole file compiles to nothing when RCF is absent.
 //
-//              THIS IS NOW THE ONLY SETTINGS UI, WITH NO EXCEPTION. The keybind used to live
-//              in Mod Settings because RCF 1.3.0 could not capture one - no keybind row kind,
-//              no EInputKey channel, popup handled only n"click". All of that is FALSE of
-//              2.0.0 (2026-07-26), which added Keybind/PadKeybind/AnyKeybind/ModifierKeybind
-//              rows and a bundled DVRCFInput RED4ext plugin that applies the override. The
-//              Mod Settings dependency is gone.
+//              THIS IS THE ONLY SETTINGS UI, WITH NO EXCEPTION - the keybind included. RCF
+//              2.0.0 captures keybinds through Keybind/PadKeybind/AnyKeybind/ModifierKeybind
+//              rows and a bundled DVRCFInput RED4ext plugin that applies the override.
 //
-//              THE PRICE, accepted: RCF is no longer merely recommended. Without it the mod
-//              runs on defaults but has no rebindable key at all, and RED4ext is now in the
-//              chain via RCF's bundled plugin.
+//              RCF IS NO LONGER MERELY RECOMMENDED. Without it the mod runs on defaults but
+//              has no rebindable key, and RED4ext is in the chain via RCF's bundled plugin.
 //              [[CP2077-Mods/wiki/decisions/one-owner-per-setting-rcf-plus-modsettings-keybind]]
 //
-//              Mod Settings push-back is not merely removed, it is FORBIDDEN. The only commit
-//              call available to redscript, ModSettings.AcceptChanges(), is GLOBAL: it would
-//              apply every other mod's pending unapplied changes as a side effect. That is
-//              why no future setting may be mirrored there.
+//              MIRRORING A SETTING BACK TO MOD SETTINGS IS FORBIDDEN. The only commit call
+//              available to redscript, ModSettings.AcceptChanges(), is GLOBAL: it applies
+//              every other mod's pending unapplied changes as a side effect.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: DigitalVixen (RCF)
 // ======================================================================================

@@ -2,45 +2,36 @@
 // Mod Name: NC Zoning District Guide
 // File: MapFocus.reds
 // Author: Spuddeh
-// Description: Takes the player to the marker on the world map instead of leaving them to hunt
-//              for it, and - optionally - tracks it for them.
+// Description: Centres the world map on the marker, and - optionally - tracks it for the player.
 //
-//              WHY THIS IS POSSIBLE AT ALL. A script cannot mark a mappin player-tracked: the
-//              MappinSystem exposes GetManuallyTrackedMappinID and no setter, and the three
-//              functions that CAN do it live on WorldMapMenuGameController, which exists only
-//              while the map is open. That was recorded as a wall. It is a PRECONDITION - open
-//              the map and the functions are in reach:
+//              THE MAP MUST BE OPEN. A script cannot mark a mappin player-tracked: MappinSystem
+//              exposes GetManuallyTrackedMappinID and no setter, and the three functions that can
+//              do it live on WorldMapMenuGameController, which exists only while the map is open:
 //
 //                ZoomToMappin(BaseWorldMapMappinController)   centre the map on a pin
 //                SetSelectedMappin(BaseWorldMapMappinController)
 //                TrackMappin(BaseMappinBaseController)        the PLAYER-tracked slot, by controller
 //
-//              None of the three appears in the six measured workarounds on
-//              [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]].
 //              TrackCustomPositionMappin() is a DIFFERENT function and must not be substituted:
 //              it creates a new waypoint at the map cursor rather than adopting an existing pin,
 //              so on map open it plants one at roughly the world origin.
+//              [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]]
 //
 //              THE HANDLE COMES FROM THE ICON HOOK. A mappin controller is not reachable by
 //              lookup, but MapMarker.reds already wraps BaseWorldMapMappinController.UpdateIcon
-//              to brand the marker - so the controller passes through this mod on every map
-//              build, and capturing it there costs nothing.
+//              to brand the marker, so the controller passes through this mod on every map build.
 //
-//              TIMING IS THE WHOLE DIFFICULTY, AND IT IS NOT SOLVED WITH A TIMER. The pin's
-//              controller does not exist when the map opens; it is spawned later, as the map draws
-//              its pins. Three delay-based versions were built and all three failed - DelaySystem
-//              runs on GAME time and an open map dilates that almost to a stop, so a 0.25s callback
-//              landed ~9 REAL seconds later, after the player had closed the map.
+//              NOTHING WAITS ON A TIMER, AND NOTHING MAY. The pin's controller does not exist when
+//              the map opens; it is spawned later, as the map draws its pins. DelaySystem runs on
+//              GAME time and an open map dilates that almost to a stop, so a 0.25s callback lands
+//              ~9 REAL seconds later, after the player has closed the map. The request is queued,
+//              and the marker's own icon hook fires it the moment the controller exists.
 //
-//              So nothing waits. The request is queued, and the marker's own icon hook fires it at
-//              the moment the controller exists.
-//
-//              TRACKING IS ON BY DEFAULT, and the earlier claim that it must not be - that one
-//              tracked slot is shared with quests - was WRONG. The player-tracked slot and the
-//              quest-tracked slot are separate: vanilla's TryTrackQuestOrSetWaypoint branches
-//              CanQuestTrackMappin -> TrackQuestMappin against CanPlayerTrackMappin ->
-//              TrackMappin, and the player branch clears only UntrackCustomPositionMappin. Taking
-//              the player slot costs the player a custom map waypoint, never their quest.
+//              TRACKING IS ON BY DEFAULT. The player-tracked slot and the quest-tracked slot are
+//              separate: vanilla's TryTrackQuestOrSetWaypoint branches CanQuestTrackMappin ->
+//              TrackQuestMappin against CanPlayerTrackMappin -> TrackMappin, and the player branch
+//              clears only UntrackCustomPositionMappin. Taking the player slot costs the player a
+//              custom map waypoint, never their quest.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh
 // ======================================================================================
@@ -48,9 +39,6 @@
 module NCZoningDistrictGuide.MapFocus
 
 import NCZoningDistrictGuide.Config.*
-
-// (A retry delay and attempt cap used to live here. They are gone with the poll - see the file
-// header: there is no correct delay while the map dilates game time.)
 
 // Holds the request across the guide closing and the map opening - two different UI lifetimes, so
 // this cannot live on either of them.
@@ -62,13 +50,9 @@ import NCZoningDistrictGuide.Config.*
 public class NCZDGMapFocus extends ScriptableService {
   private let m_pending: Bool;
 
-  // A STRONG ref, and it has to be. As a wref this read back null on every poll attempt even though
-  // the capture had already happened 72ms earlier - the controller is native-owned, and a weak ref
-  // to it does not survive being parked here across frames. Measured 2026-08-02: captured at
-  // .788, "never appeared" at +3s.
-  //
-  // The strong ref is made safe by clearing it, not by weakening it: cleared when the map opens,
-  // when it closes, and once a focus request has been consumed.
+  // A STRONG ref, and it has to be: the controller is native-owned, and a wref to it reads back
+  // null once parked here across a frame. Kept safe by clearing it, not by weakening it - cleared
+  // when the map opens, when it closes, and once a focus request has been consumed.
   private let m_ctrl: ref<BaseWorldMapMappinController>;
   private let m_menu: ref<gameuiInGameMenuGameController>;
 
@@ -123,10 +107,7 @@ public class NCZDGMapFocus extends ScriptableService {
   }
 
   // The open world map. A STRONG ref for the same reason as m_ctrl, and cleared on map close.
-  //
-  // This used to live on the DelayCallback as a wref and it did not survive the hop: measured
-  // 2026-08-02, "poll 0 - ABORT menu=false" on the very first attempt, having been captured
-  // milliseconds earlier. Nothing about this flow may hold a weak ref across a frame.
+  // Nothing in this flow may hold a weak ref across a frame.
   private let m_mapMenu: ref<WorldMapMenuGameController>;
 
   public func SetMapMenu(menu: ref<WorldMapMenuGameController>) -> Void {
@@ -154,15 +135,12 @@ public class NCZDGMapFocus extends ScriptableService {
   }
 }
 
-// THERE IS NO CALLBACK AND NO TIMER HERE, AND ONE MUST NOT BE REINTRODUCED.
+// THERE IS NO CALLBACK AND NO TIMER HERE, AND ONE MUST NOT BE ADDED.
 //
-// The focus fires synchronously from MapMarker's icon hook, which is the moment the marker's
-// controller exists. Three timing-based versions were tried and all three failed: DelaySystem runs
-// on GAME time, and an open world map dilates that almost to a stop, so a 0.25s delay lands ~9
-// REAL seconds later - after the player has given up on the map and closed it. Measured 2026-08-02.
-//
-// A delay here is not "too short" or "too long". There is no correct duration, because the clock it
-// would be measured against barely advances while the map is open.
+// The focus fires synchronously from MapMarker's icon hook, at the moment the marker's controller
+// exists. A delay here has no correct duration: DelaySystem runs on GAME time, and an open world
+// map dilates that almost to a stop, so a 0.25s delay lands ~9 REAL seconds later - after the
+// player has closed the map.
 
 // Centres the map on the waypoint, and takes the PLAYER-tracked slot unless the player opted out.
 //
@@ -190,17 +168,15 @@ public final func NCZDG_FocusMarker(ctrl: ref<BaseWorldMapMappinController>) -> 
 //
 // SpawnMenuInstanceDataEvent is the only route into the hub menus, and it is PROTECTED - it can be
 // called from inside the class that owns it and nowhere else. It is declared on
-// gameuiBaseMenuGameController (NOT on inkGameController, which is where an earlier attempt looked
-// for it and is why that attempt failed to resolve the method).
+// gameuiBaseMenuGameController - NOT on inkGameController, where it does not resolve.
 //
 // The guide is a Codeware InGamePopup, so it is not a menu controller and can never call it. An
 // @addMethod on gameuiInGameMenuGameController is, for access purposes, a method OF that class, so
 // the protected call is legal there - and that controller inherits the native from its base. What is
 // then needed is a live instance, which is what OnInitialize captures.
 //
-// The body mirrors the game's own OpenShortcutMenu (inGameMenuGameController.swift:501-526) rather
-// than inventing a path: same init data, same hardware-disabled guard, same combat restriction, same
-// conditional event name.
+// The body mirrors the game's own OpenShortcutMenu (inGameMenuGameController.swift:501-526): same
+// init data, same hardware-disabled guard, same combat restriction, same conditional event name.
 
 @wrapMethod(gameuiInGameMenuGameController)
 protected cb func OnInitialize() -> Bool {
@@ -266,10 +242,9 @@ public func NCZDG_TryOpenWorldMap() -> Bool {
   return menu.NCZDG_OpenWorldMap();
 }
 
-// NO TIMER HERE, DELIBERATELY. The map open used to be scheduled 0.15s after Close(), which raced
-// the popup's own teardown and soft-locked the game. It is now called from NCZDGGuidePopup.OnHidden,
-// because the thing being waited for is the ModalPopup context being popped - an event, not a
-// duration. Do not reintroduce a delay-based version.
+// NO TIMER HERE. The map open is called from NCZDGGuidePopup.OnHidden, because what it waits for is
+// the ModalPopup context being popped - an event, not a duration. Scheduling it a fixed delay after
+// Close() races the popup's teardown and soft-locks the game.
 
 // The map is gone, so the controller it owned must not be held past it. This is what makes the
 // strong ref safe.
@@ -283,7 +258,7 @@ protected cb func OnUninitialize() -> Bool {
   return wrappedMethod();
 }
 
-// Entry point: the map has opened. A pending focus starts the poll for the pin's controller.
+// Entry point: the map has opened.
 @wrapMethod(WorldMapMenuGameController)
 protected cb func OnInitialize() -> Bool {
   let result = wrappedMethod();
