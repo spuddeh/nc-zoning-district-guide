@@ -21,9 +21,10 @@ A three-across gallery of location mods, filed by district.
 [*][b]Browse by district and subdistrict[/b] — the list opens on wherever you are standing.
 [*][b]Search[/b] by name, author or tag.
 [*][b]Photographs.[/b] Each card carries the location's survey image where the registry has one.
-[*][b]Set a marker[/b] on any location and it appears on your world map, with the name on the pin.
+[*][b]Show on map.[/b] One click drops a waypoint on the location, opens the world map on it and starts routing. No hunting for the pin, no tracking it by hand.
 [*][b]Teleport[/b] straight to it, if you would rather skip the drive.
-[*][b]Recently updated[/b] locations are flagged in green and sorted to the front, so a district you know still shows you what changed.
+[*][b]Recently updated[/b] locations are flagged in green on the card image and sorted to the front, so a district you know still shows you what changed.
+[*][b]Already installed?[/b] Cards for mods you have carry a cyan INSTALLED badge.
 [/list]
 
 [color=#00f0ff][size=5][b]1a. THE INSTALL FILTER[/b][/size][/color]
@@ -37,7 +38,9 @@ With [b]Cyber Engine Tweaks[/b] installed, the guide marks which of these locati
 [i]Without CET the filter button is hidden. Everything else works exactly as described.[/i]
 [line]
 [color=#00f0ff][size=5][b]2. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
-A marker set from the guide draws no route until you open the world map once. That is the game's own behaviour, not a setting and not a bug in this mod: only the map can adopt a script-placed pin as your tracked waypoint. Open the map, and the route appears.
+A waypoint only starts routing once the world map has been opened. That is the game's own behaviour, not a bug in this mod — only the map can adopt a script-placed pin as your tracked waypoint.
+
+The guide opens the map and tracks the waypoint for you, so you will not normally meet this. You will if you switch both [b]Open the Map on Show[/b] and [b]Track the Waypoint[/b] off: the pin is placed, and it draws no route until you open the map and track it yourself.
 [line]
 [color=#00f0ff][size=5][b]3. SETTINGS[/b][/size][/color]
 Everything is in the [b]Redscript Configuration Framework[/b] overlay — press [b]F8[/b] in game.
@@ -47,6 +50,8 @@ Everything is in the [b]Redscript Configuration Framework[/b] overlay — press 
 [*][b]Open Guide Key.[/b] The key that opens it. Needs Input Loader.
 [*][b]Open Guide Modifier.[/b] An optional key to hold alongside it. Any key, not just Shift, Alt or Ctrl. Leave unset for none.
 [*][b]Open Guide Showing.[/b] Which locations the guide lists when it opens. Needs Cyber Engine Tweaks.
+[*][b]Open the Map on Show.[/b] SHOW ON MAP opens the world map and centres it on the waypoint. Off places the waypoint and leaves you in the guide.
+[*][b]Track the Waypoint.[/b] Routes to the waypoint straight away. This replaces a custom waypoint you have placed; your tracked quest is a separate slot and is left alone.
 [*][b]Show on World Map.[/b] Adds the count and category breakdown to the map's district info panel.
 [*][b]Enable District Notice.[/b] The panel under the game's district banner.
 [*][b]Name the Nearest Location.[/b] Also names the closest location in the area. Off shows only the count.

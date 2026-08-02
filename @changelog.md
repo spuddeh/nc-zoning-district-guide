@@ -9,6 +9,69 @@ Initial development. Not yet released.
 
 ### Added
 
+- **The waypoint rework (2026-08-02), verified in game.** SHOW ON MAP places the waypoint,
+  **opens the world map from script**, centres it on the pin and fills the player-tracked slot,
+  so the route draws with no player action. Two settings, `openMapOnMarker` and
+  `autoTrackMarker`, both defaulting ON and both wired into RCF.
+  - Opening the map calls `SpawnMenuInstanceDataEvent`, a protected native declared on
+    **`gameuiBaseMenuGameController`** — not on `inkGameController`, which is the wrong owner an
+    earlier attempt assumed and the reason it failed to resolve. An `@addMethod` on
+    `gameuiInGameMenuGameController` may call it; the live instance is captured on that
+    controller's `OnInitialize`. The event name is conditional on the `radial_hub_menu_enabled`
+    fact, and the wrong one opens nothing with no error anywhere.
+  - The map open fires from the popup's `OnHidden`, **not a timer**. `Close()` only queues the
+    hide; the `ModalPopup` context is popped later, and opening the map before that put it
+    underneath a live modal context — drawn, accepting no input, context stack unbalanced.
+  - The focus fires **synchronously from `BaseWorldMapMappinController.UpdateIcon`**, the moment
+    the marker's controller exists. Three delay-based versions failed first: `DelaySystem` runs on
+    GAME time, which the open map dilates, so a 0.25s callback landed 9.1 REAL seconds later.
+- **Card badges moved onto the thumbnail.** RECENTLY UPDATED to the top-right in green,
+  INSTALLED to the top-left in cyan — the latter only when installed *and* only under
+  SHOWING: ALL. Both are chamfered `cell_bg` + `cell_fg` pairs from one `MakeCornerBadge` helper.
+
+### Fixed
+
+- **CTD on every world-map open.** The `UpdateTrackedState` wraps resolved the marker's identity by
+  dereferencing the mappin. Vanilla's own `UpdateTrackedState` returns at
+  `ArraySize(m_taggedWidgets) == 0` before touching it, and the hook also runs while mappins are
+  being destroyed — and `GetMappin()` returns a `wref`, which is **not null** for a destroyed
+  mappin, so `IsDefined()` passed it through and `GetDisplayName()` crashed the game. Identity is
+  now resolved once in the icon path and cached to `nczdg_isOurs`; the tracked hooks read the Bool
+  and make no native call at all for a pin the mod does not own, and `NCZDG_TintIcon` reads
+  `IsPlayerTracked()` off the **controller** rather than through the mappin.
+- **Clearing a waypoint left a pin on the HUD and minimap.** `UnregisterMappin` was already
+  destroying it, but destroying a mappin that has ever been tracked strands its widget. Now
+  deactivate → untrack (guarded, so it never drops a waypoint the player set) → destroy.
+- **The card button ignored its own rename.** Two LocKeys drove one label: `btnSetWaypoint` at
+  creation and `btnSetMarker` on every `Refresh`. Collapsed to one key.
+- **The action strip pushed its buttons off the card** when they were widened — its width was
+  hardcoded to `404.0` with `2 * 190 + margins` in a comment beside it. Now derived from
+  `NCZDG_CardBtnWidth`.
+- **The thumbnail drew over the card's border.** `NCZDG_ImageWidth` subtracted only the left pad.
+  It is now seated inside the frame, its top-left corner on the accent bar's right edge, sized
+  from `NCZDG_AccentWidth` / `NCZDG_CardBorder`.
+
+### Changed
+
+- **Player-facing vocabulary is "waypoint"**, the game's own word — its native prompt is TRACK
+  WAYPOINT. "Mappin" stays internal. Config *field* names keep "Marker" because they are RCF
+  storage keys and renaming one silently orphans every saved value.
+- **Auto-tracking defaults ON**, and the reasoning it replaced was wrong rather than merely
+  cautious: the player-tracked slot is **not** shared with quests. Vanilla branches
+  `CanQuestTrackMappin → TrackQuestMappin` against `CanPlayerTrackMappin → TrackMappin`, and the
+  player branch clears only a custom map waypoint. The claim was restated in four places; all four
+  were corrected.
+- The install indicator is a thumbnail badge instead of a second accent bar.
+- The HUD pin's emblem is 88 wide, down from 112, which read as oversized beside vanilla's 64×64
+  icons.
+
+### Removed
+
+- The track-it-yourself instructions from the guide footer (`NCZDG.routingHint`) — auto-tracking
+  makes them noise.
+
+### Added
+
 - Soft dependency bridge to NCZoningCore: compile-time `ModuleExists` guards, an
   `ApiVersion()` runtime gate, and subscriptions to the core's `NCZoning-DataReady`,
   `-DataRefreshed`, and `-DataError` events.
