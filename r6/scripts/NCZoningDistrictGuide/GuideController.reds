@@ -234,9 +234,9 @@ public func NCZDG_TagsMax() -> Int32 { return 5; }
 // why it is taller than it is wide.
 //
 // AN inkImage DOES NOT PRESERVE ASPECT. SetSize stretches the part to whatever it is given, so a
-// square size on a 0.42-aspect part squashes it 1.45x horizontally - which is visible at a
-// glance and was the first version of this. To size any atlas part correctly, read its UV rect
-// and multiply by the texture's real dimensions; the part name alone tells you nothing.
+// square size on a 0.42-aspect part squashes it 1.45x horizontally, which is visible at a glance.
+// To size any atlas part correctly, read its UV rect and multiply by the texture's real
+// dimensions; the part name alone tells you nothing.
 public func NCZDG_PhIconHeight() -> Float { return 110.0; }
 public func NCZDG_PhIconWidth() -> Float {
   return NCZDG_PhIconHeight() * 66.0 / 157.0;
@@ -1182,10 +1182,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     // The scrim swallows the click AND blacks out the guide behind it, so the photo is the only
     // thing to look at.
     //
-    // FULLY OPAQUE, AND SIZED EXPLICITLY. The first cut used inkEAnchor.Fill at 0.96 opacity and
-    // read clearly translucent in-game - the nav column and card text were legible straight
-    // through it. Both halves are pinned down: an explicit size instead of Fill, and 1.0 opacity
-    // instead of a fraction.
+    // FULLY OPAQUE, AND SIZED EXPLICITLY. `inkEAnchor.Fill` at 0.96 opacity reads as clearly
+    // translucent in-game, with the nav column and card text legible straight through it. Both
+    // halves are pinned down: an explicit size instead of Fill, and 1.0 opacity instead of a
+    // fraction.
     let scrim = new inkRectangle();
     scrim.SetSize(new Vector2(NCZDG_PopupWidth(), NCZDG_PopupHeight()));
     scrim.SetAnchor(inkEAnchor.Centered);
@@ -1887,8 +1887,8 @@ public class NCZDGGuidePopup extends InGamePopup {
     }
     this.m_openMapOnHidden = false;
     if !NCZDG_TryOpenWorldMap() {
-      // Degrades to the old behaviour: the focus request stays pending, so the marker is still
-      // centred whenever the player opens the map themselves.
+      // Degrades quietly: the focus request stays pending, so the marker is still centred
+      // whenever the player opens the map themselves.
       NCZDGWarn("[MARK] could not open the map - the request stays pending");
     }
   }

@@ -151,8 +151,8 @@ public func NCZDG_UpdatePanel() -> Void {
 // build to the shared NCZDG_BuildPanel. Verified tree: districtName(QuestTxt) ->
 // flow(inkVerticalPanelWidget11) -> canvas(New_Quest_canvas). Parent into the CANVAS (absolute
 // layout - children keep their translation and never reflow), positioned just below the flow
-// block. Flow-parenting was wrong: spacer content gave a gap, and the flow repacked at
-// end-of-life, which moved the panel. @addMethod reaches the private districtName ref.
+// block. Do NOT flow-parent it: spacer content gives a gap, and the flow repacks at end-of-life,
+// which moves the panel. @addMethod reaches the private districtName ref.
 @if(ModuleExists("NCZoning.Api"))
 @addMethod(NewLocationNotification)
 private func NCZDG_EnsurePanel(here: ref<NCZDistrictName>, player: ref<GameObject>, showNearest: Bool) -> Void {

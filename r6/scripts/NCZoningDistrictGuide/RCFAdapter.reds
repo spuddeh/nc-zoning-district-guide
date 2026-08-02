@@ -16,7 +16,7 @@
 //              2.0.0 captures keybinds through Keybind/PadKeybind/AnyKeybind/ModifierKeybind
 //              rows and a bundled DVRCFInput RED4ext plugin that applies the override.
 //
-//              RCF IS NO LONGER MERELY RECOMMENDED. Without it the mod runs on defaults but
+//              RCF IS OPTIONAL ONLY ON PAPER. Without it the mod runs on defaults but
 //              has no rebindable key, and RED4ext is in the chain via RCF's bundled plugin.
 //              [[CP2077-Mods/wiki/decisions/one-owner-per-setting-rcf-plus-modsettings-keybind]]
 //

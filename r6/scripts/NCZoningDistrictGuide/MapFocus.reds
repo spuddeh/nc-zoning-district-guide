@@ -227,8 +227,8 @@ public final func NCZDG_OpenWorldMap() -> Bool {
   return true;
 }
 
-// Called from the guide once it has closed itself. Fails quietly to the old behaviour - the request
-// stays pending, so the marker is still centred whenever the player opens the map by hand.
+// Called from the guide once it has closed itself. Fails quietly - the request stays pending, so
+// the marker is still centred whenever the player opens the map by hand.
 public func NCZDG_TryOpenWorldMap() -> Bool {
   let focus = NCZDGMapFocus.Get();
   if !IsDefined(focus) {

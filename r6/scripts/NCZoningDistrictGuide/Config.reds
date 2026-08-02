@@ -14,7 +14,7 @@
 //              and a bundled DVRCFInput RED4ext plugin that applies the override. RCF 1.3.0
 //              could not; that limit was a fact about the version, not about RCF.
 //
-//              RCF IS NO LONGER MERELY RECOMMENDED. Without it the mod still runs, but the
+//              RCF IS OPTIONAL ONLY ON PAPER. Without it the mod still runs, but the
 //              key is stuck on the nczdg.xml default with no modifier and no way to rebind,
 //              and RED4ext is in the chain either way via RCF's bundled plugin.
 //              [[CP2077-Mods/wiki/decisions/one-owner-per-setting-rcf-plus-modsettings-keybind]]
