@@ -126,6 +126,35 @@ protected final func NCZDG_TintIcon() -> Void {
   icon.SetTintColor(this.IsPlayerTracked() ? NCZDG_MarkerTrackedColor() : NCZDG_MarkerColor());
 }
 
+// ARRIVAL, WITHOUT A POLL.
+//
+// The waypoint clears itself once the player reaches it. A mappin fires no proximity event, so the
+// distance has to be ASKED for - but it does not have to be asked for on a timer. These controller
+// hooks already run as the player moves, and `GetDistanceToPlayer()` is native on the CONTROLLER
+// (gameuiMappinBaseController), not on the mappin, so it can be read from the tracked hook without
+// the dereference that crashes there.
+//
+// ADAPTED FROM MapWaypointBugFixes/ArrivalPhantomFix, WHICH CANNOT BE COPIED DIRECTLY. That mod
+// notices arrival by watching the manually-tracked SLOT empty itself, which the game does for
+// CustomPositionVariant (21). This marker is deliberately ApartmentVariant - the whole reason it is
+// not variant 21 is that the game writes to whatever holds that role - so the game never clears the
+// slot for it and there is no slot change to watch. The distance is what is left.
+//
+// An unowned pin costs one cached field read and returns, which is what keeps this off the hot path.
+@addMethod(BaseMappinBaseController)
+protected final func NCZDG_CheckArrival() -> Void {
+  if !this.nczdg_isOurs {
+    return;
+  }
+  let gi = GetGameInstance();
+  let actions = NCZDGWorldActions.Get(gi);
+  if IsDefined(actions) {
+    // The distance is reported, not judged, here. Arming and the radius test belong with the
+    // waypoint's state, not on a pooled controller that may not be the one that saw it set.
+    actions.NotifyMarkerDistance(gi, this.GetDistanceToPlayer());
+  }
+}
+
 // Tracking is the state the colour reports, so the colour has to be re-applied when it changes.
 // UpdateIcon does not run on a track/untrack - the icon is unchanged, only its meaning is - so
 // without these two the marker would go gold on its next icon refresh instead of on the click.
@@ -140,6 +169,7 @@ protected func UpdateTrackedState() -> Void {
   if this.nczdg_isOurs {
     this.NCZDG_TintIcon();
   }
+  this.NCZDG_CheckArrival();
 }
 
 @wrapMethod(GameplayMappinController)
@@ -163,6 +193,7 @@ protected func UpdateTrackedState() -> Void {
 protected final func UpdateIcon() -> Void {
   wrappedMethod();
   this.NCZDG_BrandIcon(NCZDG_MarkerFitWidth() * 0.8);
+  this.NCZDG_CheckArrival();
 }
 
 // Also the capture point for MapFocus. A mappin controller cannot be looked up, but every one the
@@ -217,6 +248,7 @@ protected func UpdateIcon() -> Void {
 private func UpdateIcon() -> Void {
   wrappedMethod();
   this.NCZDG_BrandIcon(NCZDG_MarkerFitHeight());
+  this.NCZDG_CheckArrival();
 }
 
 // The spawn profile decides whether the HUD pin exists at all, and this function assigns it from the

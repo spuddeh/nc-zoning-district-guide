@@ -26,6 +26,11 @@ import NCZoningDistrictGuide.Config.*
 // The lowest core ApiVersion this mod knows how to talk to.
 public func NCZDG_RequiredApiVersion() -> Int32 { return 1; }
 
+// How long to wait for install detection before reporting [READY] without it. Only reached when
+// NCZoning-InstallScanComplete never arrives, which means no CET - a legitimate resting state, not
+// a failure. Long enough that a slow CET scan wins the race and reports the real answer.
+public func NCZDG_ReadyFallbackDelay() -> Float { return 10.0; }
+
 // --- core presence ---------------------------------------------------------------
 // Two compile-time variants: with the core installed this reports the real state; without
 // it, the whole mod degrades to "core missing" and every feature stays dormant.
@@ -107,6 +112,7 @@ public func NCZDG_TotalLocations() -> Int32 { return 0; }
 public class NCZDGCoreBridge extends ScriptableSystem {
   private let m_ready: Bool;
   private let m_announced: Bool;   // the [READY] line is once per session, not once per refresh
+  private let m_reported: Bool;    // the line has been written; the event and the fallback race for it
 
   private func OnAttach() -> Void {
     let cs = GameInstance.GetCallbackSystem();
@@ -124,6 +130,8 @@ public class NCZDGCoreBridge extends ScriptableSystem {
     cs.RegisterCallback(n"NCZoning-DataRefreshed", this, n"OnCoreDataRefreshed")
       .SetLifetime(CallbackLifetime.Forever);
     cs.RegisterCallback(n"NCZoning-DataError", this, n"OnCoreDataError")
+      .SetLifetime(CallbackLifetime.Forever);
+    cs.RegisterCallback(n"NCZoning-InstallScanComplete", this, n"OnCoreInstallScanComplete")
       .SetLifetime(CallbackLifetime.Forever);
   }
   @if(!ModuleExists("NCZoning.Api"))
@@ -186,6 +194,17 @@ public class NCZDGCoreBridge extends ScriptableSystem {
     NCZDGError(s"core reported a fetch error; ready=\(NCZDG_CoreReady())");
   }
 
+  // The second of the two facts the [READY] line needs, announced rather than waited for. The core
+  // dispatches it from NCZInstalledRegistry.EndScan.
+  //
+  // Unlike IsInstallDetectionAvailable(), this does NOT raise the core version floor: an event name
+  // is a string, not a symbol, so subscribing to one an older core never registers simply never
+  // fires. The fallback timer covers that case for free.
+  @if(ModuleExists("NCZoning.Api"))
+  protected cb func OnCoreInstallScanComplete(event: ref<NCZoningDataEvent>) -> Void {
+    this.ReportReadyNow();
+  }
+
   // Single funnel for "the registry is usable now".
   //
   // Deliberately does NOT resolve the district here. Verified in-game: Session/Ready (and
@@ -214,28 +233,31 @@ public class NCZDGCoreBridge extends ScriptableSystem {
       return;
     }
     this.m_announced = true;
-    this.ScheduleReadyLine(0);
+    this.ScheduleReadyFallback();
   }
 
-  // Re-checks until both facts have settled, then reports once. Detection being OFF is a
-  // legitimate resting state (it needs CET), so this cannot wait for it to become true - the
-  // attempt cap is what bounds that, and whatever is true when the cap runs out is what gets
-  // reported. A line still reading locations=0 after ten seconds is not a bad log line; it is
-  // the bug, stated.
-  private func ScheduleReadyLine(attempt: Int32) -> Void {
+  // ONE SHOT, NOT A POLL. The [READY] line needs two facts, and both now announce themselves:
+  // locations arrive with NCZoning-DataReady, detection with NCZoning-InstallScanComplete. This
+  // timer is the third case only - detection that never completes.
+  //
+  // It cannot be dropped, because "no CET" is a legitimate resting state that produces NO event
+  // at all. Waiting on the event alone would mean a CET-less setup never gets a [READY] line, and
+  // that is the setup whose bug reports need one most. So: whichever comes first wins, and
+  // ReportReadyNow is idempotent.
+  private func ScheduleReadyFallback() -> Void {
     let cb = new NCZDGReadyCallback();
     cb.gi = this.GetGameInstance();
-    cb.attempt = attempt;
-    GameInstance.GetDelaySystem(this.GetGameInstance()).DelayCallback(cb, 2.0);
+    GameInstance.GetDelaySystem(this.GetGameInstance()).DelayCallback(cb, NCZDG_ReadyFallbackDelay());
   }
 
-  public func ReportReady(attempt: Int32) -> Void {
-    let locations = NCZDG_TotalLocations();
-    let detection = NCZDG_InstallDetection();
-    if (locations <= 0 || !detection) && attempt < 5 {
-      this.ScheduleReadyLine(attempt + 1);
+  // Idempotent: the event and the fallback race, and the loser must do nothing.
+  public func ReportReadyNow() -> Void {
+    if this.m_reported {
       return;
     }
+    this.m_reported = true;
+    let locations = NCZDG_TotalLocations();
+    let detection = NCZDG_InstallDetection();
     NCZDGLog(s"[READY] core=\(NCZDG_CoreVersion()) locations=\(locations) installDetection=\(detection ? "on" : "off")");
   }
 
@@ -244,16 +266,15 @@ public class NCZDGCoreBridge extends ScriptableSystem {
   }
 }
 
-// Carries the attempt count so the retry is bounded by a value that travels with the callback
-// rather than by state on the system - a second session cannot then inherit a spent counter.
+// The fallback for a session where install detection never completes - no CET, so no scan and no
+// NCZoning-InstallScanComplete to wait for. Fires once and carries no retry state.
 public class NCZDGReadyCallback extends DelayCallback {
   public let gi: GameInstance;
-  public let attempt: Int32;
 
   public func Call() -> Void {
     let bridge = GameInstance.GetScriptableSystemsContainer(this.gi).Get(n"NCZoningDistrictGuide.Bridge.NCZDGCoreBridge") as NCZDGCoreBridge;
     if IsDefined(bridge) {
-      bridge.ReportReady(this.attempt);
+      bridge.ReportReadyNow();
     }
   }
 }

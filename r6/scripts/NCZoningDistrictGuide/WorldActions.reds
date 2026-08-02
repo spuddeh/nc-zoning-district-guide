@@ -46,9 +46,17 @@ public func NCZDG_MarkerCaption(title: String) -> String {
   return NCZDG_MarkerTag() + "|" + title;
 }
 
-// Close enough to count as arrived. Registry coordinates sit at a door, on a roof or inside a room, so
-// this has to tolerate the last few metres the player cannot walk in a straight line.
-public func NCZDG_ArrivalRadius() -> Float { return 20.0; }
+// Close enough to count as arrived. Registry coordinates sit at a door, on a roof or inside a room,
+// so this tolerates the last few metres the player cannot walk in a straight line.
+//
+// 20 was too generous for interiors: the coordinate is inside, the player reaches the DOOR, and 20m
+// counts that as arrival - the waypoint vanished on the threshold, before they were in. 10 keeps the
+// tolerance for an unreachable coordinate while letting the player actually get through the door.
+//
+// THIS IS THE DIAL. Too large and it clears early; too small and a coordinate the player cannot
+// physically stand on never clears at all. It works with the arming rule in NotifyMarkerDistance,
+// not alone.
+public func NCZDG_ArrivalRadius() -> Float { return 10.0; }
 
 // Owns the single marker. A ScriptableSystem so it outlives the popup: a marker set from the guide
 // must survive the guide closing.
@@ -57,7 +65,8 @@ public class NCZDGWorldActions extends ScriptableSystem {
   private let m_pinnedId: String;      // the NCZLocation.Id() the marker belongs to; "" = none
   private let m_pinnedPos: Vector4;
   private let m_confirmed: Bool;       // the mappin has resolved at least once; registration is async
-  private let m_watching: Bool;        // one arrival poll at a time
+  private let m_clearPending: Bool;    // an arrival clear is already scheduled
+  private let m_armed: Bool;           // the player has been outside the arrival radius since it was set
 
   public final static func Get(gi: GameInstance) -> ref<NCZDGWorldActions> {
     return GameInstance.GetScriptableSystemsContainer(gi)
@@ -138,9 +147,9 @@ public class NCZDGWorldActions extends ScriptableSystem {
       ms.SetMappinDebugCaption(this.m_mappinId, NCZDG_MarkerCaption(title));
       this.m_pinnedId = locId;
       this.m_pinnedPos = pos;
+      this.m_armed = false;
 
       NCZDGLog(s"[MARK] moved the marker to '\(title)' \(pos) routing=\(this.IsRouting(gi))");
-      this.StartWatch(gi);
       return true;
     }
 
@@ -180,48 +189,53 @@ public class NCZDGWorldActions extends ScriptableSystem {
     this.m_mappinId = ms.RegisterMappin(data, pos);
     this.m_pinnedId = locId;
     this.m_pinnedPos = pos;
+    this.m_armed = false;
 
     NCZDGLog(s"[MARK] registered the marker on '\(title)' \(pos) id=\(this.m_mappinId.value)");
-    this.StartWatch(gi);
     return true;
   }
 
-  // Polls the marker for ARRIVAL, and nothing else. A 2s poll is the only way to catch it: a
-  // mappin fires no proximity event, so the distance has to be asked for.
-  public func Watch() -> Void {
-    let gi = this.GetGameInstance();
-    let ms = GameInstance.GetMappinSystem(gi);
-    if !IsDefined(ms) || this.m_mappinId.value == 0ul {
-      this.m_watching = false;
+  // Clears the waypoint on arrival. Arrival is noticed by the mappin controllers' own hooks
+  // (NCZDG_CheckArrival in MapMarker.reds), so nothing here polls for it.
+  //
+  // ONE HOP, and it is not a poll. The caller is inside a mappin controller hook, and destroying a
+  // mappin from inside its own controller's callback is the re-entrancy that has already produced
+  // one CTD here. Arrival happens during ordinary GAMEPLAY, where DelaySystem is reliable - the
+  // game-time trap applies to delays scheduled with a menu open.
+  // [[CP2077-Mods/wiki/learnings/delaysystem-delays-are-game-time-menus-stretch-them]]
+  // Fed by the mappin controllers as the player moves. Arming is why a waypoint set on somewhere
+  // you are ALREADY standing does not clear itself a second later: arrival means "was away from it,
+  // now is not", so the player has to leave the radius once before reaching it counts.
+  public func NotifyMarkerDistance(gi: GameInstance, dist: Float) -> Void {
+    if dist > NCZDG_ArrivalRadius() {
+      this.m_armed = true;
       return;
     }
-
-    let mappin = ms.GetMappin(this.m_mappinId);
-
-    // A waypoint the player has reached is clutter. The game's own custom waypoint clears itself on
-    // arrival; a POI marker does not, so the arrival has to be detected here.
-    if IsDefined(mappin) && !UnicodeStringEqual(this.m_pinnedId, "")
-      && mappin.GetDistanceToPlayer() < NCZDG_ArrivalRadius() {
-      NCZDGLog(s"[MARK] arrived at '\(this.m_pinnedId)' - clearing the marker");
-      this.ClearWaypoint(gi);
-      this.m_watching = false;
+    if !this.m_armed {
       return;
     }
-
-    let cb = new NCZDGMarkerWatchCallback();
-    cb.gi = gi;
-    GameInstance.GetDelaySystem(gi).DelayCallback(cb, 2.0);
+    this.RequestArrivalClear(gi);
   }
 
-  private func StartWatch(gi: GameInstance) -> Void {
-    if this.m_watching {
+  public func RequestArrivalClear(gi: GameInstance) -> Void {
+    if this.m_clearPending || !this.HasPin() {
       return;
     }
-    this.m_watching = true;
-    let cb = new NCZDGMarkerWatchCallback();
+    this.m_clearPending = true;
+    let cb = new NCZDGArrivalClearCallback();
     cb.gi = gi;
-    GameInstance.GetDelaySystem(gi).DelayCallback(cb, 2.0);
+    GameInstance.GetDelaySystem(gi).DelayCallback(cb, 0.1);
   }
+
+  public func DoArrivalClear(gi: GameInstance) -> Void {
+    this.m_clearPending = false;
+    if !this.HasPin() {
+      return;
+    }
+    NCZDGLog(s"[MARK] arrived at '\(this.m_pinnedId)' - clearing the waypoint");
+    this.ClearWaypoint(gi);
+  }
+
 
   // CLEARING MEANS GONE: no pin left on the world map, the minimap or the HUD, and nothing routing.
   //
@@ -260,6 +274,7 @@ public class NCZDGWorldActions extends ScriptableSystem {
     this.m_mappinId = empty;
     this.m_pinnedId = "";
     this.m_confirmed = false;
+    this.m_armed = false;
     NCZDGLog("[MARK] waypoint cleared - deactivated, untracked and destroyed");
   }
 }
@@ -269,13 +284,15 @@ public class NCZDGWorldActions extends ScriptableSystem {
 // Only the game writes the marker's tracked flag, and it can clear it at any time with no
 // notification. A state read taken when the guide happens to be open cannot show WHEN the flag was
 // lost, and a trail that does not stay is a question about when.
-public class NCZDGMarkerWatchCallback extends DelayCallback {
+// One shot, scheduled by RequestArrivalClear. Exists only to get the destroy off the mappin
+// controller's own callback; it never reschedules itself.
+public class NCZDGArrivalClearCallback extends DelayCallback {
   public let gi: GameInstance;
 
   public func Call() -> Void {
     let actions = NCZDGWorldActions.Get(this.gi);
     if IsDefined(actions) {
-      actions.Watch();
+      actions.DoArrivalClear(this.gi);
     }
   }
 }
