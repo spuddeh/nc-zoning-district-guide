@@ -1344,6 +1344,15 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.ScheduleImagePoll();
   }
 
+  // THIS POLL IS THE DOCUMENTED WAY TO USE THE API. DO NOT "FIX" IT INTO AN EVENT.
+  //
+  // Two other timers in this mod were removed for being polls, and this one looks like them. It is
+  // not the same thing. RedIMGRetriever exposes a POLL-DRIVEN native API by design - its own
+  // documentation says so, its sample is a poll, and its author's own consumer (RCF's DVRCF_Hub)
+  // polls at 0.05s. There is no event to subscribe to and no missing one to wait for.
+  //
+  // 0.25s, five times slower than the reference client, and the chain does not start unless an
+  // image is actually outstanding.
   private func ScheduleImagePoll() -> Void {
     let cb = new NCZDGImagePollCB();
     cb.popup = this;
