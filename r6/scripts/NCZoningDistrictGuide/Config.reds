@@ -127,7 +127,7 @@ public func NCZDG_LogConfig() -> Void {
     NCZDGWarn("[CFG] settings service is not up - the defaults below are NOT what is running");
     return;
   }
-  NCZDGLog(s"[CFG] guide=\(NCZDG_OnOff(cfg.enableStandaloneGuide)) map=\(NCZDG_OnOff(cfg.enableMapPanel)) banner=\(NCZDG_OnOff(cfg.enablePopupToast)) nearest=\(NCZDG_OnOff(cfg.showNearest)) fastTravel=\(NCZDG_OnOff(cfg.enableFastTravelNotice)) subdistrict=\(NCZDG_OnOff(cfg.matchSubdistrict)) filter=\(cfg.defaultInstallFilter)");
+  NCZDGLog(s"[CFG] guide=\(NCZDG_OnOff(cfg.enableStandaloneGuide)) map=\(NCZDG_OnOff(cfg.enableMapPanel)) banner=\(NCZDG_OnOff(cfg.enablePopupToast)) nearest=\(NCZDG_OnOff(cfg.showNearest)) fastTravel=\(NCZDG_OnOff(cfg.enableFastTravelNotice)) subdistrict=\(NCZDG_OnOff(cfg.matchSubdistrict)) filter=\(cfg.defaultInstallFilter) openMap=\(NCZDG_OnOff(cfg.openMapOnMarker)) autoTrack=\(NCZDG_OnOff(cfg.autoTrackMarker))");
   NCZDGLog(s"[CFG] openKey=\(EnumValueToString("EInputKey", Cast<Int64>(EnumInt(keys.openGuideKey)))) modifier=\(EnumValueToString("EInputKey", Cast<Int64>(EnumInt(keys.openGuideModifier))))");
 }
 

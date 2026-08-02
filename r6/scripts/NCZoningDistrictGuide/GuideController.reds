@@ -1891,6 +1891,9 @@ public class NCZDGGuidePopup extends InGamePopup {
       if IsDefined(focus) {
         focus.Request();
       }
+      // Open the map for them. If that cannot be done the request simply stays pending, so the
+      // marker is still centred the next time they open the map by hand.
+      NCZDG_ScheduleOpenMap(this.m_gi);
       // Close the guide either way: the next thing the player does is open the map, and the popup
       // owns ModalPopup until it goes.
       this.Close();

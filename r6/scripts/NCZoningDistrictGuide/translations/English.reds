@@ -38,7 +38,7 @@ public class NCZDG_English extends ModLocalizationPackage {
     // --- buttons -----------------------------------------------------------------------
     this.Text("NCZDG.btnClear",        "CLEAR");
     this.Text("NCZDG.btnSetMarker",    "SET MARKER");
-    this.Text("NCZDG.btnSetWaypoint",  "SET WAYPOINT");
+    this.Text("NCZDG.btnSetWaypoint",  "SHOW ON MAP");
     this.Text("NCZDG.btnClearMarker",  "CLEAR MARKER");
     this.Text("NCZDG.btnTeleport",     "TELEPORT");
     this.Text("NCZDG.btnExitVehicle",  "EXIT VEHICLE");
@@ -97,6 +97,7 @@ public class NCZDG_English extends ModLocalizationPackage {
     this.Text("NCZDG.mapCountOne",     "{n} LOCATION");
     this.Text("NCZDG.mapCountMany",    "{n} LOCATIONS");
     this.Text("NCZDG.mapRecent",       "{n} RECENTLY UPDATED");
+    this.Text("NCZDG.mapMarkerIdle",   "MARKER SET - TRACK IT TO ROUTE");
 
     // --- failure states ----------------------------------------------------------------
     // The long form belongs to NCZoningCore (GetStatusMessage) and is localised there.
@@ -121,7 +122,11 @@ public class NCZDG_English extends ModLocalizationPackage {
     this.Text("NCZDG.tipModifier",     "Optional key to hold alongside the open key. Any key will do, not just Shift, Alt or Ctrl. Leave unset for no modifier.");
     this.Text("NCZDG.optShowing",      "Open Guide Showing");
     this.Text("NCZDG.tipShowing",      "Which locations the guide lists when it opens. You can still switch between them inside the guide. Requires Cyber Engine Tweaks, which is what detects your installed mods.");
-    this.Text("NCZDG.noteWaypoint",    "A waypoint set from the guide only draws its route once you open the world map. That is a game limitation, not a setting.");
+    this.Text("NCZDG.optOpenMap",      "Open the Map on Show");
+    this.Text("NCZDG.tipOpenMap",      "SHOW ON MAP opens the world map and centres it on the marker. Turn this off to place the marker and stay in the guide.");
+    this.Text("NCZDG.optAutoTrack",    "Track the Marker");
+    this.Text("NCZDG.tipAutoTrack",    "Also route to the marker, the way tracking a quest does. There is only one tracked slot, so this replaces whatever you are following, a quest included.");
+    this.Text("NCZDG.noteWaypoint",    "A marker only draws its route once the world map has opened. That is a game limitation, not a setting.");
 
     this.Text("NCZDG.dropAll",         "All");
     this.Text("NCZDG.dropInstalled",   "Installed only");

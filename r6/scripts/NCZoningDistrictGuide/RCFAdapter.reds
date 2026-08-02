@@ -48,6 +48,8 @@ public func NCZDG_KeyMapPanel() -> String { return "enableMapPanel"; }
 public func NCZDG_KeyToast() -> String { return "enablePopupToast"; }
 public func NCZDG_KeyShowNearest() -> String { return "showNearest"; }
 public func NCZDG_KeyFastTravel() -> String { return "enableFastTravelNotice"; }
+public func NCZDG_KeyOpenMap() -> String { return "openMapOnMarker"; }
+public func NCZDG_KeyAutoTrack() -> String { return "autoTrackMarker"; }
 
 // THIS ONE IS NOT JUST A STORAGE KEY. DVRCF_Hotkeys.PushSchema feeds the row key straight to
 // RCFInput.SetKeyOverride, so it must equal the `overridableUI` attribute in
@@ -103,6 +105,10 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
           .Tip("NCZDG.tipModifier")
         .Dropdown(NCZDG_KeyDefaultFilter(), "NCZDG.optShowing", filterOptions)
           .Tip("NCZDG.tipShowing")
+        .Toggle(NCZDG_KeyOpenMap(), "NCZDG.optOpenMap")
+          .Tip("NCZDG.tipOpenMap")
+        .Toggle(NCZDG_KeyAutoTrack(), "NCZDG.optAutoTrack")
+          .Tip("NCZDG.tipAutoTrack")
         .Label("NCZDG.noteWaypoint")
       .Section("NCZDG.secMap")
         .Toggle(NCZDG_KeyMapPanel(), "NCZDG.optMap")
@@ -128,6 +134,8 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     if UnicodeStringEqual(key, NCZDG_KeyToast()) { return cfg.enablePopupToast; }
     if UnicodeStringEqual(key, NCZDG_KeyShowNearest()) { return cfg.showNearest; }
     if UnicodeStringEqual(key, NCZDG_KeyFastTravel()) { return cfg.enableFastTravelNotice; }
+    if UnicodeStringEqual(key, NCZDG_KeyOpenMap()) { return cfg.openMapOnMarker; }
+    if UnicodeStringEqual(key, NCZDG_KeyAutoTrack()) { return cfg.autoTrackMarker; }
     return false;
   }
 
@@ -144,6 +152,8 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     else if UnicodeStringEqual(key, NCZDG_KeyToast()) { cfg.enablePopupToast = value; }
     else if UnicodeStringEqual(key, NCZDG_KeyShowNearest()) { cfg.showNearest = value; }
     else if UnicodeStringEqual(key, NCZDG_KeyFastTravel()) { cfg.enableFastTravelNotice = value; }
+    else if UnicodeStringEqual(key, NCZDG_KeyOpenMap()) { cfg.openMapOnMarker = value; }
+    else if UnicodeStringEqual(key, NCZDG_KeyAutoTrack()) { cfg.autoTrackMarker = value; }
   }
 
   // Keybind rows travel on the Int channel as an EInputKey cast to Int32; there is no

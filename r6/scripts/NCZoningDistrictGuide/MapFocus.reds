@@ -56,6 +56,7 @@ public func NCZDG_FocusMaxAttempts() -> Int32 { return 12; }
 public class NCZDGMapFocus extends ScriptableService {
   private let m_pending: Bool;
   private let m_ctrl: wref<BaseWorldMapMappinController>;
+  private let m_menu: wref<gameuiInGameMenuGameController>;
 
   public final static func Get() -> ref<NCZDGMapFocus> {
     return GameInstance.GetScriptableServiceContainer()
@@ -90,6 +91,20 @@ public class NCZDGMapFocus extends ScriptableService {
 
   public func ClearController() -> Void {
     this.m_ctrl = null;
+  }
+
+  // The live in-game menu controller, captured on its OnInitialize. A wref, and cleared on
+  // OnUninitialize: the controller dies with the HUD, and a stale handle outlives what it points at.
+  public func SetMenu(menu: wref<gameuiInGameMenuGameController>) -> Void {
+    this.m_menu = menu;
+  }
+
+  public func ClearMenu() -> Void {
+    this.m_menu = null;
+  }
+
+  public func GetMenu() -> wref<gameuiInGameMenuGameController> {
+    return this.m_menu;
   }
 }
 
@@ -153,6 +168,99 @@ public final func NCZDG_FocusMarker(ctrl: wref<BaseWorldMapMappinController>) ->
   }
   this.TrackMappin(ctrl);
   NCZDGLog("[MARK] centred the map on the marker and took the tracked slot");
+}
+
+// ── Opening the world map from script ────────────────────────────────────────────────────────────
+//
+// SpawnMenuInstanceDataEvent is the only route into the hub menus, and it is PROTECTED - it can be
+// called from inside the class that owns it and nowhere else. It is declared on
+// gameuiBaseMenuGameController (NOT on inkGameController, which is where an earlier attempt looked
+// for it and is why that attempt failed to resolve the method).
+//
+// The guide is a Codeware InGamePopup, so it is not a menu controller and can never call it. An
+// @addMethod on gameuiInGameMenuGameController is, for access purposes, a method OF that class, so
+// the protected call is legal there - and that controller inherits the native from its base. What is
+// then needed is a live instance, which is what OnInitialize captures.
+//
+// The body mirrors the game's own OpenShortcutMenu (inGameMenuGameController.swift:501-526) rather
+// than inventing a path: same init data, same hardware-disabled guard, same combat restriction, same
+// conditional event name.
+
+@wrapMethod(gameuiInGameMenuGameController)
+protected cb func OnInitialize() -> Bool {
+  let result = wrappedMethod();
+  let focus = NCZDGMapFocus.Get();
+  if IsDefined(focus) {
+    focus.SetMenu(this);
+  }
+  return result;
+}
+
+@wrapMethod(gameuiInGameMenuGameController)
+protected cb func OnUninitialize() -> Bool {
+  let focus = NCZDGMapFocus.Get();
+  if IsDefined(focus) {
+    focus.ClearMenu();
+  }
+  return wrappedMethod();
+}
+
+// Opens the world map. Returns false when the game itself would refuse, so the caller can tell the
+// difference between "asked" and "did not ask" instead of assuming the map is on its way.
+@addMethod(gameuiInGameMenuGameController)
+public final func NCZDG_OpenWorldMap() -> Bool {
+  let player = this.GetPlayerControlledObject();
+  if !IsDefined(player) {
+    return false;
+  }
+  // The game's own guard: with the player's hardware disabled, the hub is unavailable and the event
+  // is silently dropped. Bail here so the failure is on record rather than invisible.
+  if HubMenuUtility.IsPlayerHardwareDisabled(player) {
+    NCZDGWarn("[MARK] cannot open the map - the player's hardware is disabled");
+    return false;
+  }
+
+  let initData = new HubMenuInitData();
+  initData.m_menuName = n"world_map";
+  initData.m_combatRestriction =
+    this.GetPSMBlackboard(player).GetInt(GetAllBlackboardDefs().PlayerStateMachine.Combat) == 1;
+
+  // The event name is CONDITIONAL, and the wrong one opens nothing at all with no error anywhere.
+  let gi = player.GetGame();
+  let eventName: CName = GetFact(gi, n"radial_hub_menu_enabled") > 0
+    ? n"OnOpenRadialHubMenu_InitData"
+    : n"OnOpenHubMenu_InitData";
+
+  this.SpawnMenuInstanceDataEvent(eventName, initData);
+  return true;
+}
+
+// Called from the guide once it has closed itself. Fails quietly to the old behaviour - the request
+// stays pending, so the marker is still centred whenever the player opens the map by hand.
+public func NCZDG_TryOpenWorldMap() -> Bool {
+  let focus = NCZDGMapFocus.Get();
+  if !IsDefined(focus) {
+    return false;
+  }
+  let menu = focus.GetMenu();
+  if !IsDefined(menu) {
+    NCZDGWarn("[MARK] no in-game menu controller captured - not opening the map");
+    return false;
+  }
+  return menu.NCZDG_OpenWorldMap();
+}
+
+// Delayed so the guide's own close lands first. The popup holds UIGameContext.ModalPopup, and the
+// hub menu cannot take the UI context while that is still up - the same ordering the teleport path
+// uses, at the same 0.15s.
+public class NCZDGOpenMapCallback extends DelayCallback {
+  public func Call() -> Void {
+    NCZDG_TryOpenWorldMap();
+  }
+}
+
+public func NCZDG_ScheduleOpenMap(gi: GameInstance) -> Void {
+  GameInstance.GetDelaySystem(gi).DelayCallback(new NCZDGOpenMapCallback(), 0.15);
 }
 
 // Entry point: the map has opened. A pending focus starts the poll for the pin's controller.

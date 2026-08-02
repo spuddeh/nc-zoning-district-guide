@@ -76,8 +76,9 @@ public class NCZDGWorldActions extends ScriptableSystem {
     return this.m_mappinId.value != 0ul;
   }
 
-  // True once the player has tracked the marker from the map. Until then the marker draws but does
-  // not route, and only the player can change that - there is no script-side way to fill the slot.
+  // True once the marker holds the tracked slot. Until then it draws but does not route. The slot is
+  // fillable only from WorldMapMenuGameController, so it is filled either by the player tracking the
+  // pin on the map, or by MapFocus.reds doing it there on their behalf when autoTrackMarker is on.
   public func IsRouting(gi: GameInstance) -> Bool {
     if !this.HasMappin() {
       return false;
