@@ -13,7 +13,7 @@
 //
 //                ZoomToMappin(BaseWorldMapMappinController)   centre the map on a pin
 //                SetSelectedMappin(BaseWorldMapMappinController)
-//                TrackMappin(MappinBaseController)            the tracked slot, by controller
+//                TrackMappin(BaseMappinBaseController)        the PLAYER-tracked slot, by controller
 //
 //              None of the three appears in the six measured workarounds on
 //              [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]].
@@ -26,14 +26,21 @@
 //              to brand the marker - so the controller passes through this mod on every map
 //              build, and capturing it there costs nothing.
 //
-//              TIMING IS THE WHOLE DIFFICULTY. The pin's controller does not exist when the map
-//              opens; it is spawned as the map draws its pins. So the request is queued, and a
-//              short poll retries until the controller resolves or the attempts run out.
+//              TIMING IS THE WHOLE DIFFICULTY, AND IT IS NOT SOLVED WITH A TIMER. The pin's
+//              controller does not exist when the map opens; it is spawned later, as the map draws
+//              its pins. Three delay-based versions were built and all three failed - DelaySystem
+//              runs on GAME time and an open map dilates that almost to a stop, so a 0.25s callback
+//              landed ~9 REAL seconds later, after the player had closed the map.
 //
-//              TRACKING IS OPT-IN AND MUST STAY THAT WAY. There is ONE tracked slot, and taking
-//              it silently discards whatever the player was following - a quest, or their own
-//              waypoint. Centring the map costs them nothing and is on by default; taking their
-//              tracked slot costs them something and is off by default.
+//              So nothing waits. The request is queued, and the marker's own icon hook fires it at
+//              the moment the controller exists.
+//
+//              TRACKING IS ON BY DEFAULT, and the earlier claim that it must not be - that one
+//              tracked slot is shared with quests - was WRONG. The player-tracked slot and the
+//              quest-tracked slot are separate: vanilla's TryTrackQuestOrSetWaypoint branches
+//              CanQuestTrackMappin -> TrackQuestMappin against CanPlayerTrackMappin ->
+//              TrackMappin, and the player branch clears only UntrackCustomPositionMappin. Taking
+//              the player slot costs the player a custom map waypoint, never their quest.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh
 // ======================================================================================
@@ -42,9 +49,8 @@ module NCZoningDistrictGuide.MapFocus
 
 import NCZoningDistrictGuide.Config.*
 
-// How long to keep looking for the marker's controller after the map opens, and how often.
-public func NCZDG_FocusRetryDelay() -> Float { return 0.25; }
-public func NCZDG_FocusMaxAttempts() -> Int32 { return 12; }
+// (A retry delay and attempt cap used to live here. They are gone with the poll - see the file
+// header: there is no correct delay while the map dilates game time.)
 
 // Holds the request across the guide closing and the map opening - two different UI lifetimes, so
 // this cannot live on either of them.
@@ -55,16 +61,25 @@ public func NCZDG_FocusMaxAttempts() -> Int32 { return 12; }
 // GetScriptableServiceContainer() takes no GameInstance, so a service is reachable from there.
 public class NCZDGMapFocus extends ScriptableService {
   private let m_pending: Bool;
-  private let m_ctrl: wref<BaseWorldMapMappinController>;
-  private let m_menu: wref<gameuiInGameMenuGameController>;
+
+  // A STRONG ref, and it has to be. As a wref this read back null on every poll attempt even though
+  // the capture had already happened 72ms earlier - the controller is native-owned, and a weak ref
+  // to it does not survive being parked here across frames. Measured 2026-08-02: captured at
+  // .788, "never appeared" at +3s.
+  //
+  // The strong ref is made safe by clearing it, not by weakening it: cleared when the map opens,
+  // when it closes, and once a focus request has been consumed.
+  private let m_ctrl: ref<BaseWorldMapMappinController>;
+  private let m_menu: ref<gameuiInGameMenuGameController>;
 
   public final static func Get() -> ref<NCZDGMapFocus> {
     return GameInstance.GetScriptableServiceContainer()
       .GetService(n"NCZoningDistrictGuide.MapFocus.NCZDGMapFocus") as NCZDGMapFocus;
   }
 
-  // Set when the player asks to be shown the marker. Cleared once the map has acted on it, or once
-  // the attempts run out - never left standing, or the next unrelated map open would consume it.
+  // Set when the player asks to be shown the waypoint, and consumed the moment the map acts on it.
+  // If the map is closed before its pins draw the request simply stays set, so the next map open
+  // honours it rather than dropping it.
   public func Request() -> Void {
     this.m_pending = true;
   }
@@ -79,13 +94,12 @@ public class NCZDGMapFocus extends ScriptableService {
     return this.m_pending;
   }
 
-  // Captured from MapMarker's icon hook. A wref, deliberately: the controller dies with the map, and
-  // a stale strong ref would outlive the widget it points at.
-  public func SetController(ctrl: wref<BaseWorldMapMappinController>) -> Void {
+  // Captured from MapMarker's icon hook, which is the only place a mappin controller is reachable.
+  public func SetController(ctrl: ref<BaseWorldMapMappinController>) -> Void {
     this.m_ctrl = ctrl;
   }
 
-  public func GetController() -> wref<BaseWorldMapMappinController> {
+  public func GetController() -> ref<BaseWorldMapMappinController> {
     return this.m_ctrl;
   }
 
@@ -93,9 +107,10 @@ public class NCZDGMapFocus extends ScriptableService {
     this.m_ctrl = null;
   }
 
-  // The live in-game menu controller, captured on its OnInitialize. A wref, and cleared on
-  // OnUninitialize: the controller dies with the HUD, and a stale handle outlives what it points at.
-  public func SetMenu(menu: wref<gameuiInGameMenuGameController>) -> Void {
+  // The live in-game menu controller, captured on its OnInitialize and released on OnUninitialize.
+  // A STRONG ref, for the reason given on m_ctrl: a weak ref to a native-owned UI controller does
+  // not reliably survive being parked here. Held safely by clearing it, never by weakening it.
+  public func SetMenu(menu: ref<gameuiInGameMenuGameController>) -> Void {
     this.m_menu = menu;
   }
 
@@ -103,58 +118,59 @@ public class NCZDGMapFocus extends ScriptableService {
     this.m_menu = null;
   }
 
-  public func GetMenu() -> wref<gameuiInGameMenuGameController> {
+  public func GetMenu() -> ref<gameuiInGameMenuGameController> {
     return this.m_menu;
   }
-}
 
-// The poll. Retries because the marker's controller is spawned while the map draws, not when it
-// opens, so the first attempt after the map appears will usually miss.
-public class NCZDGFocusCallback extends DelayCallback {
-  public let gi: GameInstance;
-  public let menu: wref<WorldMapMenuGameController>;
-  public let attempt: Int32;
+  // The open world map. A STRONG ref for the same reason as m_ctrl, and cleared on map close.
+  //
+  // This used to live on the DelayCallback as a wref and it did not survive the hop: measured
+  // 2026-08-02, "poll 0 - ABORT menu=false" on the very first attempt, having been captured
+  // milliseconds earlier. Nothing about this flow may hold a weak ref across a frame.
+  private let m_mapMenu: ref<WorldMapMenuGameController>;
 
-  public func Call() -> Void {
-    let focus = NCZDGMapFocus.Get();
-    if !IsDefined(focus) || !IsDefined(this.menu) {
-      return;
-    }
-    if !focus.IsPending() {
-      return;   // cancelled, or already handled
-    }
+  public func SetMapMenu(menu: ref<WorldMapMenuGameController>) -> Void {
+    this.m_mapMenu = menu;
+  }
 
-    let ctrl = focus.GetController();
-    if !IsDefined(ctrl) {
-      if this.attempt < NCZDG_FocusMaxAttempts() {
-        NCZDG_ScheduleFocus(this.gi, this.menu, this.attempt + 1);
-      } else {
-        focus.Consume();
-        NCZDGWarn("[MARK] the marker's map controller never appeared - not centring");
-      }
-      return;
-    }
+  public func GetMapMenu() -> ref<WorldMapMenuGameController> {
+    return this.m_mapMenu;
+  }
 
-    focus.Consume();
-    this.menu.NCZDG_FocusMarker(ctrl);
+  public func ClearMapMenu() -> Void {
+    this.m_mapMenu = null;
+  }
+
+  // Stored because the trigger point is an inkLogicController: it has no GetPlayerControlledObject
+  // and therefore no GameInstance of its own, and DelaySystem needs one.
+  private let m_gi: GameInstance;
+
+  public func SetGame(gi: GameInstance) -> Void {
+    this.m_gi = gi;
+  }
+
+  public func GetGame() -> GameInstance {
+    return this.m_gi;
   }
 }
 
-public func NCZDG_ScheduleFocus(gi: GameInstance, menu: wref<WorldMapMenuGameController>, attempt: Int32) -> Void {
-  let cb = new NCZDGFocusCallback();
-  cb.gi = gi;
-  cb.menu = menu;
-  cb.attempt = attempt;
-  GameInstance.GetDelaySystem(gi).DelayCallback(cb, NCZDG_FocusRetryDelay());
-}
+// THERE IS NO CALLBACK AND NO TIMER HERE, AND ONE MUST NOT BE REINTRODUCED.
+//
+// The focus fires synchronously from MapMarker's icon hook, which is the moment the marker's
+// controller exists. Three timing-based versions were tried and all three failed: DelaySystem runs
+// on GAME time, and an open world map dilates that almost to a stop, so a 0.25s delay lands ~9
+// REAL seconds later - after the player has given up on the map and closed it. Measured 2026-08-02.
+//
+// A delay here is not "too short" or "too long". There is no correct duration, because the clock it
+// would be measured against barely advances while the map is open.
 
-// Centres the map on the marker, and takes the tracked slot only if the player asked for that.
+// Centres the map on the waypoint, and takes the PLAYER-tracked slot unless the player opted out.
 //
 // SetSelectedMappin before TrackMappin: the map's own key path (TryTrackQuestOrSetWaypoint) reads
 // selectedMappin and falls through to creating a cursor waypoint when it is null, so selecting first
 // keeps this on the same path the game uses rather than a parallel one.
 @addMethod(WorldMapMenuGameController)
-public final func NCZDG_FocusMarker(ctrl: wref<BaseWorldMapMappinController>) -> Void {
+public final func NCZDG_FocusMarker(ctrl: ref<BaseWorldMapMappinController>) -> Void {
   if !IsDefined(ctrl) {
     return;
   }
@@ -163,11 +179,11 @@ public final func NCZDG_FocusMarker(ctrl: wref<BaseWorldMapMappinController>) ->
 
   let cfg = NCZDGConfig.Get();
   if !IsDefined(cfg) || !cfg.autoTrackMarker {
-    NCZDGLog("[MARK] centred the map on the marker");
+    NCZDGLog("[MARK] centred the map on the waypoint");
     return;
   }
   this.TrackMappin(ctrl);
-  NCZDGLog("[MARK] centred the map on the marker and took the tracked slot");
+  NCZDGLog("[MARK] centred the map on the waypoint and tracked it");
 }
 
 // ── Opening the world map from script ────────────────────────────────────────────────────────────
@@ -250,17 +266,21 @@ public func NCZDG_TryOpenWorldMap() -> Bool {
   return menu.NCZDG_OpenWorldMap();
 }
 
-// Delayed so the guide's own close lands first. The popup holds UIGameContext.ModalPopup, and the
-// hub menu cannot take the UI context while that is still up - the same ordering the teleport path
-// uses, at the same 0.15s.
-public class NCZDGOpenMapCallback extends DelayCallback {
-  public func Call() -> Void {
-    NCZDG_TryOpenWorldMap();
-  }
-}
+// NO TIMER HERE, DELIBERATELY. The map open used to be scheduled 0.15s after Close(), which raced
+// the popup's own teardown and soft-locked the game. It is now called from NCZDGGuidePopup.OnHidden,
+// because the thing being waited for is the ModalPopup context being popped - an event, not a
+// duration. Do not reintroduce a delay-based version.
 
-public func NCZDG_ScheduleOpenMap(gi: GameInstance) -> Void {
-  GameInstance.GetDelaySystem(gi).DelayCallback(new NCZDGOpenMapCallback(), 0.15);
+// The map is gone, so the controller it owned must not be held past it. This is what makes the
+// strong ref safe.
+@wrapMethod(WorldMapMenuGameController)
+protected cb func OnUninitialize() -> Bool {
+  let focus = NCZDGMapFocus.Get();
+  if IsDefined(focus) {
+    focus.ClearController();
+    focus.ClearMapMenu();
+  }
+  return wrappedMethod();
 }
 
 // Entry point: the map has opened. A pending focus starts the poll for the pin's controller.
@@ -270,8 +290,12 @@ protected cb func OnInitialize() -> Bool {
   let focus = NCZDGMapFocus.Get();
   if IsDefined(focus) {
     focus.ClearController();   // last session's controller is dead; do not act on it
-    if focus.IsPending() {
-      NCZDG_ScheduleFocus(this.GetPlayerControlledObject().GetGame(), this, 0);
+    // The map itself is captured here and held until it closes. Nothing is scheduled: the focus is
+    // fired by the marker's controller appearing, which happens later as the map draws its pins.
+    focus.SetMapMenu(this);
+    let player = this.GetPlayerControlledObject();
+    if IsDefined(player) {
+      focus.SetGame(player.GetGame());
     }
   }
   return result;

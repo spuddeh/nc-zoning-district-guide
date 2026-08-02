@@ -26,11 +26,14 @@
 //                2. The GPS reads a tracked mappin's position LIVE. Move the mappin in the tracked
 //                   slot and the breadcrumb trail redraws immediately, with no map open.
 //
-//              So the player tracks the marker once, from the map, as a normal game action against an
-//              ordinary POI pin. From then on the guide repositions it and the trail follows. A clear
-//              DEACTIVATES the marker rather than destroying it, because the tracked slot is the
-//              scarce thing - only the world map can fill it - and a marker that survives a clear
-//              never needs re-tracking.
+//              So the waypoint is tracked from the map, as a normal game action against an ordinary
+//              POI pin - by MapFocus on the player's behalf, or by the player themselves if they
+//              turned that off. From then on the guide repositions the same pin and the trail
+//              follows. SetWaypoint therefore MOVES the existing mappin and never creates a second.
+//
+//              A CLEAR DESTROYS IT. Deactivating and keeping it would save a re-track, but a cleared
+//              waypoint that still exists is one the player can still see; ClearWaypoint explains the
+//              three steps that leave nothing behind.
 // Mod Version: 0.1.0 (Pre-release)
 // Credits: Spuddeh (SimpleLocationManager, the CET original)
 // ======================================================================================
@@ -220,20 +223,33 @@ public class NCZDGWorldActions extends ScriptableSystem {
     GameInstance.GetDelaySystem(gi).DelayCallback(cb, 2.0);
   }
 
-  // Destroy the mappin; never merely deactivate it. An inactive mappin stays TRACKED, and the GPS goes
-  // on routing to a destination it can no longer update - a ghost trail to nowhere.
+  // CLEARING MEANS GONE: no pin left on the world map, the minimap or the HUD, and nothing routing.
   //
-  // Untrack only when the slot holds this marker: UntrackMappin() takes no argument and clears whatever
-  // is tracked, so calling it blind drops a waypoint the player set themselves.
+  // Deactivating alone is not clearing - an inactive mappin stays TRACKED, and the GPS keeps routing
+  // to a destination it can no longer update, a ghost trail to nowhere. Destroying alone is not
+  // clearing either, because a destroyed mappin that was ever tracked leaves its widget behind. The
+  // sequence below does all three parts in the only order that leaves nothing: deactivate, untrack,
+  // destroy.
   //
-  // This empties the tracked slot, so the next marker needs tracking from the map again. Only the world
-  // map can fill that slot.
+  // The tracked slot is emptied, and the next waypoint refills it on its own - the world map is still
+  // the only thing that can fill it, but MapFocus opens the map and does exactly that.
   public func ClearWaypoint(gi: GameInstance) -> Void {
     if !this.HasPin() {
       return;
     }
     let ms = GameInstance.GetMappinSystem(gi);
     if IsDefined(ms) {
+      // DEACTIVATE BEFORE DESTROYING, and do not reorder this.
+      //
+      // Destroying a mappin that has ever been tracked STRANDS its widget: the pin stays drawn on the
+      // HUD and minimap with nothing behind it, until something rebuilds the player model. That is a
+      // base-game bug - MapWaypointBugFixes carries the same remedy for vanilla's own destroy path.
+      // Deactivating first sends the widget back through the normal teardown, so the destroy has
+      // nothing left to orphan.
+      ms.SetMappinActive(this.m_mappinId, false);
+
+      // Untrack only when the slot actually holds this waypoint: UntrackMappin() takes no argument
+      // and clears whatever is tracked, so calling it blind drops one the player set themselves.
       let slot = ms.GetManuallyTrackedMappinID();
       if slot.value == this.m_mappinId.value {
         ms.UntrackMappin();
@@ -244,7 +260,7 @@ public class NCZDGWorldActions extends ScriptableSystem {
     this.m_mappinId = empty;
     this.m_pinnedId = "";
     this.m_confirmed = false;
-    NCZDGLog("[MARK] marker untracked and destroyed");
+    NCZDGLog("[MARK] waypoint cleared - deactivated, untracked and destroyed");
   }
 }
 

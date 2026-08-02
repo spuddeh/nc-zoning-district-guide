@@ -52,16 +52,21 @@ public class NCZDGConfig extends ScriptableService {
   // control entirely rather than offering one that cannot work.
   public let defaultInstallFilter: Int32 = 0;
 
-  // What SHOW ON MAP does beyond placing the marker.
+  // What SHOW ON MAP does beyond placing the waypoint. Both default ON: a waypoint the player cannot
+  // find, or that draws no route, may as well not exist.
   //
-  // Opening the map costs the player nothing and solves the actual problem - a pin they cannot find
-  // is a pin that may as well not exist - so it is on.
+  // AUTO-TRACK DOES NOT COST THE PLAYER THEIR QUEST. An earlier version defaulted this off on the
+  // belief that there is one tracked slot shared with quests. That is wrong, and vanilla's own
+  // TryTrackQuestOrSetWaypoint (worldMap.swift:845) shows it: quest tracking goes through
+  // CanQuestTrackMappin -> TrackQuestMappin, player tracking through CanPlayerTrackMappin ->
+  // TrackMappin, and the only thing the player branch clears is UntrackCustomPositionMappin - a
+  // custom map waypoint. The tracked quest is untouched.
   //
-  // Taking the tracked slot is a different kind of act: there is exactly ONE, and filling it
-  // discards whatever the player was following, a quest included. That is theirs to spend, so it is
-  // off until they say otherwise.
+  // Field names still say "Marker" because they are RCF STORAGE KEYS: renaming one silently orphans
+  // every existing user's saved value. Player-facing text says "waypoint", which is the game's own
+  // word for this.
   public let openMapOnMarker: Bool = true;
-  public let autoTrackMarker: Bool = false;
+  public let autoTrackMarker: Bool = true;
 
   // World map panel
   public let enableMapPanel: Bool = true;

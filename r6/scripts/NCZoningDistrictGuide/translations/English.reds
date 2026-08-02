@@ -37,9 +37,8 @@ public class NCZDG_English extends ModLocalizationPackage {
 
     // --- buttons -----------------------------------------------------------------------
     this.Text("NCZDG.btnClear",        "CLEAR");
-    this.Text("NCZDG.btnSetMarker",    "SET MARKER");
-    this.Text("NCZDG.btnSetWaypoint",  "SHOW ON MAP");
-    this.Text("NCZDG.btnClearMarker",  "CLEAR MARKER");
+    this.Text("NCZDG.btnSetMarker",    "SHOW ON MAP");
+    this.Text("NCZDG.btnClearMarker",  "CLEAR WAYPOINT");
     this.Text("NCZDG.btnTeleport",     "TELEPORT");
     this.Text("NCZDG.btnExitVehicle",  "EXIT VEHICLE");
     this.Text("NCZDG.btnPrev",         "< PREV");
@@ -58,7 +57,6 @@ public class NCZDG_English extends ModLocalizationPackage {
     this.Text("NCZDG.countSearch",     "{n} OF {total} IN {area}");
     this.Text("NCZDG.countPaged",      "{from}-{to} OF {n} IN {area}");
     this.Text("NCZDG.countPlain",      "{n} IN {area}");
-    this.Text("NCZDG.routingHint",     "   ·   FOR DIRECTIONS: OPEN THE WORLD MAP, HOVER THE NC MARKER, TRACK WAYPOINT");
 
     // --- nav column --------------------------------------------------------------------
     this.Text("NCZDG.areaAll",         "ALL LOCATIONS");
@@ -66,6 +64,7 @@ public class NCZDG_English extends ModLocalizationPackage {
 
     // --- cards -------------------------------------------------------------------------
     this.Text("NCZDG.badgeRecent",     "RECENTLY UPDATED");
+    this.Text("NCZDG.badgeInstalled",  "INSTALLED");
     this.Text("NCZDG.noImage",         "NO SURVEY IMAGE ON FILE");
 
     // --- lightbox ----------------------------------------------------------------------
@@ -97,7 +96,6 @@ public class NCZDG_English extends ModLocalizationPackage {
     this.Text("NCZDG.mapCountOne",     "{n} LOCATION");
     this.Text("NCZDG.mapCountMany",    "{n} LOCATIONS");
     this.Text("NCZDG.mapRecent",       "{n} RECENTLY UPDATED");
-    this.Text("NCZDG.mapMarkerIdle",   "MARKER SET - TRACK IT TO ROUTE");
 
     // --- failure states ----------------------------------------------------------------
     // The long form belongs to NCZoningCore (GetStatusMessage) and is localised there.
@@ -123,10 +121,10 @@ public class NCZDG_English extends ModLocalizationPackage {
     this.Text("NCZDG.optShowing",      "Open Guide Showing");
     this.Text("NCZDG.tipShowing",      "Which locations the guide lists when it opens. You can still switch between them inside the guide. Requires Cyber Engine Tweaks, which is what detects your installed mods.");
     this.Text("NCZDG.optOpenMap",      "Open the Map on Show");
-    this.Text("NCZDG.tipOpenMap",      "SHOW ON MAP opens the world map and centres it on the marker. Turn this off to place the marker and stay in the guide.");
-    this.Text("NCZDG.optAutoTrack",    "Track the Marker");
-    this.Text("NCZDG.tipAutoTrack",    "Also route to the marker, the way tracking a quest does. There is only one tracked slot, so this replaces whatever you are following, a quest included.");
-    this.Text("NCZDG.noteWaypoint",    "A marker only draws its route once the world map has opened. That is a game limitation, not a setting.");
+    this.Text("NCZDG.tipOpenMap",      "SHOW ON MAP opens the world map and centres it on the waypoint. Turn this off to place the waypoint and stay in the guide.");
+    this.Text("NCZDG.optAutoTrack",    "Track the Waypoint");
+    this.Text("NCZDG.tipAutoTrack",    "Route to the waypoint straight away, instead of tracking it yourself on the map. This replaces a custom waypoint you have placed; your tracked quest is a separate slot and is left alone.");
+    this.Text("NCZDG.noteWaypoint",    "A waypoint only starts routing once the world map has opened. That is a game limitation, not a setting.");
 
     this.Text("NCZDG.dropAll",         "All");
     this.Text("NCZDG.dropInstalled",   "Installed only");

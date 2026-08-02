@@ -50,8 +50,27 @@ public func NCZDG_MarkerAspect() -> Float { return 1.75; }
 // Fit to the icons' WIDTH. Correct where the container scales the icon - the world map and minimap.
 public func NCZDG_MarkerFitWidth() -> Float { return 64.0; }
 
-// Fit to the icons' HEIGHT. Correct in the world, where the pin sits among unscaled 64x64 icons.
-public func NCZDG_MarkerFitHeight() -> Float { return 64.0 * 1.75; }
+// The world/HUD pin, which sits among unscaled 64x64 icons.
+//
+// A full height fit (64 * 1.75 = 112 wide) matches their height but is 1.75x their WIDTH, and reads
+// as oversized next to them - measured in game. A pure width fit (64 wide, 36.6 tall) reads as
+// half-size. 88 is between the two: wider than a vanilla icon, visibly shorter than one.
+public func NCZDG_MarkerFitHeight() -> Float { return 88.0; }
+
+// CACHED IDENTITY, AND IT EXISTS TO AVOID A CRASH - do not "simplify" it back to a live lookup.
+//
+// Asking the mappin who it is is only safe while the mappin is bound, which is true in UpdateIcon
+// and NOT true in UpdateTrackedState: vanilla's own UpdateTrackedState returns at
+// `ArraySize(m_taggedWidgets) == 0` before touching the mappin, and it is also called while mappins
+// are being destroyed. GetMappin() hands back a wref, a wref to a destroyed mappin is not null, so
+// IsDefined() passes it through and GetDisplayName() takes the game down. Measured: CTD on every
+// world-map open, 2026-08-02.
+//
+// So identity is resolved once in the icon path, where the mappin is guaranteed live, and every
+// other hook reads this Bool instead. Controllers are pooled, so a recycled one can carry a stale
+// value until its next icon update - that is a wrong tint for one frame, not a crash.
+@addField(BaseMappinBaseController)
+let nczdg_isOurs: Bool;
 
 // Everything below runs inside a hot path shared with every other mappin on screen.
 @addMethod(BaseMappinBaseController)
@@ -67,7 +86,9 @@ protected final func NCZDG_IsOurMarker() -> Bool {
 // monogram is never stretched.
 @addMethod(BaseMappinBaseController)
 protected final func NCZDG_BrandIcon(width: Float) -> Void {
-  if !this.NCZDG_IsOurMarker() {
+  // The one place identity is resolved live. Cached for the hooks that cannot ask safely.
+  this.nczdg_isOurs = this.NCZDG_IsOurMarker();
+  if !this.nczdg_isOurs {
     return;
   }
   inkImageRef.SetAtlasResource(this.iconWidget, NCZDG_MarkerAtlas());
@@ -99,9 +120,10 @@ protected final func NCZDG_TintIcon() -> Void {
   }
   icon.UnbindProperty(n"tintColor");
 
-  let mappin = this.GetMappin();
-  let tracked = IsDefined(mappin) && mappin.IsPlayerTracked();
-  icon.SetTintColor(tracked ? NCZDG_MarkerTrackedColor() : NCZDG_MarkerColor());
+  // IsPlayerTracked is native on the CONTROLLER (gameuiMappinBaseController) as well as on IMappin.
+  // Read it from the controller: it answers the same question without dereferencing a mappin that
+  // may already be gone.
+  icon.SetTintColor(this.IsPlayerTracked() ? NCZDG_MarkerTrackedColor() : NCZDG_MarkerColor());
 }
 
 // Tracking is the state the colour reports, so the colour has to be re-applied when it changes.
@@ -113,7 +135,9 @@ protected final func NCZDG_TintIcon() -> Void {
 @wrapMethod(BaseMappinBaseController)
 protected func UpdateTrackedState() -> Void {
   wrappedMethod();
-  if this.NCZDG_IsOurMarker() {
+  // Cached flag, NOT a live lookup - see nczdg_isOurs. An unowned pin costs one field read here
+  // and no native call, which is what keeps this hook off the destroyed-mappin path.
+  if this.nczdg_isOurs {
     this.NCZDG_TintIcon();
   }
 }
@@ -121,7 +145,7 @@ protected func UpdateTrackedState() -> Void {
 @wrapMethod(GameplayMappinController)
 protected func UpdateTrackedState() -> Void {
   wrappedMethod();
-  if this.NCZDG_IsOurMarker() {
+  if this.nczdg_isOurs {
     this.NCZDG_TintIcon();
   }
 }
@@ -147,14 +171,36 @@ protected final func UpdateIcon() -> Void {
 @wrapMethod(BaseWorldMapMappinController)
 protected func UpdateIcon() -> Void {
   wrappedMethod();
-  if !this.NCZDG_IsOurMarker() {
+
+  // BrandIcon resolves identity and caches it, so it is asked once per icon update and not twice.
+  this.NCZDG_BrandIcon(NCZDG_MarkerFitWidth());
+  if !this.nczdg_isOurs {
     return;
   }
-  this.NCZDG_BrandIcon(NCZDG_MarkerFitWidth());
 
   let focus = NCZDGMapFocus.Get();
-  if IsDefined(focus) {
-    focus.SetController(this);
+  if !IsDefined(focus) {
+    return;
+  }
+  focus.SetController(this);
+
+  // THIS is the trigger, and it runs SYNCHRONOUSLY. No timer, at any duration.
+  //
+  // DelaySystem runs on GAME time, and an open world map dilates that to nearly a stop: a 0.25s
+  // callback scheduled here fired 9.1 REAL seconds later, by which point the player had closed the
+  // map and both handles were released. Measured 2026-08-02. Every earlier timing-based version
+  // failed the same way and looked like a different bug each time.
+  //
+  // Here, both handles are provably live: `this` is the controller being drawn, and the map cannot
+  // be mid-draw and closed at once. Consume() first, so the re-entrant UpdateIcon that TrackMappin
+  // provokes finds nothing pending.
+  if focus.IsPending() {
+    let menu = focus.GetMapMenu();
+    if IsDefined(menu) {
+      focus.Consume();
+      menu.NCZDG_FocusMarker(this);
+      focus.ClearController();
+    }
   }
 }
 

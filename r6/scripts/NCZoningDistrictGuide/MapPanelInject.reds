@@ -79,10 +79,6 @@ let nczdg_mapBreakdown: wref<inkHorizontalPanel>;
 @addField(WorldMapMenuGameController)
 let nczdg_mapRecent: wref<inkText>;
 
-@if(ModuleExists("NCZoning.Api"))
-@addField(WorldMapMenuGameController)
-let nczdg_mapMarker: wref<inkText>;
-
 // Hover fires on every mouse move over the map, so dedupe like the native ShowGangsInfo does.
 // Bool defaults to false, which is what forces the first hover through.
 @if(ModuleExists("NCZoning.Api"))
@@ -111,10 +107,9 @@ protected cb func OnUpdateHoveredDistricts(district: gamedataDistrict, subdistri
 }
 
 // WorldMapMenuGameController is the ONLY thing that can adopt a script-registered pin as the
-// player's tracked waypoint, so a marker draws no route until the map has been opened. That is a
+// player's tracked waypoint, so a waypoint draws no route until the map has been opened. That is a
 // PRECONDITION, not a wall - MapFocus.reds opens the map and calls ZoomToMappin / SetSelectedMappin
-// / TrackMappin on this controller. What is left over is the case this file reports: a marker that
-// is set while auto-tracking is off, which draws but does not route.
+// / TrackMappin on this controller.
 // [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]]
 //
 // NEVER call TrackCustomPositionMappin() from a hook here. It does not adopt an existing pin - it
@@ -129,8 +124,6 @@ protected cb func OnUninitialize() -> Bool {
   this.nczdg_mapPanel = null;
   this.nczdg_mapCount = null;
   this.nczdg_mapBreakdown = null;
-  this.nczdg_mapRecent = null;
-  this.nczdg_mapMarker = null;
   this.nczdg_mapBuilt = false;
   return result;
 }
@@ -151,14 +144,6 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
     return;
   }
 
-  if !this.NCZDG_EnsureMapSection() {
-    return;
-  }
-
-  // Ahead of the dedupe, deliberately. The marker line reports the TRACKED SLOT, which the player
-  // changes without moving the cursor - so it has to refresh on hovers the district dedupe drops.
-  this.NCZDG_UpdateMarkerLine();
-
   // Same area as the last hover: nothing to redo (hover fires on every mouse move).
   if this.nczdg_mapBuilt
      && Equals(district, this.nczdg_mapLastDistrict)
@@ -167,6 +152,10 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
   }
   this.nczdg_mapLastDistrict = district;
   this.nczdg_mapLastSub = subdistrict;
+
+  if !this.NCZDG_EnsureMapSection() {
+    return;
+  }
   this.nczdg_mapBuilt = true;
 
   // No registry data: say so. Every count below would read 0, and "NO REGISTERED LOCATIONS" for a
@@ -282,30 +271,6 @@ private final func NCZDG_UpdateMapSection(district: gamedataDistrict, subdistric
   }
 }
 
-// A marker that is set but not tracked draws on the map and routes nowhere, which reads as the pin
-// being broken. The map is the one screen where the player can fix it, so it is the one screen that
-// says so. Silent whenever there is nothing to act on - no marker, or it is already routing.
-@if(ModuleExists("NCZoning.Api"))
-@addMethod(WorldMapMenuGameController)
-private final func NCZDG_UpdateMarkerLine() -> Void {
-  if !IsDefined(this.nczdg_mapMarker) {
-    return;
-  }
-  let player = this.GetPlayerControlledObject();
-  if !IsDefined(player) {
-    this.nczdg_mapMarker.SetVisible(false);
-    return;
-  }
-  let gi = player.GetGame();
-  let actions = NCZDGWorldActions.Get(gi);
-  if !IsDefined(actions) || !actions.HasPin() || actions.IsRouting(gi) {
-    this.nczdg_mapMarker.SetVisible(false);
-    return;
-  }
-  this.nczdg_mapMarker.SetText(NCZDG_T("NCZDG.mapMarkerIdle"));
-  this.nczdg_mapMarker.SetVisible(true);
-}
-
 // Append "N LABEL" to the breakdown row, preceded by a separator dot unless it is the first
 // segment. Zero-count categories are omitted (as the web does). Returns the new `first` state.
 //
@@ -400,17 +365,9 @@ private final func NCZDG_EnsureMapSection() -> Bool {
   recent.SetVisible(false);
   recent.Reparent(panel);
 
-  // Marker prompt: gold, below the recency line. Hidden until a marker is set and left untracked.
-  let marker = this.NCZDG_MakeMapText("", n"MainColors.Gold", NCZDG_MapDetailSize());
-  marker.SetName(n"nczdg_map_marker");
-  marker.SetMargin(new inkMargin(0.0, 4.0, 0.0, 0.0));
-  marker.SetVisible(false);
-  marker.Reparent(panel);
-
   this.nczdg_mapPanel = panel;
   this.nczdg_mapCount = count;
   this.nczdg_mapBreakdown = breakdown;
   this.nczdg_mapRecent = recent;
-  this.nczdg_mapMarker = marker;
   return true;
 }

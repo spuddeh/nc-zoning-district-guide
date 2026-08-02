@@ -146,11 +146,41 @@ public func NCZDG_CardWidth() -> Float {
 //
 // Left padding clears the two state bars (category accent + install), so the image starts
 // inside them rather than covering them.
+// The card's two action buttons. DERIVED, NOT TYPED TWICE: the strip that holds them used to carry
+// a hardcoded 404 with "2 * 190 + margins" in a comment beside it, and widening the buttons alone
+// overflowed the strip and pushed them off the card. Change the width here and the box follows.
+public func NCZDG_CardBtnWidth() -> Float { return 230.0; }
+public func NCZDG_CardBtnLead() -> Float { return 12.0; }   // each button's own lead-in margin
+public func NCZDG_ActionsWidth() -> Float {
+  return (NCZDG_CardBtnWidth() + NCZDG_CardBtnLead()) * 2.0;
+}
+
+// The recency badge overlaying the thumbnail. Sized to "RECENTLY UPDATED" at 22px Semi-Bold
+// (~16 characters) plus padding; the box is fixed rather than fit-to-content because an
+// inkCanvas does not size to its children.
+public func NCZDG_BadgeWidth() -> Float { return 246.0; }
+public func NCZDG_InstallBadgeWidth() -> Float { return 158.0; }   // "INSTALLED", 9 characters
+public func NCZDG_BadgeHeight() -> Float { return 40.0; }
+public func NCZDG_BadgeInset() -> Float { return 12.0; }
+
 public func NCZDG_CardPadLeft() -> Float { return 20.0; }
 public func NCZDG_CardPadRight() -> Float { return 20.0; }
 
+// The category accent bar down the card's left edge.
+public func NCZDG_AccentWidth() -> Float { return 6.0; }
+
+// The visual thickness of the card's cell_fg frame. THE ONE VALUE TO NUDGE if the thumbnail still
+// sits a hair over the border or a hair short of it - everything below is derived from it.
+public func NCZDG_CardBorder() -> Float { return 4.0; }
+
+// The thumbnail is a banner seated INSIDE the card's frame, not a block aligned to the text margin.
+// Its top-left corner lands exactly where the accent bar's right edge meets the inside of the top
+// border; its right edge stops on the inside of the right border.
+//
+// Earlier attempts got this wrong in both directions: subtracting only CardPadLeft ran it over the
+// right border, and subtracting the text pads at both ends left an obvious gap down each side.
 public func NCZDG_ImageWidth() -> Float {
-  return NCZDG_CardWidth() - NCZDG_CardPadLeft();
+  return NCZDG_CardWidth() - NCZDG_AccentWidth() - NCZDG_CardBorder();
 }
 // 16:9, because the registry's images are Nexus screenshots. A differently-shaped image is
 // scaled to FIT this box and letterboxes inside it - ink cannot clip a child, so an image
@@ -370,6 +400,7 @@ public class NCZDGGuideSystem extends ScriptableSystem {
 public class NCZDGGuidePopup extends InGamePopup {
   private let m_gi: GameInstance;
   private let m_isClosed: Bool;
+  private let m_openMapOnHidden: Bool;   // SHOW ON MAP asked for the map; OnHidden opens it
   private let m_header: ref<InGamePopupHeader>;
   private let m_footer: ref<InGamePopupFooter>;
   private let m_content: ref<InGamePopupContent>;
@@ -932,13 +963,6 @@ public class NCZDGGuidePopup extends InGamePopup {
       }
     }
 
-    // A marker that is placed but not tracked draws a pin and no route, and only the player can fix
-    // that - from the map. Saying so once, in the footer, beats a card button that cannot do it.
-    //
-    // The hint must say HOVER. The map only tracks the mappin under the cursor; pressing the track key
-    // with nothing hovered drops a plain custom waypoint at the cursor instead, which is correct
-    // vanilla behaviour and looks exactly like the mod misfiring.
-    let routing = marked && actions.IsRouting(this.m_gi);
     let shownFrom = n > 0 ? start + 1 : 0;
     let shownTo = start + NCZDG_PageSize() < n ? start + NCZDG_PageSize() : n;
     let counts: String;
@@ -953,9 +977,6 @@ public class NCZDGGuidePopup extends InGamePopup {
       } else {
         counts = NCZDG_T2("NCZDG.countPlain", "{n}", IntToString(n), "{area}", area.Label());
       }
-    }
-    if marked && !routing {
-      counts += NCZDG_T("NCZDG.routingHint");
     }
     // Not logged. Refresh runs on every nav click, every page turn and every keystroke in the
     // search box - it is the single noisiest thing the guide does.
@@ -1108,18 +1129,19 @@ public class NCZDGGuidePopup extends InGamePopup {
       authors += (a > 0 ? ", " : "") + loc.AuthorAt(a);
       a += 1;
     }
-    // Capped so a long author list cannot run into the badge sharing the meta row: the badge is
-    // ~240 wide on an ~850 row, and 40 chars of 26px meta stays well left of it.
+    // Capped to the row's own width now, not around a badge - the badge moved onto the thumbnail
+    // and the meta line has the full row. 40 chars was the old clearance figure; 54 is what fits
+    // the row itself at 26px.
     let cat = NCZDG_CategoryLabel(loc.Category());
     let metaStr = StrLen(authors) > 0 ? s"\(cat)  -  \(authors)" : cat;
-    slot.meta.SetText(StrLen(metaStr) > 40 ? StrLeft(metaStr, 37) + "..." : metaStr);
+    slot.meta.SetText(StrLen(metaStr) > 54 ? StrLeft(metaStr, 51) + "..." : metaStr);
     slot.meta.BindProperty(n"tintColor", NCZDG_CategoryColor(loc.Category()));
     slot.accent.BindProperty(n"tintColor", NCZDG_CategoryColor(loc.Category()));
 
     // There is no way to query a wrapped text's height, so the card height is fixed and the
     // description is hard-truncated. 140 chars fills ~2 wrapped lines at this width; an unusually
     // narrow-glyphed 140 can reach a 3rd line, which only nudges the tags line into the row gap -
-    // the badge is on the meta row and out of reach. 150 reached 3 lines routinely; 110 left the
+    // the badge overlays the thumbnail and is out of reach. 150 reached 3 lines routinely; 110 left the
     // 2nd line visibly half-empty.
     let d = loc.Description();
     slot.desc.SetText(StrLen(d) > NCZDG_DescCap()
@@ -1147,20 +1169,19 @@ public class NCZDGGuidePopup extends InGamePopup {
     // so it shows what the API decided.
     slot.badge.SetVisible(loc.RecentlyUpdated());
 
-    // Install state. Unknown draws nothing at all - see the note on the widget.
-    if IsDefined(slot.installBar) {
-      let st = NCZDG_InstallStateOf(loc);
-      if Equals(st, NCZInstallState.Installed) {
-        slot.installBar.SetVisible(true);
-        slot.installBar.BindProperty(n"tintColor", NCZDG_Green());
-      } else {
-        if Equals(st, NCZInstallState.NotInstalled) {
-          slot.installBar.SetVisible(true);
-          slot.installBar.BindProperty(n"tintColor", NCZDG_Gray());
-        } else {
-          slot.installBar.SetVisible(false);
-        }
-      }
+    // INSTALLED ONLY, AND ONLY WHILE SHOWING ALL.
+    //
+    // The badge answers "do I already have this one?", which is a question the player only has
+    // while the list is mixed. Under SHOWING: INSTALLED every card would wear it and it says
+    // nothing; under SHOWING: MISSING none would.
+    //
+    // Nothing is drawn for NotInstalled or Unknown. Absence is not a claim: an AMM mod is
+    // undetectable in principle and without CET nothing is detectable at all, so a "not installed"
+    // badge would state as fact something the guide cannot know.
+    if IsDefined(slot.installBadge) {
+      let showInstalled = Equals(NCZDG_InstallStateOf(loc), NCZInstallState.Installed)
+                          && this.m_filter == NCZDG_FilterAll();
+      slot.installBadge.SetVisible(showInstalled);
     }
 
     // The waypoint button reflects the CURRENT pin, so it is right on every re-bind.
@@ -1502,28 +1523,11 @@ public class NCZDGGuidePopup extends InGamePopup {
     // The category chip, as a colour bar down the left edge. Same mapping as the map panel.
     let accent = new inkRectangle();
     accent.SetName(n"accent");
-    accent.SetSize(new Vector2(6.0, NCZDG_CardHeight()));
+    accent.SetSize(new Vector2(NCZDG_AccentWidth(), NCZDG_CardHeight()));
     accent.SetAnchor(inkEAnchor.LeftFillVerticaly);
     accent.SetStyle(NCZDG_StylePath());
     accent.BindProperty(n"tintColor", NCZDG_Cyan());
     accent.Reparent(card);
-
-    // Install state, as a second bar immediately inside the category one. It goes here rather
-    // than on the meta row because that row is already tight - the meta string is capped at 40
-    // chars specifically so it cannot reach the RECENTLY UPDATED badge - and a bar costs no
-    // layout space at all.
-    //
-    // HIDDEN means "no information", and that is the honest rendering for Unknown: an AMM mod
-    // is undetectable in principle, and with no CET nothing is detectable at all. Only a known
-    // state draws a bar.
-    let installBar = new inkRectangle();
-    installBar.SetName(n"install");
-    installBar.SetSize(new Vector2(6.0, NCZDG_CardHeight()));
-    installBar.SetAnchor(inkEAnchor.LeftFillVerticaly);
-    installBar.SetMargin(new inkMargin(8.0, 0.0, 0.0, 0.0));
-    installBar.SetStyle(NCZDG_StylePath());   // style bind, like the accent bar beside it
-    installBar.SetVisible(false);
-    installBar.Reparent(card);
 
     // The banner image, across the top. ALWAYS PRESENT AND ALWAYS THE SAME SIZE - it is not
     // toggled per bind any more. In a three-across grid a card that collapses its image sits a
@@ -1535,7 +1539,9 @@ public class NCZDGGuidePopup extends InGamePopup {
     imgBox.SetSize(new Vector2(NCZDG_ImageWidth(), NCZDG_ImageHeight()));
     imgBox.SetAnchor(inkEAnchor.TopLeft);
     imgBox.SetAnchorPoint(new Vector2(0.0, 0.0));
-    imgBox.SetMargin(new inkMargin(NCZDG_CardPadLeft(), 0.0, 0.0, 0.0));
+    // Seated against the accent bar horizontally and inside the top border vertically - the two
+    // together put the corner exactly on their intersection.
+    imgBox.SetMargin(new inkMargin(NCZDG_AccentWidth(), NCZDG_CardBorder(), 0.0, 0.0));
     imgBox.SetInteractive(true);
     imgBox.Reparent(card);
 
@@ -1586,6 +1592,19 @@ public class NCZDGGuidePopup extends InGamePopup {
     phText.SetOpacity(0.7);
     phText.Reparent(imgBox);
 
+    // The two thumbnail badges, added AFTER the image and the placeholder so they draw over both.
+    //
+    // Green is the brand's Approval colour, unused elsewhere in the guide, so recency reads as its
+    // own thing. Install state takes cyan instead: it is a neutral fact about the player's setup,
+    // not an endorsement, and two green badges in opposite corners read as the same badge twice.
+    let installBadge = this.MakeCornerBadge(imgBox, NCZDG_T("NCZDG.badgeInstalled"),
+                                            NCZDG_Cyan(), false, NCZDG_InstallBadgeWidth());
+    installBadge.SetName(n"install_badge");
+
+    let badgeBox = this.MakeCornerBadge(imgBox, NCZDG_T("NCZDG.badgeRecent"),
+                                        NCZDG_Green(), true, NCZDG_BadgeWidth());
+    badgeBox.SetName(n"recent_badge");
+
     let imgProxy = new NCZDGGuideProxy();
     imgProxy.popup = this;
     imgProxy.index = NCZDG_IdxImageBase() + slotIdx;
@@ -1609,10 +1628,9 @@ public class NCZDGGuidePopup extends InGamePopup {
     name.SetMargin(new inkMargin(0.0, 0.0, 0.0, 6.0));
     name.Reparent(stack);
 
-    // Meta row: category + authors at the left, the recency badge at the right - one fixed-height
-    // canvas, so the badge sits outside the vertical budget entirely and no description can ever
-    // push it off the card (which is what happened when it lived at the bottom of the stack).
-    // BindCard caps the meta string so it cannot reach the badge from the left.
+    // Meta row: category + authors. A fixed-height canvas so it sits outside the vertical budget
+    // and no description can push it off the card. The recency badge used to share this row and
+    // now overlays the thumbnail, so the whole width is the meta string's.
     let metaRow = new inkCanvas();
     metaRow.SetSize(new Vector2(NCZDG_TextWidth(), 34.0));
     metaRow.SetMargin(new inkMargin(0.0, 0.0, 0.0, 10.0));
@@ -1625,20 +1643,6 @@ public class NCZDGGuidePopup extends InGamePopup {
     meta.SetAnchorPoint(new Vector2(0.0, 0.5));
     meta.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
     meta.Reparent(metaRow);
-
-    // Green (the brand's Approval colour, unused elsewhere in the guide) so it reads apart from
-    // the category-tinted meta line. Built once and hidden; BindCard toggles it per mod from the
-    // core's server-computed RecentlyUpdated() - there is no in-game clock to derive it.
-    let badge = this.MakeText(NCZDG_T("NCZDG.badgeRecent"), NCZDG_Green(), 22);
-    badge.SetFontStyle(n"Semi-Bold");
-    badge.SetLetterCase(textLetterCase.UpperCase);
-    badge.SetHAlign(inkEHorizontalAlign.Right);
-    badge.SetVAlign(inkEVerticalAlign.Center);
-    badge.SetAnchor(inkEAnchor.CenterRight);
-    badge.SetAnchorPoint(new Vector2(1.0, 0.5));
-    badge.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
-    badge.SetVisible(false);
-    badge.Reparent(metaRow);
 
     let desc = this.MakeText("", NCZDG_Gray(), 26);
     desc.SetWrappingAtPosition(NCZDG_TextWidth());
@@ -1670,7 +1674,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     // pasted onto the card, which is glaring over a bright image.
     let actionsBox = new inkCanvas();
     actionsBox.SetName(n"nczdg_actions");
-    actionsBox.SetSize(new Vector2(404.0, 46.0));   // 2 * 190 + their 12 lead-in margins
+    actionsBox.SetSize(new Vector2(NCZDG_ActionsWidth(), 46.0));
     actionsBox.SetAnchor(inkEAnchor.BottomRight);
     actionsBox.SetAnchorPoint(new Vector2(1.0, 1.0));
     actionsBox.SetMargin(new inkMargin(0.0, 0.0, NCZDG_CardPadRight(), 14.0));
@@ -1684,12 +1688,15 @@ public class NCZDGGuidePopup extends InGamePopup {
     actions.SetAnchorPoint(new Vector2(0.0, 0.0));
     actions.Reparent(actionsBox);
 
-    // Both 190, sized to the LONGEST label each can ever show rather than to its initial one:
-    // the first retitles between SET MARKER and CLEAR MARKER, the second between TELEPORT and
-    // EXIT VEHICLE - 12 characters at 26px either way. 250 was sized to nothing in particular
-    // and left the first button visibly emptier than the second.
-    let wp = this.MakeSmallButton(actions, NCZDG_T("NCZDG.btnSetWaypoint"), NCZDG_IdxWaypointBase() + slotIdx, 190.0);
-    let tp = this.MakeSmallButton(actions, NCZDG_T("NCZDG.btnTeleport"), NCZDG_IdxTeleportBase() + slotIdx, 190.0);
+    // Equal widths, sized to the LONGEST label either can ever show: the first retitles between
+    // SHOW ON MAP and CLEAR WAYPOINT, the second between TELEPORT and EXIT VEHICLE, and CLEAR
+    // WAYPOINT is the longest at 14 characters. The width lives in NCZDG_CardBtnWidth so the
+    // strip that holds them stays in step.
+    //
+    // ONE KEY, used here and in the refresh path. Two keys for one label is how the button kept
+    // its old text after a rename: creation said one thing, the next Refresh overwrote it.
+    let wp = this.MakeSmallButton(actions, NCZDG_T("NCZDG.btnSetMarker"), NCZDG_IdxWaypointBase() + slotIdx, NCZDG_CardBtnWidth());
+    let tp = this.MakeSmallButton(actions, NCZDG_T("NCZDG.btnTeleport"), NCZDG_IdxTeleportBase() + slotIdx, NCZDG_CardBtnWidth());
 
     let proxy = new NCZDGGuideProxy();
     proxy.popup = this;
@@ -1708,7 +1715,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     slot.meta = meta;
     slot.desc = desc;
     slot.tags = tags;
-    slot.badge = badge;
+    slot.badge = badgeBox;
     slot.actions = actionsBox;
     slot.wpLabel = wp;
     slot.tpLabel = tp;
@@ -1719,7 +1726,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     slot.stack = stack;
     slot.metaRow = metaRow;
     slot.slotIdx = slotIdx;
-    slot.installBar = installBar;
+    slot.installBadge = installBadge;
     return slot;
   }
 
@@ -1729,7 +1736,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     let box = new inkCanvas();
     box.SetSize(new Vector2(width, 46.0));
     box.SetHAlign(inkEHorizontalAlign.Left);
-    box.SetMargin(new inkMargin(12.0, 0.0, 0.0, 0.0));
+    box.SetMargin(new inkMargin(NCZDG_CardBtnLead(), 0.0, 0.0, 0.0));
     box.SetInteractive(true);
     box.Reparent(parent);
 
@@ -1891,17 +1898,35 @@ public class NCZDGGuidePopup extends InGamePopup {
       if IsDefined(focus) {
         focus.Request();
       }
-      // Open the map for them. If that cannot be done the request simply stays pending, so the
-      // marker is still centred the next time they open the map by hand.
-      NCZDG_ScheduleOpenMap(this.m_gi);
-      // Close the guide either way: the next thing the player does is open the map, and the popup
-      // owns ModalPopup until it goes.
+      // Armed here, fired from OnHidden - NOT on a timer. Close() only QUEUES the hide; the popup
+      // does not pop UIGameContext.ModalPopup until it detaches, and opening the map before that
+      // lands it underneath a live modal context: the map draws, nothing accepts input, and the
+      // context stack is left unbalanced. A soft lock, and no delay is the right length because
+      // the wait is for an event, not a duration.
+      this.m_openMapOnHidden = true;
       this.Close();
       return;
     }
 
     this.Refresh();
     this.SelectCard(slotIdx);
+  }
+
+  // The map is opened HERE and nowhere else. OnHidden runs after the popup has detached, which is
+  // what runs InGamePopup.OnHide -> ResetUIContext -> PopGameContext(ModalPopup), and after the
+  // 0.25s hide animation has finished. So by this point the modal context is provably gone and the
+  // hub menu can take input. Anything earlier is a race, and the race soft-locks the game.
+  protected cb func OnHidden() -> Void {
+    super.OnHidden();
+    if !this.m_openMapOnHidden {
+      return;
+    }
+    this.m_openMapOnHidden = false;
+    if !NCZDG_TryOpenWorldMap() {
+      // Degrades to the old behaviour: the focus request stays pending, so the marker is still
+      // centred whenever the player opens the map themselves.
+      NCZDGWarn("[MARK] could not open the map - the request stays pending");
+    }
   }
 
   // Close FIRST, teleport after. The popup holds ModalPopup and pins time dilation at ~1e-6, and a
@@ -2005,6 +2030,63 @@ public class NCZDGGuidePopup extends InGamePopup {
     return col;
   }
 
+  // A badge overlaid on a thumbnail corner: chamfered fill, chamfered frame, centred caption.
+  //
+  // Two stacked layers of the cell_bg/cell_fg pair the card itself uses - a plain inkRectangle is
+  // square and would draw straight through the chamfer. The fill stays translucent so the thumbnail
+  // reads through it as a badge on an image rather than a hole punched in one.
+  //
+  // THE CALLER MUST REPARENT THESE LAST. ink has no z-order; a compound widget draws its children
+  // in array order, so a badge added before the image draws beneath it.
+  //
+  // Never interactive: the thumbnail underneath owns the click that opens the lightbox, and a
+  // widget on top would swallow it in that corner.
+  private func MakeCornerBadge(parent: wref<inkCompoundWidget>, label: String, colour: CName,
+                               onRight: Bool, width: Float) -> ref<inkCanvas> {
+    let box = new inkCanvas();
+    box.SetSize(new Vector2(width, NCZDG_BadgeHeight()));
+    box.SetAnchor(onRight ? inkEAnchor.TopRight : inkEAnchor.TopLeft);
+    box.SetAnchorPoint(new Vector2(onRight ? 1.0 : 0.0, 0.0));
+    box.SetMargin(onRight
+      ? new inkMargin(0.0, NCZDG_BadgeInset(), NCZDG_BadgeInset(), 0.0)
+      : new inkMargin(NCZDG_BadgeInset(), NCZDG_BadgeInset(), 0.0, 0.0));
+    box.SetVisible(false);
+    box.Reparent(parent);
+
+    let bg = new inkImage();
+    bg.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    bg.SetTexturePart(n"cell_bg");
+    bg.SetNineSliceScale(true);
+    bg.SetAnchor(inkEAnchor.Fill);
+    bg.SetTintColor(NCZDG_NavyColor());
+    bg.SetOpacity(0.82);
+    bg.Reparent(box);
+
+    let frame = new inkImage();
+    frame.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    frame.SetTexturePart(n"cell_fg");
+    frame.SetNineSliceScale(true);
+    frame.SetAnchor(inkEAnchor.Fill);
+    frame.SetStyle(NCZDG_StylePath());
+    frame.BindProperty(n"tintColor", colour);
+    frame.SetOpacity(0.85);
+    frame.Reparent(box);
+
+    let txt = this.MakeText(label, colour, 22);
+    txt.SetFontStyle(n"Semi-Bold");
+    txt.SetLetterCase(textLetterCase.UpperCase);
+    txt.SetHAlign(inkEHorizontalAlign.Center);
+    txt.SetVAlign(inkEVerticalAlign.Center);
+    txt.SetAnchor(inkEAnchor.Centered);
+    txt.SetAnchorPoint(new Vector2(0.5, 0.5));
+    // MakeText leaves a 24 BOTTOM margin for stacking in vertical panels. Centred in a canvas that
+    // margin lifts the glyphs clean out of the box, so it has to be zeroed here.
+    txt.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
+    txt.Reparent(box);
+
+    return box;
+  }
+
   private func MakeText(label: String, colour: CName, size: Int32) -> ref<inkText> {
     let t = new inkText();
     t.SetText(label);
@@ -2085,7 +2167,8 @@ public class NCZDGCardSlot {
   public let meta: wref<inkText>;
   public let desc: wref<inkText>;
   public let tags: wref<inkText>;
-  public let badge: wref<inkText>;       // "RECENTLY UPDATED"; shown per the core's recency bool
+  // The whole badge box, not its text: toggling visibility has to take the frame and fill with it.
+  public let badge: wref<inkCanvas>;     // "RECENTLY UPDATED"; shown per the core's recency bool
   // The action strip is always BUILT, only hidden, so revealing it reflows nothing. The canvas
   // carries a card-coloured backing so card text cannot read through the buttons.
   public let actions: wref<inkCanvas>;
@@ -2110,9 +2193,9 @@ public class NCZDGCardSlot {
   // This slot's own index, so a pending fetch can be matched back to the card that wanted it
   // and dropped when a page turn rebinds the slot to a different location.
   public let slotIdx: Int32;
-  // Install state, as a bar beside the category accent. Hidden for Unknown - no bar means no
-  // information, which is exactly what Unknown asserts.
-  public let installBar: wref<inkRectangle>;
+  // Install state, as a badge on the thumbnail's top-left. Shown only for Installed, and only
+  // while the list is unfiltered - hidden means "no claim", which is what Unknown asserts.
+  public let installBadge: wref<inkCanvas>;
 }
 
 @if(ModuleExists("NCZoning.Api"))
