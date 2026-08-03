@@ -218,6 +218,12 @@ Initial development. Not yet released.
 
 ### Fixed
 
+- **The `[READY]` line reported `locations=0` on a session holding the whole registry.**
+  `NCZDG_TotalLocations()` called `ArraySize(GetAllLocations())`, and `ArraySize` applied straight to
+  a call that returns an array measures an rvalue temporary rather than the array. Bound to a local
+  first. Only the log line read it, so no surface was affected — but the line is what a bug report
+  quotes, and it was reporting an empty registry beside working install detection.
+
 - **CTD on every world-map open.** The `UpdateTrackedState` wraps resolved the marker's identity by
   dereferencing the mappin. Vanilla's own `UpdateTrackedState` returns at
   `ArraySize(m_taggedWidgets) == 0` before touching it, and the hook also runs while mappins are

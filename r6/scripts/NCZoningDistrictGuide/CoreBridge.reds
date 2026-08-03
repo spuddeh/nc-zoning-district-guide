@@ -95,9 +95,14 @@ public func NCZDG_InstallStateOf(loc: ref<NCZLocation>) -> NCZInstallState {
 
 // How much data arrived, for the readiness line. array<ref<NCZLocation>> is a core type, so the
 // fallback returns a bare 0 rather than naming it.
+//
+// BIND THE ARRAY TO A LOCAL FIRST. ArraySize() applied straight to a call that returns an array
+// measures an rvalue temporary and answers 0, which reads as "the registry is empty" on a session
+// holding every record.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_TotalLocations() -> Int32 {
-  return ArraySize(GetAllLocations());
+  let all = GetAllLocations();
+  return ArraySize(all);
 }
 @if(!ModuleExists("NCZoning.Api"))
 public func NCZDG_TotalLocations() -> Int32 { return 0; }
