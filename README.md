@@ -22,7 +22,7 @@ Every feature can be turned off on its own.
 ## Requirements
 
 - RED4ext, redscript, Codeware
-- [NCZoningCore](https://github.com/spuddeh/nc-zoning-core) — install the matching version.
+- [NCZoningCore](https://github.com/spuddeh/nc-zoning-core) - install the matching version.
   These two release together, so the current release of each expects the current release of
   the other.
 
@@ -35,15 +35,15 @@ Every feature can be turned off on its own.
 Strongly recommended:
 
 - [Redscript Configuration Framework](https://www.nexusmods.com/cyberpunk2077/mods/30726)
-  (RCF) 2.0.0 or newer, by DigitalVixen — every setting lives in its in-world overlay,
+  (RCF) 2.0.0 or newer, by DigitalVixen - every setting lives in its in-world overlay,
   including the guide keybind and its modifier
 
 Optional:
 
-- [RedIMGRetriever](https://www.nexusmods.com/cyberpunk2077/mods/31941) by DigitalVixen — shows
+- [RedIMGRetriever](https://www.nexusmods.com/cyberpunk2077/mods/31941) by DigitalVixen - shows
   each location's screenshot on its card, and the full-size image when you click it. Without it
   the guide simply has no images; nothing else changes.
-- **Cyber Engine Tweaks** — lets the guide mark which location mods you already have, and filter
+- **Cyber Engine Tweaks** - lets the guide mark which location mods you already have, and filter
   the list to installed or missing. Without it the filter button is hidden and no card is marked.
 
   A handful of location mods are **AMM** mods, whose files live in CET's own sandboxed folder and

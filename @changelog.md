@@ -48,7 +48,7 @@ Initial development. Not yet released.
   - Card height is derived (image + text + button band), never typed, so the three cannot drift.
   - The action strip has its own reserved band beneath the tags. Not over the image, which lays a
     control panel across the photograph, and not sharing the tags' line with the tags hidden on
-    hover, which costs every card its tags — and the tags appear nowhere else in the mod.
+    hover, which costs every card its tags - and the tags appear nowhere else in the mod.
   - Each button carries its own chamfered fill. One rectangle spanning both buttons and the gap
     between them reads as a slab pasted onto the card. The fill cannot be dropped either:
     `cell_fg` has a translucent interior, so with none the card's text reads through the buttons.
@@ -56,7 +56,7 @@ Initial development. Not yet released.
     square, so the navy draws straight through the frame's chamfered corner.
   - **Every text cap is measured in-game, not derived.** Width arithmetic predicts ~39 description
     characters per line; the real figure is ~49. A cap cannot be derived from one measured line
-    either — three lines held 133-141 characters across seven overflowing cards, because a
+    either - three lines held 133-141 characters across seven overflowing cards, because a
     proportional font gives a different count per line and per string. Title 74, description 128,
     tags 50.
   - Top strip is one row, 96 high. The count sits inside the pager row rather than above it, so
@@ -76,7 +76,7 @@ Initial development. Not yet released.
     fact, and the wrong one opens nothing with no error anywhere.
   - The map open fires from the popup's `OnHidden`, **not a timer**. `Close()` only queues the
     hide; the `ModalPopup` context is popped later, and opening the map before that puts it
-    underneath a live modal context — drawn, accepting no input, context stack unbalanced.
+    underneath a live modal context - drawn, accepting no input, context stack unbalanced.
   - The focus fires **synchronously from `BaseWorldMapMappinController.UpdateIcon`**, the moment
     the marker's controller exists. A delay has no correct duration here: `DelaySystem` runs on
     GAME time, which the open map dilates, so a 0.25s callback lands ~9 REAL seconds later.
@@ -94,7 +94,7 @@ Initial development. Not yet released.
     answer is true. Re-checked on every Refresh, because the scan completes on session ready and
     the guide can be built either side of it.
   - **The filter lives at the top of the district column, not in the search row**, because it
-    filters that column too — every district count changes with it. Placed above the nav scroll
+    filters that column too - every district count changes with it. Placed above the nav scroll
     rather than as its first row, or it would scroll away. Districts left empty by a filter hide;
     ALL LOCATIONS never does, and a selection the filter empties falls back to it.
   - The green "N RECENT" count hides while filtering: recency is a fact about the registry, not
@@ -105,7 +105,7 @@ Initial development. Not yet released.
     the guide is session-local and does not write back.
   - **This raises the NCZoningCore floor to 0.3.0, and `@if` cannot soften it.** `ModuleExists`
     tests for a module, not a function, so with an older NCZoningCore the guarded arm still
-    compiles and the new calls are UNRESOLVED_FN — which fails the whole compilation and takes
+    compiles and the new calls are UNRESOLVED_FN - which fails the whole compilation and takes
     every redscript mod on that machine down, not just this one.
 
 - **Card images, via RedIMGRetriever (soft dependency).** Without the plugin the guide has no
@@ -117,7 +117,7 @@ Initial development. Not yet released.
     nothing at all and says nothing about why, so an icon-only placeholder would be
     indistinguishable from a blank card. `quest_file_failed` with "NO SURVEY IMAGE ON FILE".
   - The icon is sized to the atlas part's measured aspect (66x157, from its UV rect against the
-    1640x512 texture). An `inkImage` does not preserve aspect — `SetSize` stretches the part to
+    1640x512 texture). An `inkImage` does not preserve aspect - `SetSize` stretches the part to
     whatever it is given.
   - The lightbox scrim is fully opaque and explicitly sized. `inkEAnchor.Fill` at 0.96 opacity
     reads as clearly translucent in-game, with the guide legible through it.
@@ -129,17 +129,17 @@ Initial development. Not yet released.
     *failure* reflows a live card.
   - `PrepareDocImage` is **poll-until-ready, not a callback**: it returns `""` in flight and an
     atlas ResRef once ready, and is idempotent. Drained by a self-re-arming `DelayCallback` chain
-    that starts on demand and stops when the queue empties or the popup closes — not an
+    that starts on demand and stops when the queue empties or the popup closes - not an
     `onUpdate`. RedIMGRetriever's API is poll-driven by design; there is no event to subscribe to.
   - **`NCZDG_IdxImageBase()` is 4000 and `OnProxyClick` must test it before teleport.** That
     dispatch is a descending chain of `index >= base`, so a 4000 hitting the `>= 3000` arm first
     teleports the player across the city on a thumbnail click.
   - Two redscript constraints: there is no `continue` statement (the poll loop uses a single-exit
-    `drop` flag), and an `InGamePopup` is an `inkCustomController`, not a widget — the lightbox
+    `drop` flag), and an `InGamePopup` is an `inkCustomController`, not a widget - the lightbox
     parents onto `GetRootCompoundWidget()`.
   - **The lightbox closes on click, not ESC.** ESC belongs to Codeware and closes the whole guide,
     and there is no supported way to intercept it first, so the scrim is one large button. ESC
-    while the lightbox is open closes the guide outright — a known limit.
+    while the lightbox is open closes the guide outright - a known limit.
 
 - **Settings: every setting, the keybind included, in the RCF 2.0.0 F8 overlay.** RCF is optional
   in the sense that the mod runs on its defaults without it, but nothing can then be rebound.
@@ -160,27 +160,27 @@ Initial development. Not yet released.
 
 - **Localisation.** Every player-facing string is a key resolved at draw time; 72 keys in
   `translations/English.reds`, the single source of truth for the mod's text. Uses Codeware's
-  `ModLocalizationPackage` / `ModLocalizationProvider` — no TweakXL, no locale JSON and no LocKey
+  `ModLocalizationPackage` / `ModLocalizationProvider` - no TweakXL, no locale JSON and no LocKey
   registration. Adding a language is one file plus one line in `Provider.reds`.
   - **Reads through Codeware's `LocalizationSystem.GetText`, cached on a `ScriptableService`.** The
-    global `GetLocalizedText` does **not** resolve these keys — it reads the base game's table and
+    global `GetLocalizedText` does **not** resolve these keys - it reads the base game's table and
     returns `""` for every `NCZDG.*` key, which renders the whole mod as its own key names. The
     system is resolved once at `Session/Ready` (by `NCZDGCoreBridge`, which as a `ScriptableSystem`
     has a `GameInstance` to give) and cached, because
-    `GameInstance.GetScriptableServiceContainer()` takes no `GameInstance` — so `Brand.reds`,
+    `GameInstance.GetScriptableServiceContainer()` takes no `GameInstance` - so `Brand.reds`,
     `GuideModel.reds` and `Status.reds` keep their free-function signatures.
   - **A missing key renders as the key.** An empty string draws an empty widget, which reads as a
     layout bug.
   - **Sentences are stored whole, with `{n}` / `{area}` / `{name}` placeholders**, rather than
     built by concatenation, which puts word order somewhere a translator cannot reach.
   - **Plurals are one key per form, never a stem plus "S".**
-  - **The RCF panel passes keys, not text** — `DVRCF_HubPopup.LocalizeSchema` resolves tab,
+  - **The RCF panel passes keys, not text** - `DVRCF_HubPopup.LocalizeSchema` resolves tab,
     section, label, tooltip and caption itself. It does **not** touch the dropdown options array,
     so the three filter options are the one place that resolves its own strings before handing
     them over.
 
 - Recently-updated surfacing: reads NCZoningCore's server-computed `RecentlyUpdated()` and shows it
-  in three places, all in green — a "RECENTLY UPDATED" badge on each card's thumbnail, an
+  in three places, all in green - a "RECENTLY UPDATED" badge on each card's thumbnail, an
   "N RECENT" count on every district/subdistrict nav row, and an "N RECENTLY UPDATED" line on the
   world-map district info panel. Counts are summed over the records already held; no extra API call.
 - Card sort puts recently-updated locations first, A-Z within each group; decays back to plain A-Z
@@ -188,7 +188,7 @@ Initial development. Not yet released.
 - Card action strip reveals on hover via `OnEnter`/`OnLeave` on the card; click-to-select kept as a
   fallback. The strip has an opaque card-coloured backing, because the buttons' `cell_fg` frames
   have translucent interiors and long tag lines read straight through them.
-- Card list scrolls back to the top on page turn, district change, and search edits — not on marker
+- Card list scrolls back to the top on page turn, district change, and search edits - not on marker
   refreshes, which re-bind while the pointer sits on a card (`SetScrollPosition(0.0)`, the vanilla
   vendor-grid idiom).
 - CLEAR button beside the search input, pager-styled, visible only while a query is present; clears
@@ -199,13 +199,13 @@ Initial development. Not yet released.
   reappear white.
 - Logging through RedLogger (`RedLog.Append`), a hard dependency, into
   `r6\logs\mods\NCZoningDistrictGuide__<date_time>.log`. `Logging.reds` is not and must never
-  become a `Logs.reds` — the latter carries a `native func` declaration, and redscript compiles
+  become a `Logs.reds` - the latter carries a `native func` declaration, and redscript compiles
   every installed mod into one unit, so two mods each shipping one is a duplicate declaration that
   breaks every redscript mod on the machine. RedLogger's signature ships once inside the plugin.
 
 ### Changed
 
-- **Player-facing vocabulary is "waypoint"**, the game's own word — its native prompt is TRACK
+- **Player-facing vocabulary is "waypoint"**, the game's own word - its native prompt is TRACK
   WAYPOINT. "Mappin" stays internal. Config *field* names keep "Marker" because they are RCF
   storage keys, and renaming one silently orphans every saved value.
 - **Auto-tracking defaults ON.** The player-tracked slot is not shared with quests: vanilla
@@ -221,7 +221,7 @@ Initial development. Not yet released.
   wrapper, so it cannot be typed wrong at a call site. The prefixes are padded to one width,
   because the log is read in-game as a column of plain labels in RCF's hub viewer.
 - **Shipped logging cut from 54 call sites to 28.** The test applied to each: does this line answer
-  a bug report you cannot reproduce? What went was per-event trace — the map-hover callback, the
+  a bug report you cannot reproduce? What went was per-event trace - the map-hover callback, the
   guide's `Refresh`, the banner's step-by-step resolve, the marker watcher's state dump,
   `guide key: FIRED`, and every build trace.
 - **One `[CFG]` line at session ready, in place of the per-event "disabled in settings" lines.** It
@@ -231,7 +231,7 @@ Initial development. Not yet released.
   `[READY] core=<version> locations=<n> installDetection=on|off`. The map-section injection, the
   fast-travel listener registration, the RCF handshake, every guide open and every district
   crossing are silent. It is emitted once per session, not once per data refresh. What still logs
-  per occurrence is what the **player** did — setting a marker, arriving at one, clearing it,
+  per occurrence is what the **player** did - setting a marker, arriving at one, clearing it,
   teleporting.
 
 ### Fixed
@@ -239,13 +239,13 @@ Initial development. Not yet released.
 - **The `[READY]` line reported `locations=0` on a session holding the whole registry.**
   `NCZDG_TotalLocations()` called `ArraySize(GetAllLocations())`, and `ArraySize` applied straight to
   a call that returns an array measures an rvalue temporary rather than the array. Bound to a local
-  first. Only the log line read it, so no surface was affected — but the line is what a bug report
+  first. Only the log line read it, so no surface was affected - but the line is what a bug report
   quotes, and it was reporting an empty registry beside working install detection.
 
 - **CTD on every world-map open.** The `UpdateTrackedState` wraps resolved the marker's identity by
   dereferencing the mappin. Vanilla's own `UpdateTrackedState` returns at
   `ArraySize(m_taggedWidgets) == 0` before touching it, and the hook also runs while mappins are
-  being destroyed — and `GetMappin()` returns a `wref`, which is **not null** for a destroyed
+  being destroyed - and `GetMappin()` returns a `wref`, which is **not null** for a destroyed
   mappin, so `IsDefined()` passed it through and `GetDisplayName()` crashed the game. Identity is
   now resolved once in the icon path and cached to `nczdg_isOurs`; the tracked hooks read the Bool
   and make no native call for a pin the mod does not own, and `NCZDG_TintIcon` reads
@@ -255,7 +255,7 @@ Initial development. Not yet released.
   deactivate → untrack (guarded, so it never drops a waypoint the player set) → destroy.
 - **The card button ignored its own rename.** Two LocKeys drove one label: `btnSetWaypoint` at
   creation and `btnSetMarker` on every `Refresh`. Collapsed to one key.
-- **The action strip pushed its buttons off the card** when they were widened — its width was
+- **The action strip pushed its buttons off the card** when they were widened - its width was
   hardcoded to `404.0`. Now derived from `NCZDG_CardBtnWidth`.
 - **The thumbnail drew over the card's border.** `NCZDG_ImageWidth` subtracted only the left pad.
   It is now seated inside the frame, its top-left corner on the accent bar's right edge, sized
@@ -268,15 +268,15 @@ Initial development. Not yet released.
 
 - The dev instruments, whole files plus their call sites. `NCZDGLog` and `Logging.reds` ship;
   these were instruments, not logging, and they answered questions that are now answered.
-  - `InkDebug.reds` — `NCZDG_DumpWidget`, a recursive widget-tree dumper that emits hundreds of
+  - `InkDebug.reds` - `NCZDG_DumpWidget`, a recursive widget-tree dumper that emits hundreds of
     lines per call. Restore it from git history at `84bd810~` for a debugging session rather than
     keeping it in the shipped tree.
-  - `MapWakeProbe.reds` — the `NCZDGMapDiff` scriptable system, the mappin create/destroy/state
+  - `MapWakeProbe.reds` - the `NCZDGMapDiff` scriptable system, the mappin create/destroy/state
     diff across a map session, and the `[INST]` controller-instance census.
-  - The `[PRESS]` probe in `MapMarker.reds` — a `TryTrackQuestOrSetWaypoint` wrap that logged the
+  - The `[PRESS]` probe in `MapMarker.reds` - a `TryTrackQuestOrSetWaypoint` wrap that logged the
     selected mappin's trackability. It read `nczdg_instId`, so it could not outlive `MapWakeProbe`.
   - The `NCZDG_DumpWidget` call in `MapPanelInject.reds`.
-- `NCZDG_LogPosInBrackets` in `PopupInject.reds` — a parent-chain position walker that existed only
+- `NCZDG_LogPosInBrackets` in `PopupInject.reds` - a parent-chain position walker that existed only
   to log, and was never called. The position it was written to find is the measured (56, 653) now
   hardcoded with its derivation in `FastTravelWatcher.reds`.
 - The marker watcher's state trace, the autodrive route probe and the `m_lastWatch` dedup field.
