@@ -529,6 +529,15 @@ public class NCZDGGuidePopup extends InGamePopup {
     body.SetMargin(new inkMargin(0.0, 0.0, NCZDG_FrameInset(), 0.0));
     body.Reparent(content);
 
+    // Without data there is nothing to list, and a nav of zero-count districts would read as
+    // "every district is empty" when nothing is known at all. Build the failure state instead.
+    // The window still opens: a keybind that does nothing reads as a broken mod, not a broken
+    // registry.
+    if !NCZDG_HasData() {
+      this.BuildNoData(body);
+      return;
+    }
+
     // --- top strip: search (left) + result count (right) ---------------------------------
     this.m_search = HubTextInput.Create();
     this.m_search.SetName(n"nczdg_search");
@@ -708,6 +717,32 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.BuildLightbox(this.GetRootCompoundWidget());
   }
 
+  // --------------------------------------------------------------------------------------
+  // No-data state
+  // --------------------------------------------------------------------------------------
+  // The reason sentence belongs to the core (NCZDG_StatusText), so this window, the district
+  // panels and the core's own red banner cannot disagree about what is wrong or how to fix it.
+  private func BuildNoData(body: ref<inkCanvas>) -> Void {
+    let box = new inkVerticalPanel();
+    box.SetName(n"nczdg_nodata");
+    box.SetChildOrder(inkEChildOrder.Forward);
+    box.SetFitToContent(true);
+    box.SetAnchor(inkEAnchor.Centered);
+    box.SetAnchorPoint(new Vector2(0.5, 0.5));
+    box.Reparent(body);
+
+    let head = this.MakeText(NCZDG_NoDataLabel(), NCZDG_Red(), 48);
+    head.SetHAlign(inkEHorizontalAlign.Center);
+    head.SetHorizontalAlignment(textHorizontalAlignment.Center);
+    head.Reparent(box);
+
+    let why = this.MakeText(NCZDG_StatusText(), NCZDG_Gray(), 30);
+    why.SetHAlign(inkEHorizontalAlign.Center);
+    why.SetHorizontalAlignment(textHorizontalAlignment.Center);
+    why.SetWrappingAtPosition(1100.0);
+    why.Reparent(box);
+  }
+
   // Every keystroke re-queries and re-binds the pool. No debounce is needed: nothing is allocated,
   // 295 string compares are trivial, and the game is paused anyway.
   protected cb func OnSearchChanged(widget: ref<inkWidget>) -> Bool {
@@ -874,6 +909,10 @@ public class NCZDGGuidePopup extends InGamePopup {
   // Re-query and re-bind. Called on selection, on every keystroke, and on a page change. No widget
   // is created here: the cost is a few hundred property writes, on a frame the game has paused.
   private func Refresh() -> Void {
+    // The no-data build has no model and none of the widgets this binds.
+    if !IsDefined(this.m_model) {
+      return;
+    }
     let area = this.m_model.AreaAt(this.m_selected);
     if !IsDefined(area) {
       return;
