@@ -21,8 +21,8 @@ upload cannot come from CI. Do this once:
    (paste [`nexus_description.bbc`](nexus_description.bbc)), and category (User Interface - this is
    a player-facing mod, not a modder's resource).
    - **Title:** `NC Zoning Board - District Guide`
-   - **Short description** (228 of Nexus's 250 chars):
-     > Which location mods are in the district around you - in the game's own UI. A district notice, a world map panel, and a keybind guide with search, photos, waypoints and teleport. Data from the NC Zoning Board map at nczoning.net.
+   - **Short description** (241 of Nexus's 250 chars):
+     > Browse Night City's location mods from inside the game. A searchable guide lists every mod on the NC Zoning Board map by district, with photos, waypoints and teleport. Also adds counts to the world map and a notice when you enter a district.
 2. **Build the first zip locally** and upload it by hand through the Nexus site. Build it the
    same way the workflow does, so the layout matches:
    ```pwsh
