@@ -64,7 +64,7 @@ Do not bundle NCZoningCore, RCF, or any other redscript dependency into this mod
 compiles everything together, so a second copy of a class is a duplicate-class error that
 breaks every redscript mod. Install each one once, as its own mod.
 
-## The NC Zoning project
+## The NC Zoning Board project
 
 - Explore the map: <https://nczoning.net>
 - Join the community: [Locations Hub Discord](https://discord.gg/sc4yEx2fNf)

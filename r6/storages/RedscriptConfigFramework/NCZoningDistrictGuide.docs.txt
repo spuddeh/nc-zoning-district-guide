@@ -25,7 +25,7 @@ Each can be switched off on its own. With all four off, the game behaves exactly
 [*][b]Cyan "INSTALLED"[/b] on a card image marks the ones you already have. It appears while SHOWING: ALL, and needs Cyber Engine Tweaks.
 [line]
 [color=#00f0ff][size=5][b]3. SETTINGS[/b][/size][/color]
-All of them are in this hub, under NC Zoning District Guide.
+All of them are in this hub, under NC Zoning Board - District Guide.
 
 [b]Locations[/b]
 [*][b]Narrow to Subdistrict.[/b] Scopes every count to your subdistrict when you are in one, rather than the whole district. Applies to all four surfaces.

@@ -104,7 +104,7 @@ public class NCZDG_English extends ModLocalizationPackage {
     // --- RCF settings panel ------------------------------------------------------------
     // RCF resolves these itself: DVRCF_HubPopup.LocalizeSchema runs every schema string
     // through LocalizationSystem.GetText, so the adapter passes KEYS, not translated text.
-    this.Text("NCZDG.modName",         "NC Zoning District Guide");
+    this.Text("NCZDG.modName",         "NC Zoning Board - District Guide");
     this.Text("NCZDG.modDesc",         "Which location mods are in the district around you.");
 
     this.Text("NCZDG.secLocations",    "Locations");
