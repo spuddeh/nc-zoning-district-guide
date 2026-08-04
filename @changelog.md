@@ -26,6 +26,13 @@ Initial development. Not yet released.
 - `openOnCurrentArea` setting (RCF toggle "Open on Your District", default ON): the guide opens
   on the player's resolved district, or with the setting off on the ALL LOCATIONS row. Off-map
   opens on ALL either way.
+- The fast-travel arrival panel is removed when a fullscreen menu opens (`UI_System.IsInMenu`
+  delayed blackboard listener): its virtual-window host does not hide with the HUD, so inside
+  the panel's 6s life it drew over the pause menu and inventory. The banner-path panel is
+  HUD-hosted and never had the problem.
+- The nearest-location line draws at random among near-ties: any location within 25 m
+  (`NCZDG_NearestTieband`) of the closest is an equal candidate, so clustered mods of the same
+  building rotate instead of pinning the line to one winner.
 - The nav scrolls to the selected row at open (`ScrollNavToSelected`): row offsets are summed
   from the shared row-height constants over visible rows (layout has not run yet, so nothing is
   measurable) and written to the scroll controller as a normalised position, which it applies at

@@ -32,8 +32,9 @@ Feature state for NC Zoning District Guide. Legend: Done, In Progress, Planned.
 
 | Feature | State | Notes |
 | --- | --- | --- |
-| District-enter banner injection | Planned | Nearby registry count on district change |
-| Radius, throttle, max locations | Planned | Configurable |
+| District-enter banner panel | Done, verified in-game | Count + nearest location under the game's own district banner |
+| Fast-travel arrival panel | Done, verified in-game | Standalone panel on the notifications layer; removed when a fullscreen menu opens |
+| Nearest-location near-tie rotation | Done | Locations within 25 m of the closest draw at random per panel |
 
 ## Settings
 

@@ -132,6 +132,11 @@ public func NCZDG_CountHere(here: ref<NCZDistrictName>) -> Int32 {
   return ArraySize(locs);
 }
 
+// Near-ties draw at random. Clustered locations - several mods of the same building - would
+// otherwise pin the nearest line to one winner forever; anything within this many metres of the
+// closest is an equally true answer.
+public func NCZDG_NearestTieband() -> Float { return 25.0; }
+
 // The closest registry location to `from` among a set, by squared distance. No radius: the
 // set is already district-scoped (2-84 entries), so the scan is cheap and always names one.
 @if(ModuleExists("NCZoning.Api"))
@@ -150,5 +155,23 @@ public func NCZDG_ClosestInArea(locs: array<ref<NCZLocation>>, from: Vector4) ->
     }
     i += 1;
   }
-  return best;
+  if !IsDefined(best) {
+    return best;
+  }
+  // Distances are compared SQUARED throughout, so the tieband threshold squares too.
+  let limit = SqrtF(bestSq) + NCZDG_NearestTieband();
+  let limitSq = limit * limit;
+  let ties: array<ref<NCZLocation>>;
+  i = 0;
+  while i < ArraySize(locs) {
+    let loc = locs[i];
+    if IsDefined(loc) && Vector4.DistanceSquared(from, loc.Pos()) <= limitSq {
+      ArrayPush(ties, loc);
+    }
+    i += 1;
+  }
+  if ArraySize(ties) <= 1 {
+    return best;
+  }
+  return ties[RandRange(0, ArraySize(ties))];
 }
