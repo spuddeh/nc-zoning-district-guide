@@ -24,6 +24,7 @@ Feature state for NC Zoning District Guide. Legend: Done, In Progress, Planned.
 | Search clear button | Done | Pager-styled CLEAR beside the input, shown only with a query |
 | Button hover feedback | Done | Frame brightens to Archival White on all buttons; hide sites reset it |
 | Scroll reset on context change | Done | Card list returns to top on page turn, area change, search edit |
+| No-data state in the guide window | Done, verified in-game | Registry unloaded → centred red headline + the core's reason sentence; nav, search, filter and cards are not built |
 
 ## Nearby location notice
 

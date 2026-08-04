@@ -19,6 +19,10 @@ Initial development. Not yet released.
   boundary crossing reports once.
 - Four surfaces: the district-enter banner, the fast-travel arrival panel, the world map's
   district info panel, and the keybind-opened guide.
+- The guide window builds a no-data state when the registry has no data: the red no-data
+  headline plus the core-owned reason sentence, centred in the body. The nav, search, filter
+  and cards are not built - a list of zero-count districts reads as "every district is empty"
+  when nothing is known at all.
 
 - **The guide, as a three-across gallery.** Cards carry a full-width image on top with the text
   beneath. Popup height 1760, sized so two full rows fit plus a sliver of the third. Every card is
