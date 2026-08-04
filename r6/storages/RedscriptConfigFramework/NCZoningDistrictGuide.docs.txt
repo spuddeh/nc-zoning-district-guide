@@ -2,9 +2,9 @@
 [color=#8892b0][i]NIGHT CORP // URBAN PLANNING DIVISION[/i][/color]
 [line]
 [color=#00f0ff][size=5][b]0. WHAT THIS IS[/b][/size][/color]
-The District Guide brings the NC Zoning map into the game. It knows which district you are standing in, and tells you what the Board has on file for it.
+The District Guide brings the NC Zoning Board map into the game. It knows which district you are standing in, and tells you what the Board has on file for it.
 
-Everything you see comes from the NC Zoning registry at nczoning.net, fetched by NCZoningCore. This mod displays it. If a location mod is missing here, it is missing from the registry - and the map is open for submissions.
+Everything you see comes from the NC Zoning Board registry at nczoning.net, fetched by NC Zoning Board - Core. This mod displays it. If a location mod is missing here, it is missing from the registry - and the map is open for submissions.
 [line]
 [color=#00f0ff][size=5][b]1. THE FOUR SURFACES[/b][/size][/color]
 [*][b]District notice.[/b] Cross into a new district and a panel appears under the game's own banner: how many mapped locations are here, and the nearest by name.
@@ -62,7 +62,7 @@ A waypoint only starts routing once the world map has been opened. The guide doe
 You will meet it if you turn both [b]Open the Map on Show[/b] and [b]Track the Waypoint[/b] off. The pin is then placed but draws no route until you open the map and track it yourself.
 [line]
 [color=#00f0ff][size=5][b]6. IF SOMETHING LOOKS WRONG[/b][/size][/color]
-[*][b]No counts anywhere, or "NO LOCATION DATA".[/b] The registry did not load. That is NCZoningCore's side - check its requirements, and whether you have RedHttpClient or a hand-placed data file.
+[*][b]No counts anywhere, or "NO LOCATION DATA".[/b] The registry did not load. That is the Core's side - check its requirements, and whether you have RedHttpClient or a hand-placed data file.
 [*][b]A district reads zero.[/b] Some have none on file; NCX Spaceport / Morro Rock is one. Zero and "no data" are different answers, and the guide says which.
 [*][b]Cards show a placeholder instead of a photograph.[/b] RedIMGRetriever is missing, or that location has no image on file.
 [*][b]The open key does nothing.[/b] Check it under District Guide, and that Input Loader is installed.

@@ -1,8 +1,8 @@
-# NC Zoning District Guide
+# NC Zoning Board - District Guide
 
 A Cyberpunk 2077 mod that tells you which location mods are around you, using the game's
-own UI. It reads the [NC Zoning](https://nczoning.net) registry through
-[NCZoningCore](https://github.com/spuddeh/nc-zoning-core) and surfaces it where you are
+own UI. It reads the [NC Zoning Board](https://nczoning.net) registry through
+[NC Zoning Board - Core](https://github.com/spuddeh/nc-zoning-core) and surfaces it where you are
 already looking: the world map, the district banner, and a guide you open with a keybind.
 
 It is also the reference consumer for NCZoningCore: a worked example of the soft dependency
@@ -22,7 +22,7 @@ Every feature can be turned off on its own.
 ## Requirements
 
 - RED4ext, redscript, Codeware
-- [NCZoningCore](https://github.com/spuddeh/nc-zoning-core) - install the matching version.
+- [NC Zoning Board - Core](https://github.com/spuddeh/nc-zoning-core) - install the matching version.
   These two release together, so the current release of each expects the current release of
   the other.
 

@@ -4,7 +4,7 @@
 [i]Which location mods are in the district around you - in game, on the map, and on a shelf you can browse.[/i][/center]
 [line]
 [color=#00f0ff][size=5][b]0. NATURE OF THIS INSTRUMENT[/b][/size][/color]
-The [b]NC Zoning District Guide[/b] brings the [url=https://nczoning.net]NC Zoning[/url] map into the game. It knows which district you are standing in, and it tells you what the Board has on file for it.
+The [b]NC Zoning Board - District Guide[/b] brings the [url=https://nczoning.net]NC Zoning Board[/url] map into the game. It knows which district you are standing in, and it tells you what the Board has on file for it.
 
 Four surfaces, all built out of the game's own UI - no ImGui window, no separate overlay:
 [list]
@@ -68,10 +68,10 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 [*]redscript
 [*]Codeware
 [*][url=https://www.nexusmods.com/cyberpunk2077/mods/31920]RedLogger[/url]
-[*][b]NCZoningCore[/b] - and its own requirements, which include RedData and RedFileSystem
+[*][b]NC Zoning Board - Core[/b], and its own requirements, which include RedData and RedFileSystem
 [*]Input Loader - for the rebindable key
 [/list]
-[color=#ffb300][b]NCZoningCore 1.0.0 or newer is a hard requirement.[/b][/color] Redscript compiles every installed mod as one unit, so an older Core is a compile failure that takes down [i]every[/i] redscript mod on your machine, not just this one. The two release together.
+[color=#ffb300][b]NC Zoning Board - Core 1.0.0 or newer is a hard requirement.[/b][/color] Redscript compiles every installed mod as one unit, so an older Core is a compile failure that takes down [i]every[/i] redscript mod on your machine, not just this one. The two release together.
 
 [b]Strongly recommended:[/b]
 [list]
@@ -83,7 +83,7 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 [line]
 [color=#00f0ff][size=5][b]5. INSTALLATION[/b][/size][/color]
 [list=1]
-[*]Install the requirements above, NCZoningCore included.
+[*]Install the requirements above, the Core included.
 [*]Download this mod and extract the [font=Courier New]r6[/font] folder into your Cyberpunk 2077 root directory.
 [i]Final path should look like:[/i] [font=Courier New]Cyberpunk 2077\r6\scripts\NCZoningDistrictGuide\[/font]
 [*]Load a save. Press [b]'[/b] (apostrophe) to open the guide, or rebind it in the F8 panel.
@@ -91,7 +91,7 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 Works with mod managers, or install manually.
 [line]
 [color=#00f0ff][size=5][b]6. WHERE THE DATA COMES FROM[/b][/size][/color]
-Everything shown here is the [b]NC Zoning[/b] registry, maintained by the community at [url=https://nczoning.net]nczoning.net[/url]. This mod displays it; [b]NCZoningCore[/b] fetches it. If a location mod is missing from the guide, it is missing from the registry - and the map is open for submissions.
+Everything shown here is the [b]NC Zoning Board[/b] registry, maintained by the community at [url=https://nczoning.net]nczoning.net[/url]. This mod displays it; the [b]Core[/b] fetches it. If a location mod is missing from the guide, it is missing from the registry - and the map is open for submissions.
 [list]
 [*][b]Explore the map:[/b] [url=https://nczoning.net]nczoning.net[/url]
 [*][b]Join the community:[/b] [url=https://discord.gg/sc4yEx2fNf]Locations Hub Discord[/url]

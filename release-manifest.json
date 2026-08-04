@@ -7,7 +7,7 @@
   "$pairing_note": "THIS MOD RELEASES IN LOCKSTEP WITH NCZoningCore. It hard-requires NCZoningCore 1.0.0+ and @if(ModuleExists(...)) cannot soften that: ModuleExists tests for a MODULE, not a function, so an older Core still compiles the guarded arm and then fails on a missing function - which takes down every redscript mod on the user's machine, not just this one. release-check verifies a mod against ITSELF and cannot see the pairing, so nothing mechanical will catch a half-finished joint version bump. [[CP2077-Mods/wiki/decisions/core-and-guide-release-together-as-1-0-0]]",
   "artifacts": {
     "nczoningdistrictguide": {
-      "displayName": "NC Zoning District Guide",
+      "displayName": "NC Zoning Board - District Guide",
       "fileBaseName": "NCZoningDistrictGuide",
       "contentDir": "r6",
       "installDir": "r6",
