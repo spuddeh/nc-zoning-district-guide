@@ -96,6 +96,10 @@ public func NCZDG_NavTop() -> Float {
   return NCZDG_TopStripHeight() + NCZDG_NavFilterHeight() + NCZDG_NavFilterGap();
 }
 public func NCZDG_NavWidth() -> Float { return 760.0; }
+// Row heights shared by MakeNavRow and ScrollNavToSelected, which sums them BEFORE the first
+// layout pass - a literal typed in both places is a literal that drifts.
+public func NCZDG_NavRowHeight(isSub: Bool) -> Float { return isSub ? 54.0 : 64.0; }
+public func NCZDG_NavRowGap(isAll: Bool, isSub: Bool) -> Float { return isAll || isSub ? 0.0 : 18.0; }
 public func NCZDG_ColumnGap() -> Float { return 40.0; }
 
 public func NCZDG_BodyHeight() -> Float {
@@ -711,6 +715,9 @@ public class NCZDGGuidePopup extends InGamePopup {
     // The saved default may not be ALL, in which case the nav is already wrong the moment it is
     // built. Apply it once here so the guide opens consistent.
     this.ApplyNavFilter();
+    // After the filter has settled which rows are in the flow: a subdistrict below the fold is
+    // otherwise selected but out of sight.
+    this.ScrollNavToSelected();
     // LAST, and onto the popup's own root widget rather than the body: ink draws in child order
     // with no z-index, so this is the only way the overlay covers the header and footer too.
     // Note `this` is an inkCustomController, NOT a widget - reach the widget explicitly.
@@ -806,10 +813,10 @@ public class NCZDGGuidePopup extends InGamePopup {
 
     let row = new inkCanvas();
     row.SetName(n"nczdg_nav_row");
-    row.SetSize(new Vector2(rowW, area.isSub ? 54.0 : 64.0));
+    row.SetSize(new Vector2(rowW, NCZDG_NavRowHeight(area.isSub)));
     row.SetInteractive(true);
     row.SetHAlign(inkEHorizontalAlign.Left);
-    row.SetMargin(new inkMargin(0.0, area.isAll ? 0.0 : (area.isSub ? 0.0 : 18.0), 0.0, 0.0));
+    row.SetMargin(new inkMargin(0.0, NCZDG_NavRowGap(area.isAll, area.isSub), 0.0, 0.0));
     row.Reparent(this.m_navCol);
 
     // The selection wash. Opacity 0 until selected, so selecting costs one property write.
@@ -899,6 +906,41 @@ public class NCZDGGuidePopup extends InGamePopup {
     if IsDefined(this.m_cardScroll) {
       this.m_cardScroll.SetScrollPosition(0.0);
     }
+  }
+
+  // Scrolls the district column so the selected row sits mid-viewport. Called once at open,
+  // never on a click - yanking the list under the pointer would move the row the player is on.
+  //
+  // Heights are SUMMED FROM THE ROW CONSTANTS over the visible rows, not measured: layout has
+  // not run yet at open, so there is nothing to measure. The scroll controller stores a
+  // NORMALISED position [0..1] and applies it at layout, so a pre-frame write survives to the
+  // first draw - the phone's SMS thread opens at its bottom on the same idiom.
+  private func ScrollNavToSelected() -> Void {
+    if !IsDefined(this.m_navScroll) || this.m_selected <= 0 {
+      return;   // row 0 is ALL LOCATIONS, already at the top
+    }
+    let viewH = NCZDG_BodyHeight() - NCZDG_NavFilterHeight() - NCZDG_NavFilterGap();
+    let rowTop = 0.0;
+    let rowH = 0.0;
+    let contentH = 0.0;
+    let r = 0;
+    while r < ArraySize(this.m_navRows) {
+      let area = this.m_model.AreaAt(r);
+      if IsDefined(area) && IsDefined(this.m_navRows[r]) && this.m_navRows[r].IsVisible() {
+        let h = NCZDG_NavRowGap(area.isAll, area.isSub) + NCZDG_NavRowHeight(area.isSub);
+        if r == this.m_selected {
+          rowTop = contentH;
+          rowH = h;
+        }
+        contentH += h;
+      }
+      r += 1;
+    }
+    if contentH <= viewH {
+      return;   // everything fits; the controller would ignore the write anyway
+    }
+    let frac = (rowTop - (viewH - rowH) / 2.0) / (contentH - viewH);
+    this.m_navScroll.SetScrollPosition(MaxF(0.0, MinF(1.0, frac)));
   }
 
   private func SetRowSelected(row: wref<inkCanvas>, on: Bool) -> Void {

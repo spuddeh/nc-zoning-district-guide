@@ -26,6 +26,10 @@ Initial development. Not yet released.
 - `openOnCurrentArea` setting (RCF toggle "Open on Your District", default ON): the guide opens
   on the player's resolved district, or with the setting off on the ALL LOCATIONS row. Off-map
   opens on ALL either way.
+- The nav scrolls to the selected row at open (`ScrollNavToSelected`): row offsets are summed
+  from the shared row-height constants over visible rows (layout has not run yet, so nothing is
+  measurable) and written to the scroll controller as a normalised position, which it applies at
+  first layout. Once at open only - never on a click, which would move the row under the pointer.
 
 - **The guide, as a three-across gallery.** Cards carry a full-width image on top with the text
   beneath. Popup height 1760, sized so two full rows fit plus a sliver of the third. Every card is
