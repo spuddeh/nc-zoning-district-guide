@@ -17,8 +17,12 @@ and zips that, so `r6/...` lands at the zip root exactly as the game expects.
 A Nexus **file id does not exist until a file has been uploaded once**, so the very first
 upload cannot come from CI. Do this once:
 
-1. **Create the Nexus mod page** for NC Zoning District Guide and set its requirements, description
-   (paste [`nexus_description.bbc`](nexus_description.bbc)), and category (Modders Resources).
+1. **Create the Nexus mod page** and set its requirements, description
+   (paste [`nexus_description.bbc`](nexus_description.bbc)), and category (User Interface - this is
+   a player-facing mod, not a modder's resource).
+   - **Title:** `NC Zoning Board - District Guide`
+   - **Short description** (228 of Nexus's 250 chars):
+     > Which location mods are in the district around you - in the game's own UI. A district notice, a world map panel, and a keybind guide with search, photos, waypoints and teleport. Data from the NC Zoning Board map at nczoning.net.
 2. **Build the first zip locally** and upload it by hand through the Nexus site. Build it the
    same way the workflow does, so the layout matches:
    ```pwsh
