@@ -781,9 +781,14 @@ public class NCZDGGuidePopup extends InGamePopup {
       i += 1;
     }
     // Open on the area the player is standing in. Layer 2 resolves subdistricts in-world, which the
-    // map screen cannot do, so this is more specific than the map panel can be. Off-map falls to All.
+    // map screen cannot do, so this is more specific than the map panel can be. Off-map falls to All,
+    // and openOnCurrentArea OFF skips the resolve and opens on All directly.
     let idx = 0;
-    let here = NCZDG_ResolveCurrent(this.m_gi);
+    let cfg = NCZDGConfig.Get();
+    let here: ref<NCZDistrictName>;
+    if !IsDefined(cfg) || cfg.openOnCurrentArea {
+      here = NCZDG_ResolveCurrent(this.m_gi);
+    }
     if IsDefined(here) {
       idx = this.m_model.FindArea(here.district, here.subdistrict);
       if idx < 0 {

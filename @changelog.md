@@ -23,6 +23,9 @@ Initial development. Not yet released.
   headline plus the core-owned reason sentence, centred in the body. The nav, search, filter
   and cards are not built - a list of zero-count districts reads as "every district is empty"
   when nothing is known at all.
+- `openOnCurrentArea` setting (RCF toggle "Open on Your District", default ON): the guide opens
+  on the player's resolved district, or with the setting off on the ALL LOCATIONS row. Off-map
+  opens on ALL either way.
 
 - **The guide, as a three-across gallery.** Cards carry a full-width image on top with the text
   beneath. Popup height 1760, sized so two full rows fit plus a sliver of the third. Every card is

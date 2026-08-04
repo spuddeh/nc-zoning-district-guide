@@ -43,6 +43,7 @@ public func NCZDG_KeyMapPanel() -> String { return "enableMapPanel"; }
 public func NCZDG_KeyToast() -> String { return "enablePopupToast"; }
 public func NCZDG_KeyShowNearest() -> String { return "showNearest"; }
 public func NCZDG_KeyFastTravel() -> String { return "enableFastTravelNotice"; }
+public func NCZDG_KeyOpenArea() -> String { return "openOnCurrentArea"; }
 public func NCZDG_KeyOpenMap() -> String { return "openMapOnMarker"; }
 public func NCZDG_KeyAutoTrack() -> String { return "autoTrackMarker"; }
 
@@ -100,6 +101,8 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
           .Tip("NCZDG.tipModifier")
         .Dropdown(NCZDG_KeyDefaultFilter(), "NCZDG.optShowing", filterOptions)
           .Tip("NCZDG.tipShowing")
+        .Toggle(NCZDG_KeyOpenArea(), "NCZDG.optOpenArea")
+          .Tip("NCZDG.tipOpenArea")
         .Toggle(NCZDG_KeyOpenMap(), "NCZDG.optOpenMap")
           .Tip("NCZDG.tipOpenMap")
         .Toggle(NCZDG_KeyAutoTrack(), "NCZDG.optAutoTrack")
@@ -131,6 +134,7 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     if UnicodeStringEqual(key, NCZDG_KeyFastTravel()) { return cfg.enableFastTravelNotice; }
     if UnicodeStringEqual(key, NCZDG_KeyOpenMap()) { return cfg.openMapOnMarker; }
     if UnicodeStringEqual(key, NCZDG_KeyAutoTrack()) { return cfg.autoTrackMarker; }
+    if UnicodeStringEqual(key, NCZDG_KeyOpenArea()) { return cfg.openOnCurrentArea; }
     return false;
   }
 
@@ -149,6 +153,7 @@ public class NCZDGRcfProvider extends DVRCF_Provider {
     else if UnicodeStringEqual(key, NCZDG_KeyFastTravel()) { cfg.enableFastTravelNotice = value; }
     else if UnicodeStringEqual(key, NCZDG_KeyOpenMap()) { cfg.openMapOnMarker = value; }
     else if UnicodeStringEqual(key, NCZDG_KeyAutoTrack()) { cfg.autoTrackMarker = value; }
+    else if UnicodeStringEqual(key, NCZDG_KeyOpenArea()) { cfg.openOnCurrentArea = value; }
   }
 
   // Keybind rows travel on the Int channel as an EInputKey cast to Int32; there is no

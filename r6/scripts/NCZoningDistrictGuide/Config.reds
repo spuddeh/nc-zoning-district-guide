@@ -43,6 +43,10 @@ public class NCZDGConfig extends ScriptableService {
   // Has no effect without CET, which detection needs; the guide then hides the filter control.
   public let defaultInstallFilter: Int32 = 0;
 
+  // Which AREA the guide opens on: the district the player is standing in (ON), or the ALL
+  // LOCATIONS row (OFF). Off-map always opens on ALL, whatever this says.
+  public let openOnCurrentArea: Bool = true;
+
   // What SHOW ON MAP does beyond placing the waypoint. Both default ON.
   //
   // AUTO-TRACK DOES NOT COST THE PLAYER THEIR QUEST. The player-tracked and quest-tracked slots are
@@ -110,7 +114,7 @@ public func NCZDG_LogConfig() -> Void {
     NCZDGWarn("[CFG] settings service is not up - the defaults below are NOT what is running");
     return;
   }
-  NCZDGLog(s"[CFG] guide=\(NCZDG_OnOff(cfg.enableStandaloneGuide)) map=\(NCZDG_OnOff(cfg.enableMapPanel)) banner=\(NCZDG_OnOff(cfg.enablePopupToast)) nearest=\(NCZDG_OnOff(cfg.showNearest)) fastTravel=\(NCZDG_OnOff(cfg.enableFastTravelNotice)) subdistrict=\(NCZDG_OnOff(cfg.matchSubdistrict)) filter=\(cfg.defaultInstallFilter) openMap=\(NCZDG_OnOff(cfg.openMapOnMarker)) autoTrack=\(NCZDG_OnOff(cfg.autoTrackMarker))");
+  NCZDGLog(s"[CFG] guide=\(NCZDG_OnOff(cfg.enableStandaloneGuide)) map=\(NCZDG_OnOff(cfg.enableMapPanel)) banner=\(NCZDG_OnOff(cfg.enablePopupToast)) nearest=\(NCZDG_OnOff(cfg.showNearest)) fastTravel=\(NCZDG_OnOff(cfg.enableFastTravelNotice)) subdistrict=\(NCZDG_OnOff(cfg.matchSubdistrict)) filter=\(cfg.defaultInstallFilter) openArea=\(NCZDG_OnOff(cfg.openOnCurrentArea)) openMap=\(NCZDG_OnOff(cfg.openMapOnMarker)) autoTrack=\(NCZDG_OnOff(cfg.autoTrackMarker))");
   NCZDGLog(s"[CFG] openKey=\(EnumValueToString("EInputKey", Cast<Int64>(EnumInt(keys.openGuideKey)))) modifier=\(EnumValueToString("EInputKey", Cast<Int64>(EnumInt(keys.openGuideModifier))))");
 }
 

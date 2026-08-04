@@ -120,6 +120,8 @@ public class NCZDG_English extends ModLocalizationPackage {
     this.Text("NCZDG.tipModifier",     "Optional key to hold alongside the open key. Any key will do, not just Shift, Alt or Ctrl. Leave unset for no modifier.");
     this.Text("NCZDG.optShowing",      "Open Guide Showing");
     this.Text("NCZDG.tipShowing",      "Which locations the guide lists when it opens. You can still switch between them inside the guide. Requires Cyber Engine Tweaks, which is what detects your installed mods.");
+    this.Text("NCZDG.optOpenArea",     "Open on Your District");
+    this.Text("NCZDG.tipOpenArea",     "The guide opens on the district you are standing in. Turn this off to open on ALL LOCATIONS instead. Off-map always opens on ALL LOCATIONS.");
     this.Text("NCZDG.optOpenMap",      "Open the Map on Show");
     this.Text("NCZDG.tipOpenMap",      "SHOW ON MAP opens the world map and centres it on the waypoint. Turn this off to place the waypoint and stay in the guide.");
     this.Text("NCZDG.optAutoTrack",    "Track the Waypoint");

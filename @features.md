@@ -16,6 +16,7 @@ Feature state for NC Zoning District Guide. Legend: Done, In Progress, Planned.
 | Feature | State | Notes |
 | --- | --- | --- |
 | Standalone keybind guide | Done | Codeware InGamePopup; nav tree + pooled cards, search, paging |
+| Opens on current district or ALL | Done | `openOnCurrentArea` toggle, default ON (current district); off-map always opens on ALL |
 | World map info panel section | Done | Injected into the map's district panel (count + category breakdown) |
 | Recently-updated surfacing | Done | Green badge on the card thumbnail's top-right, "N RECENT" nav count, "N RECENTLY UPDATED" map line, from the core's recency bool |
 | Waypoint: show, route, clear | Done, verified in-game | SHOW ON MAP places the waypoint, **opens the world map from script**, centres on the pin and fills the player-tracked slot — the route draws with no player action. `openMapOnMarker` / `autoTrackMarker`, both default ON. Clearing deactivates → untracks → destroys, so nothing is left on map, minimap or HUD |

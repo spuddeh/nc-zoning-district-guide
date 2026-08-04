@@ -35,6 +35,7 @@ All of them are in this hub, under NC Zoning District Guide.
 [*][b]Open Guide Key.[/b] The key that opens it. Needs Input Loader.
 [*][b]Open Guide Modifier.[/b] An optional key to hold alongside it. Any key, not just Shift, Alt or Ctrl. Leave unset for none.
 [*][b]Open Guide Showing.[/b] Which locations the guide lists when it opens. You can still switch inside the guide. Needs Cyber Engine Tweaks.
+[*][b]Open on Your District.[/b] The guide opens on the district you are standing in. Off opens it on ALL LOCATIONS, as does being off the map.
 [*][b]Open the Map on Show.[/b] SHOW ON MAP opens the world map and centres it on the waypoint. Off places the waypoint and leaves you in the guide.
 [*][b]Track the Waypoint.[/b] Routes to the waypoint straight away. This replaces a custom waypoint you have placed; your tracked quest is a separate slot and is left alone.
 
