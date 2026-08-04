@@ -48,11 +48,13 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     }
     // The virtual window this panel lives on does NOT hide under fullscreen menus the way the
     // HUD-hosted banner panel does, so a menu opening inside the panel's 6s life must remove it
-    // or it draws over the menu. Delayed listener, the vanilla idiom for this blackboard
-    // (scanner_details, baseModalListPopup).
+    // or it draws over the menu. PLAIN listener, not RegisterDelayedListenerBool: the delayed
+    // flush belongs to the ink controller dispatch path, and a delayed listener registered from
+    // a ScriptableSystem never fires. The FastTravelLoadingScreenFinished listener above is the
+    // same shape and is known to fire from here.
     let uiBB = GameInstance.GetBlackboardSystem(this.GetGameInstance()).Get(GetAllBlackboardDefs().UI_System);
     if IsDefined(uiBB) && !IsDefined(this.m_menuCallbackID) {
-      this.m_menuCallbackID = uiBB.RegisterDelayedListenerBool(GetAllBlackboardDefs().UI_System.IsInMenu, this, n"OnIsInMenuChanged");
+      this.m_menuCallbackID = uiBB.RegisterListenerBool(GetAllBlackboardDefs().UI_System.IsInMenu, this, n"OnIsInMenuChanged");
     }
   }
 
@@ -60,6 +62,8 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     if !value || !IsDefined(this.m_ftPanel) {
       return;
     }
+    // Fires only on the menu-open edge with a live panel - the exact moment the report describes.
+    NCZDGLog("ft: menu opened - arrival panel removed");
     let layer = GameInstance.GetInkSystem().GetLayer(n"inkGameNotificationsLayer");
     if IsDefined(layer) {
       let root = layer.GetVirtualWindow();
