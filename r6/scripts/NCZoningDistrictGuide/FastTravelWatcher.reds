@@ -28,6 +28,7 @@ import NCZoningDistrictGuide.Config.*
 @if(ModuleExists("NCZoning.Api"))
 public class NCZDGFastTravelWatcher extends ScriptableSystem {
   private let m_ftCallbackID: ref<CallbackHandle>;
+  private let m_menuCallbackID: ref<CallbackHandle>;
   private let m_ftPanel: wref<inkVerticalPanel>;   // current FT panel, removed before the next
 
   private func OnAttach() -> Void {
@@ -45,6 +46,28 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     if IsDefined(bb) && !IsDefined(this.m_ftCallbackID) {
       this.m_ftCallbackID = bb.RegisterListenerBool(GetAllBlackboardDefs().FastTRavelSystem.FastTravelLoadingScreenFinished, this, n"OnFastTravelFinished");
     }
+    // The virtual window this panel lives on does NOT hide under fullscreen menus the way the
+    // HUD-hosted banner panel does, so a menu opening inside the panel's 6s life must remove it
+    // or it draws over the menu. Delayed listener, the vanilla idiom for this blackboard
+    // (scanner_details, baseModalListPopup).
+    let uiBB = GameInstance.GetBlackboardSystem(this.GetGameInstance()).Get(GetAllBlackboardDefs().UI_System);
+    if IsDefined(uiBB) && !IsDefined(this.m_menuCallbackID) {
+      this.m_menuCallbackID = uiBB.RegisterDelayedListenerBool(GetAllBlackboardDefs().UI_System.IsInMenu, this, n"OnIsInMenuChanged");
+    }
+  }
+
+  protected cb func OnIsInMenuChanged(value: Bool) -> Void {
+    if !value || !IsDefined(this.m_ftPanel) {
+      return;
+    }
+    let layer = GameInstance.GetInkSystem().GetLayer(n"inkGameNotificationsLayer");
+    if IsDefined(layer) {
+      let root = layer.GetVirtualWindow();
+      if IsDefined(root) {
+        root.RemoveChildByName(n"nczdg_panel");
+      }
+    }
+    this.m_ftPanel = null;
   }
 
   protected cb func OnFastTravelFinished(value: Bool) -> Void {
