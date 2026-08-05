@@ -16,14 +16,14 @@ Four surfaces, all built out of the game's own UI - no ImGui window, no separate
 [color=#ffb300][b]It never suppresses or alters anything the game already draws.[/b][/color] Every hook adds; none replaces. With every feature switched off, the game behaves exactly as if the mod were not installed.
 [line]
 [color=#00f0ff][size=5][b]1. THE GUIDE[/b][/size][/color]
-A three-across gallery of location mods, filed by district.
+A gallery of location mods, filed by district.
 [list]
-[*][b]Browse by district and subdistrict[/b] - the list opens on wherever you are standing.
-[*][b]Search[/b] by name, author or tag.
+[*][b]Browse by district and subdistrict[/b] - the list opens on wherever you are standing by default.
+[*][b]Search[/b] by name, author or tags from the Map site.
 [*][b]Photographs.[/b] Each card carries the location's survey image where the registry has one.
-[*][b]Show on map.[/b] One click drops a waypoint on the location, opens the world map on it and starts routing. No hunting for the pin, no tracking it by hand.
+[*][b]Show on map.[/b] One click drops a waypoint on the location, opens the world map on it and starts tracking. No hunting for the pin, no tracking it by hand.
 [*][b]Teleport[/b] straight to it, if you would rather skip the drive.
-[*][b]Recently updated[/b] locations are flagged in green on the card image and sorted to the front, so a district you know still shows you what changed.
+[*][b]Recently updated[/b] locations are flagged in green on the card image and sorted to the top, so a district you know still shows you what changed.
 [*][b]Already installed?[/b] Cards for mods you have carry a cyan INSTALLED badge.
 [/list]
 
@@ -40,7 +40,7 @@ With [b]Cyber Engine Tweaks[/b] installed, the guide marks which of these locati
 [color=#00f0ff][size=5][b]2. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
 A waypoint only starts routing once the world map has been opened. That is the game's own behavior: only the map can adopt a script-placed pin as your tracked waypoint.
 
-The guide opens the map and tracks the waypoint for you, so you will not normally meet this. You will if you switch both [b]Open the Map on Show[/b] and [b]Track the Waypoint[/b] off: the pin is placed, and it draws no route until you open the map and track it yourself.
+The guide opens the map and tracks the waypoint for you by default. If you switch both [b]Open the Map on Show[/b] and [b]Track the Waypoint[/b] off: the pin is placed, and it draws no route until you open the map and track it yourself.
 [line]
 [color=#00f0ff][size=5][b]3. SETTINGS[/b][/size][/color]
 Everything is in the [b]Redscript Configuration Framework[/b] overlay - press [b]F8[/b] in game.
@@ -49,7 +49,7 @@ Everything is in the [b]Redscript Configuration Framework[/b] overlay - press [b
 [*][b]Enable District Guide.[/b] Turns the browser on or off.
 [*][b]Open Guide Key.[/b] The key that opens it. Needs Input Loader.
 [*][b]Open Guide Modifier.[/b] An optional key to hold alongside it. Any key, not just Shift, Alt or Ctrl. Leave unset for none.
-[*][b]Open Guide Showing.[/b] Which locations the guide lists when it opens. Needs Cyber Engine Tweaks.
+[*][b]Open Guide Showing.[/b] Which locations the guide lists when it opens. Needs [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url].
 [*][b]Open on Your District.[/b] The guide opens on the district you are standing in. Off opens it on ALL LOCATIONS.
 [*][b]Open the Map on Show.[/b] SHOW ON MAP opens the world map and centers it on the waypoint. Off places the waypoint and leaves you in the guide.
 [*][b]Track the Waypoint.[/b] Routes to the waypoint straight away. This replaces a custom waypoint you have placed; your tracked quest is a separate slot and is left alone.
@@ -103,20 +103,17 @@ Every hook this mod places calls the original code first and unconditionally, th
 
 It is pure redscript with no [font=Courier New].archive[/font] file, so it cannot conflict with anything over game assets.
 [line]
-[color=#00f0ff][size=5][b]8. A NOTE ON GAME UPDATES[/b][/size][/color]
-Pure redscript survives game patches on its own, but the plugins underneath (Codeware, RED4ext and the Red* plugins) usually need a rebuild by their authors after each Cyberpunk update. Right after a game update this mod can be temporarily unavailable until those catch up.
-[line]
-[color=#00f0ff][size=5][b]9. ACKNOWLEDGEMENTS[/b][/size][/color]
+[color=#00f0ff][size=5][b]8. ACKNOWLEDGEMENTS[/b][/size][/color]
 [list]
 [*][b][url=https://www.nexusmods.com/profile/Kaoziun]Kaoziun[/url][/b] for the original NC Zoning vision and community leadership.
 [*][b][url=https://www.nexusmods.com/profile/Akiway]Akiway[/url][/b] for improvements to the NC Zoning map UI and UX.
 [*][b][url=https://www.nexusmods.com/profile/psiberx/mods]psiberx[/url][/b] for Codeware, without which none of this UI exists.
-[*][b]DigitalVixen[/b] for the Redscript Configuration Framework, RedLogger and RedIMGRetriever.
+[*][b][url=https://www.nexusmods.com/profile/DigitalVixen]DigitalVixen[/url][/b] for the Redscript Configuration Framework, RedLogger and RedIMGRetriever.
 [*][b][url=https://www.nexusmods.com/profile/RayshaderFR]rayshader[/url][/b] for RedData and RedFileSystem.
 [*]The location-mod authors this guide exists to point at, and the Locations Hub community.
 [/list]
 [line]
-[color=#00f0ff][size=5][b]10. DISCLAIMER[/b][/size][/color]
+[color=#00f0ff][size=5][b]9. DISCLAIMER[/b][/size][/color]
 This mod was developed with the assistance of an LLM. All in-game testing and code validation was performed by a human. No rogue AIs were permitted through the Blackwall.
 [line]
 [center][color=#8892b0][i]Filed with the NC Zoning Board - Night Corp Urban Planning Division.
