@@ -29,7 +29,12 @@ Every feature can be turned off on its own.
   **Do not pair this with an older NCZoningCore from GitHub.** Redscript compiles every
   installed mod into one unit, so a missing API function fails the compile and takes every
   redscript mod on your machine down with it, including mods unrelated to either of these.
-- [RedLogger](https://www.nexusmods.com/cyberpunk2077/mods/31920) (the mod's log file)
+- [RedLogger](https://www.nexusmods.com/cyberpunk2077/mods/31920) 1.3.0 or newer (the mod's log file)
+
+  **1.3.0 is a floor, not a preference.** RCF 2.1.0 calls RedLogger functions that older
+  builds do not have, and redscript compiles every installed mod as one unit, so an older
+  RedLogger alongside RCF 2.1.0 takes every redscript mod on your machine down.
+
 - Input Loader (for the guide keybind)
 
 Strongly recommended:
