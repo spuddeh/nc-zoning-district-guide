@@ -1,7 +1,7 @@
 // ======================================================================================
 // Mod Name: NC Zoning District Guide
 // File: translations/German.reds
-// Author: Spuddeh
+// Author: D/Code
 // Description: The German translation for every player-facing string. Codeware's
 //              ModLocalizationPackage; no TweakXL, no locale JSON, no LocKey registration.
 //
@@ -27,7 +27,7 @@ module NCZoningDistrictGuide.Translations
 
 import Codeware.Localization.*
 
-public class NCZDG_English extends ModLocalizationPackage {
+public class NCZDG_German extends ModLocalizationPackage {
   protected func DefineTexts() -> Void {
     // --- guide chrome ------------------------------------------------------------------
     this.Text("NCZDG.title",           "NC ZONING BOARD");
