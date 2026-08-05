@@ -200,7 +200,6 @@ public class NCZDGWorldActions extends ScriptableSystem {
   // mappin from inside its own controller's callback is the re-entrancy that has already produced
   // one CTD here. Arrival happens during ordinary GAMEPLAY, where DelaySystem is reliable - the
   // game-time trap applies to delays scheduled with a menu open.
-  // [[CP2077-Mods/wiki/learnings/delaysystem-delays-are-game-time-menus-stretch-them]]
   // Fed by the mappin controllers as the player moves. Arming is why a waypoint set on somewhere
   // you are ALREADY standing does not clear itself a second later: arrival means "was away from it,
   // now is not", so the player has to leave the radius once before reaching it counts.

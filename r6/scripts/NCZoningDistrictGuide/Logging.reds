@@ -31,7 +31,6 @@
 //              on the tag - errors red, warnings amber, debug dimmed - and its SHOWING filter
 //              selects on it, so a correctly levelled line is findable in a way a prefix
 //              written into the text never was. Keep a line short and self-describing.
-//              [[CP2077-Mods/wiki/decisions/redlogger-is-the-shipping-logging-path]]
 // Mod Version: 1.0.0
 // Credits: DigitalVixen (RedLogger)
 // ======================================================================================

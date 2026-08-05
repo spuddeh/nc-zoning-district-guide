@@ -110,7 +110,6 @@ protected cb func OnUpdateHoveredDistricts(district: gamedataDistrict, subdistri
 // player's tracked waypoint, so a waypoint draws no route until the map has been opened. That is a
 // PRECONDITION, not a wall - MapFocus.reds opens the map and calls ZoomToMappin / SetSelectedMappin
 // / TrackMappin on this controller.
-// [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]]
 //
 // NEVER call TrackCustomPositionMappin() from a hook here. It does not adopt an existing pin - it
 // CREATES a new waypoint at the current MAP CURSOR, so on map open it plants one at roughly the

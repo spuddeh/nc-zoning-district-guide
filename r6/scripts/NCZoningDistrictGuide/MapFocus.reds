@@ -15,7 +15,6 @@
 //              TrackCustomPositionMappin() is a DIFFERENT function and must not be substituted:
 //              it creates a new waypoint at the map cursor rather than adopting an existing pin,
 //              so on map open it plants one at roughly the world origin.
-//              [[CP2077-Mods/wiki/learnings/a-script-registered-waypoint-cannot-route-itself]]
 //
 //              THE HANDLE COMES FROM THE ICON HOOK. A mappin controller is not reachable by
 //              lookup, but MapMarker.reds already wraps BaseWorldMapMappinController.UpdateIcon

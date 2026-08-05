@@ -18,7 +18,6 @@
 //
 //              RCF IS OPTIONAL ONLY ON PAPER. Without it the mod runs on defaults but
 //              has no rebindable key, and RED4ext is in the chain via RCF's bundled plugin.
-//              [[CP2077-Mods/wiki/decisions/one-owner-per-setting-rcf-plus-modsettings-keybind]]
 //
 //              MIRRORING A SETTING BACK TO MOD SETTINGS IS FORBIDDEN. The only commit call
 //              available to redscript, ModSettings.AcceptChanges(), is GLOBAL: it applies
