@@ -15,7 +15,18 @@ Four surfaces, all built out of the game's own UI - no ImGui window, no separate
 [/list]
 [color=#ffb300][b]It never suppresses or alters anything the game already draws.[/b][/color] Every hook adds; none replaces. With every feature switched off, the game behaves exactly as if the mod were not installed.
 [line]
-[color=#00f0ff][size=5][b]1. THE GUIDE[/b][/size][/color]
+[color=#00f0ff][size=5][b]1. THE WIDER PROJECT[/b][/size][/color]
+The Guide is the in-game window onto [b]NC Zoning Board[/b], the interactive map of Cyberpunk 2077 location mods.
+[list]
+[*][b]Explore the map:[/b] [url=https://nczoning.net]nczoning.net[/url]
+[*][b]Join the community:[/b] [url=https://discord.gg/sc4yEx2fNf]Locations Hub Discord[/url]
+[/list]
+[center][b]Showcase[/b]
+[youtube]30Daism2E-c[/youtube]
+[b]Trailer[/b]
+[youtube]LJVJ2lN4aQ0[/youtube][/center]
+[line]
+[color=#00f0ff][size=5][b]2. THE GUIDE[/b][/size][/color]
 A gallery of location mods, filed by district.
 [list]
 [*][b]Browse by district and subdistrict[/b] - the list opens on wherever you are standing by default.
@@ -27,7 +38,7 @@ A gallery of location mods, filed by district.
 [*][b]Already installed?[/b] Cards for mods you have carry a cyan INSTALLED badge.
 [/list]
 
-[color=#00f0ff][size=5][b]1a. THE INSTALL FILTER[/b][/size][/color]
+[color=#00f0ff][size=5][b]2a. THE INSTALL FILTER[/b][/size][/color]
 With [b]Cyber Engine Tweaks[/b] installed, the guide marks which of these location mods you already have. One button cycles the whole list:
 [list]
 [*][b]ALL[/b] - every location on file.
@@ -37,12 +48,12 @@ With [b]Cyber Engine Tweaks[/b] installed, the guide marks which of these locati
 [/list]
 [i]Without CET the filter button is hidden. Everything else works exactly as described.[/i]
 [line]
-[color=#00f0ff][size=5][b]2. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
+[color=#00f0ff][size=5][b]3. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
 A waypoint only starts routing once the world map has been opened. That is the game's own behavior: only the map can adopt a script-placed pin as your tracked waypoint.
 
 The guide opens the map and tracks the waypoint for you by default. If you switch both [b]Open the Map on Show[/b] and [b]Track the Waypoint[/b] off: the pin is placed, and it draws no route until you open the map and track it yourself.
 [line]
-[color=#00f0ff][size=5][b]3. SETTINGS[/b][/size][/color]
+[color=#00f0ff][size=5][b]4. SETTINGS[/b][/size][/color]
 Everything is in the [b]Redscript Configuration Framework[/b] overlay - press [b]F8[/b] in game.
 [list]
 [*][b]Narrow to Subdistrict.[/b] Scopes every count to your subdistrict when you are in one, rather than the whole district. Applies to all four surfaces.
@@ -62,7 +73,7 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 
 [i]The full documentation is also readable in game, in the RCF hub under DOCS.[/i]
 [line]
-[color=#00f0ff][size=5][b]4. CONDITIONS OF ISSUE[/b][/size][/color]
+[color=#00f0ff][size=5][b]5. CONDITIONS OF ISSUE[/b][/size][/color]
 [b]Required:[/b]
 [list]
 [*]RED4ext
@@ -82,7 +93,7 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 [/list]
 [i]The mod is whole without the three optional ones. Each removes a feature, not the mod.[/i]
 [line]
-[color=#00f0ff][size=5][b]5. INSTALLATION[/b][/size][/color]
+[color=#00f0ff][size=5][b]6. INSTALLATION[/b][/size][/color]
 [list=1]
 [*]Install the requirements above, the Core included.
 [*]Download this mod and extract the [font=Courier New]r6[/font] folder into your Cyberpunk 2077 root directory.
@@ -91,19 +102,15 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 [/list]
 Works with mod managers, or install manually.
 [line]
-[color=#00f0ff][size=5][b]6. WHERE THE DATA COMES FROM[/b][/size][/color]
+[color=#00f0ff][size=5][b]7. WHERE THE DATA COMES FROM[/b][/size][/color]
 Everything shown here is the [b]NC Zoning Board[/b] registry, maintained by the community at [url=https://nczoning.net]nczoning.net[/url]. This mod displays it; the [b]Core[/b] fetches it. If a location mod is missing from the guide, it is missing from the registry - and the map is open for submissions.
-[list]
-[*][b]Explore the map:[/b] [url=https://nczoning.net]nczoning.net[/url]
-[*][b]Join the community:[/b] [url=https://discord.gg/sc4yEx2fNf]Locations Hub Discord[/url]
-[/list]
 [line]
-[color=#00f0ff][size=5][b]7. COMPATIBILITY[/b][/size][/color]
+[color=#00f0ff][size=5][b]8. COMPATIBILITY[/b][/size][/color]
 Every hook this mod places calls the original code first and unconditionally, then adds a widget beside it. Nothing the game already draws is replaced or suppressed, so other mods touching the same controllers keep working.
 
 It is pure redscript with no [font=Courier New].archive[/font] file, so it cannot conflict with anything over game assets.
 [line]
-[color=#00f0ff][size=5][b]8. ACKNOWLEDGEMENTS[/b][/size][/color]
+[color=#00f0ff][size=5][b]9. ACKNOWLEDGEMENTS[/b][/size][/color]
 [list]
 [*][b][url=https://www.nexusmods.com/profile/Kaoziun]Kaoziun[/url][/b] for the original NC Zoning vision and community leadership.
 [*][b][url=https://www.nexusmods.com/profile/Akiway]Akiway[/url][/b] for improvements to the NC Zoning map UI and UX.
@@ -113,7 +120,7 @@ It is pure redscript with no [font=Courier New].archive[/font] file, so it canno
 [*]The location-mod authors this guide exists to point at, and the Locations Hub community.
 [/list]
 [line]
-[color=#00f0ff][size=5][b]9. DISCLAIMER[/b][/size][/color]
+[color=#00f0ff][size=5][b]10. DISCLAIMER[/b][/size][/color]
 This mod was developed with the assistance of an LLM. All in-game testing and code validation was performed by a human. No rogue AIs were permitted through the Blackwall.
 [line]
 [center][color=#8892b0][i]Filed with the NC Zoning Board - Night Corp Urban Planning Division.
