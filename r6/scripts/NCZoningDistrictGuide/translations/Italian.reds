@@ -7,13 +7,17 @@
 //
 //              TO TRANSLATE - three steps:
 //
-//                1. Open English.reds. Copy everything between the { } of DefineTexts.
-//                2. Paste it below, over the "translations go here" line.
+//                1. Open English.reds and copy ONLY the this.Text(...) lines.
+//                   NOT the whole file. Copying the file brings the English
+//                   class name with it, and two classes with one name stops
+//                   EVERY redscript mod on the player's machine from loading.
+//                2. Paste them below, over the "translations go here" line.
+//                   Leave everything else in this file exactly as it is.
 //                3. Translate the SECOND text on each line. Never change the first.
 //
-//                   this.Text("NCZDG.title",  "NC ZONING BOARD");
-//                             ^^^^^^^^^^^^^   ^^^^^^^^^^^^^^^^^
-//                             the KEY - never translate THIS
+//              this.Text("NCZDG.title",  "NC ZONING BOARD");
+//                        ^^^^^^^^^^^^^  the KEY - never change it
+//                                        ^^^^^^^^^^^^^^^^^  translate this
 //
 //              RULES:
 //                - Partial is fine. Anything you leave out falls back to English.
