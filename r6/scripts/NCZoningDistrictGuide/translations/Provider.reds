@@ -7,7 +7,7 @@
 //
 //              English is both the only package and the fallback, so every other language
 //              currently resolves to it. Adding one is two lines here and one new file.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: psiberx (Codeware)
 // ======================================================================================
 

@@ -19,7 +19,7 @@
 //              NOT expose that as a reusable helper: a `localOnly` row is stored and handed
 //              back, and resolving it is the consumer's job. This is a reimplementation of
 //              that pattern, not a call into it - RCF's version cannot be reused.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: psiberx (Codeware), DigitalVixen (RCF pattern)
 // ======================================================================================
 

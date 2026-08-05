@@ -33,7 +33,7 @@
 //
 //              A CLEAR DESTROYS IT, in three steps - see ClearWaypoint. A deactivated mappin that is
 //              kept is one the player can still see on the minimap and HUD.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: Spuddeh (SimpleLocationManager, the CET original)
 // ======================================================================================
 

@@ -6,7 +6,7 @@
 //              NCZoning.Api is guarded by @if(ModuleExists(...)), so this mod still
 //              compiles and loads when the core is absent. At runtime it gates on
 //              ApiVersion() and listens for the core's data lifecycle events.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: Spuddeh (NCZoningCore), psiberx (Codeware)
 // ======================================================================================
 
@@ -63,13 +63,13 @@ public func NCZDG_CoreVersion() -> String { return Version(); }
 @if(!ModuleExists("NCZoning.Api"))
 public func NCZDG_CoreVersion() -> String { return "absent"; }
 
-// --- installed-mod detection (needs NCZoningCore 0.3.0+) -------------------------
+// --- installed-mod detection (needs NCZoningCore 1.0.0+) -------------------------
 //
 // ⚠ THIS RAISES THE MINIMUM CORE VERSION, AND @if CANNOT SOFTEN IT. `ModuleExists` tests for
-// a MODULE, not a function, so with NCZoning.Api present but OLDER than 0.3.0 the guarded arm
+// a MODULE, not a function, so with NCZoning.Api present but OLDER than 1.0.0 the guarded arm
 // still compiles and `IsInstallDetectionAvailable()` is an UNRESOLVED_FN - which fails the
 // whole compilation and takes down every redscript mod on that machine, not just this one.
-// There is no @if(FunctionExists). NCZoningCore 0.3.0+ is a hard floor for this mod and must
+// There is no @if(FunctionExists). NCZoningCore 1.0.0+ is a hard floor for this mod and must
 // be stated in its requirements.
 //
 // AVAILABILITY IS A GATE, NOT A BRANCH. False means the answer is unknowable this session -

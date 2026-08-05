@@ -20,7 +20,7 @@
 //              community "custom map marker" template (_resources/Custom_map_marker_template). Its
 //              instructions ask for a WolvenKit project, which is only needed to ship a custom atlas -
 //              the redscript half stands alone against base-game atlases.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: Spuddeh
 // ======================================================================================
 

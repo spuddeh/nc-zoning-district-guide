@@ -19,7 +19,7 @@
 //              PLURALS ARE WHOLE STRINGS, one key per form, never a stem plus "S".
 //              English has two forms; Polish and Russian have three, Arabic six. A key
 //              per form is a key a translator can fill in; a suffix is not.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: psiberx (Codeware), DigitalVixen (RCF, the reference implementation)
 // ======================================================================================
 

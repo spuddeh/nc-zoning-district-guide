@@ -3,9 +3,10 @@
 All notable changes to NC Zoning District Guide are documented here.
 This project uses [semantic versioning](https://semver.org/).
 
-## [0.1.0] - Unreleased
+## [1.0.0] - 2026-08-05
 
-Initial development. Not yet released.
+First public release, on Nexus and GitHub together with NC Zoning Board - Core 1.0.0. Everything
+below was built pre-release; nothing older shipped.
 
 ### Added
 

@@ -17,7 +17,7 @@
 //              Logo: the base-game NightCorp advert atlas, tinted to the NC brand colour.
 //              Nothing is shipped; SetAtlasResource references a base path. Text uses the
 //              raj font + main_colors.inkstyle, the same as RAMpocalypse HUD.reds.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
 

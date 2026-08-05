@@ -23,7 +23,7 @@
 //                  matches, the listener is inert.
 //                - No RCF: the key stays on the XML default (' = IK_SingleQuote) with no
 //                  modifier, and cannot be rebound.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: jackhumbert (Input Loader), psiberx (Codeware), DigitalVixen (RCF)
 // ======================================================================================
 

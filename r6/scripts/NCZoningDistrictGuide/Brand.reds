@@ -24,7 +24,7 @@
 //              is Orbitron, which the game does not have and this mod cannot ship (pure redscript,
 //              no archive). Headings therefore use raj Bold / Semi-Bold, which is the closest the
 //              game offers. Do not attempt to reference a font that is not cooked into the game.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: Spuddeh (NC Zoning Board brand)
 // ======================================================================================
 

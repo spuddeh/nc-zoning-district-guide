@@ -19,7 +19,7 @@
 //              The registry carries two URLs per location: ThumbnailUrl() for the card
 //              and PictureUrl() for the full-size lightbox. 296 of 297 live records have
 //              both, so an absent URL is the rare case, not the common one.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: DigitalVixen (RedIMGRetriever, and the DVRCF_DocImage pattern)
 // ======================================================================================
 

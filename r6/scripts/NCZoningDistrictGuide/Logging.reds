@@ -24,7 +24,7 @@
 //              filtering behind it, so keep it short and self-describing, and keep the whole
 //              log short enough to read as a column.
 //              [[CP2077-Mods/wiki/decisions/redlogger-is-the-shipping-logging-path]]
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: DigitalVixen (RedLogger)
 // ======================================================================================
 

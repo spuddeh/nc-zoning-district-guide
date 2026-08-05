@@ -41,7 +41,7 @@
 //
 //              No Layer-2 resolver is needed: OnUpdateHoveredDistricts supplies the district and
 //              subdistrict enums directly, so NCZDG_ResolveFromEnum is enough.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
 

@@ -5,7 +5,7 @@
 // Description: The guide's data. No ink here, so it can be reasoned about on its own.
 //
 //              The nav list comes from the core's district VOCABULARY (GetDistricts /
-//              GetSubdistricts, 0.3.0+), NOT from the locations. Deriving it from the locations
+//              GetSubdistricts, 1.0.0+), NOT from the locations. Deriving it from the locations
 //              looks equivalent and is not: an area with zero locations appears in no location, so
 //              it would silently vanish - and those are exactly the areas worth showing, because an
 //              empty district is an invitation to a modder rather than an error.
@@ -17,7 +17,7 @@
 //              to a district directly, inside no subdistrict (Badlands has 3). Counts therefore come
 //              from one pass over GetAllLocations(), bucketed by District()/Subdistrict() - never
 //              from 40 separate GetLocationsByDistrict calls.
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
 

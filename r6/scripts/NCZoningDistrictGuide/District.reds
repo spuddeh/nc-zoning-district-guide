@@ -9,7 +9,7 @@
 //              Resolves the district the player is standing in, then walks the district
 //              record's parent chain until the map answers. Returns null off-map (e.g.
 //              the Dogtown_Brooklyn flashback, which the map excludes).
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
 

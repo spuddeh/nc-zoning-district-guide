@@ -18,7 +18,7 @@
 //              key is stuck on the nczdg.xml default with no modifier and no way to rebind,
 //              and RED4ext is in the chain either way via RCF's bundled plugin.
 //              [[CP2077-Mods/wiki/decisions/one-owner-per-setting-rcf-plus-modsettings-keybind]]
-// Mod Version: 0.1.0 (Pre-release)
+// Mod Version: 1.0.0
 // Credits: jackhumbert (Mod Settings, Input Loader), DigitalVixen (RCF)
 // ======================================================================================
 
