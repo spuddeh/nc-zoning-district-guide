@@ -21,8 +21,7 @@ one replaces a different file.
 Keeping the translated files *out* of the mod is what makes that true. A translation bundled in the
 mod can only be updated by releasing the mod.
 
-Full mechanism: `[[CP2077-Mods/wiki/concepts/redscript-translation-as-a-separate-mod]]`
-Instructions for a translator: `docs/TRANSLATING.md`
+Instructions for a translator: [docs/TRANSLATING.md](../docs/TRANSLATING.md)
 
 ## What is here
 

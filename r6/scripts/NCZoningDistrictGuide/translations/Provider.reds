@@ -9,7 +9,7 @@
 //              to an empty package that falls through to the English fallback. The case
 //              has to exist before a translation can be dropped in, because a translation
 //              mod replaces a language FILE and cannot reach this switch.
-//              [[CP2077-Mods/wiki/concepts/redscript-translation-as-a-separate-mod]]
+//              https://github.com/spuddeh/nc-zoning-district-guide/blob/main/docs/TRANSLATING.md
 //
 //              An unlisted language hits default and gets English, so a code the game
 //              adds later degrades rather than breaking.

@@ -22,13 +22,14 @@
 //                - Plurals are one key per form. Fill in the forms your language uses
 //                  and leave the rest.
 //
-//              Then it ships as its own mod - one file, no release needed from
-//              this end. Full instructions: docs/TRANSLATING.md
+//              Then it ships as its own mod - one file, and nothing has to be
+//              released at this end. Full instructions, including how to package
+//              and upload it:
+//              https://github.com/spuddeh/nc-zoning-district-guide/blob/main/docs/TRANSLATING.md
 //
 //              MAINTAINER: empty on purpose - a filled slot would override newer
 //              English wording. The path, module and class name are public API,
 //              because a translation mod REPLACES this file.
-//              [[CP2077-Mods/wiki/concepts/redscript-translation-as-a-separate-mod]]
 // Mod Version: 1.0.0
 // Credits: psiberx (Codeware)
 // ======================================================================================
