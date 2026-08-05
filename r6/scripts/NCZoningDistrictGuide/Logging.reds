@@ -16,13 +16,21 @@
 //
 //              STILL STRIPPED BEFORE RELEASE: FTLog, Log, LogChannel*, LogWarning, LogError.
 //
-//              RedLog.Append takes no level, so the level lives in the line text - written
-//              at the wrapper, never at a call site, so it cannot be typed wrong.
+//              The level goes through RedLog.AppendLevel, which writes it as a tag RedLogger
+//              owns. The level is set at the wrapper and never at a call site, so it cannot
+//              be typed wrong. An unrecognised level string would normalise to INFO rather
+//              than being dropped, so a typo could only ever downgrade a line.
+//
+//              REQUIRES REDLOGGER 1.2.0+, which is where AppendLevel arrives. The stated
+//              floor is 1.3.0 because RCF 2.1.0 needs that much, so this adds no new
+//              requirement - but it does mean the level tag is not optional dressing, it is
+//              the thing an older RedLogger cannot resolve.
 //
 //              THE LOG IS READ IN-GAME, not just on disk: RCF's hub renders each line as a
-//              plain label (truncated at 600 chars, DVRCF_LogsProvider). A line has no
-//              filtering behind it, so keep it short and self-describing, and keep the whole
-//              log short enough to read as a column.
+//              plain label (truncated at 600 chars, DVRCF_LogsProvider). RCF 2.1.0 colours
+//              on the tag - errors red, warnings amber, debug dimmed - and its SHOWING filter
+//              selects on it, so a correctly levelled line is findable in a way a prefix
+//              written into the text never was. Keep a line short and self-describing.
 //              [[CP2077-Mods/wiki/decisions/redlogger-is-the-shipping-logging-path]]
 // Mod Version: 1.0.0
 // Credits: DigitalVixen (RedLogger)
@@ -30,19 +38,17 @@
 
 import RedLogger.*
 
-// The prefixes are padded to one width, so the levels line up in RCF's viewer.
-
 // Something happened that a user would recognise. The mod is working.
 public func NCZDGLog(value: script_ref<String>) -> Void {
-  RedLog.Append("NCZoningDistrictGuide", s"[INFO ] \(value)");
+  RedLog.AppendLevel("NCZoningDistrictGuide", "INFO", s"\(value)");
 }
 
 // A feature is skipped or degraded, and the player may not have asked for that.
 public func NCZDGWarn(value: script_ref<String>) -> Void {
-  RedLog.Append("NCZoningDistrictGuide", s"[WARN ] \(value)");
+  RedLog.AppendLevel("NCZoningDistrictGuide", "WARN", s"\(value)");
 }
 
 // A feature cannot run at all. If a bug report has one of these, it is the answer.
 public func NCZDGError(value: script_ref<String>) -> Void {
-  RedLog.Append("NCZoningDistrictGuide", s"[ERROR] \(value)");
+  RedLog.AppendLevel("NCZoningDistrictGuide", "ERROR", s"\(value)");
 }
