@@ -76,11 +76,10 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 [color=#00f0ff][size=5][b]5. CONDITIONS OF ISSUE[/b][/size][/color]
 [b]Required:[/b]
 [list]
-[*][url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url]
 [*][url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url]
 [*][url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url]
 [*][url=https://www.nexusmods.com/cyberpunk2077/mods/31920]RedLogger[/url]
-[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/32277]NC Zoning Board - Core[/url][/b], and its own requirements, which include [url=https://www.nexusmods.com/cyberpunk2077/mods/14139]RedData[/url] and [url=https://www.nexusmods.com/cyberpunk2077/mods/13378]RedFileSystem[/url]
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/32277]NC Zoning Board - Core[/url][/b], and its own requirements
 [*][url=https://www.nexusmods.com/cyberpunk2077/mods/4575]Input Loader[/url] - for the rebindable key
 [/list]
 [color=#ffb300][b]NC Zoning Board - Core 1.0.0 or newer is a hard requirement.[/b][/color] Redscript compiles every installed mod as one unit, so an older Core is a compile failure that takes down [i]every[/i] redscript mod on your machine, not just this one. The two release together.

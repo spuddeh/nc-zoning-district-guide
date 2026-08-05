@@ -21,7 +21,7 @@ Every feature can be turned off on its own.
 
 ## Requirements
 
-- RED4ext, redscript, Codeware
+- redscript, Codeware
 - [NC Zoning Board - Core](https://github.com/spuddeh/nc-zoning-core) - install the matching version.
   These two release together, so the current release of each expects the current release of
   the other.
