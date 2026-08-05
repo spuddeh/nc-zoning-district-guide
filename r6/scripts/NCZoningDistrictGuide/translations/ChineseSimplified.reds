@@ -1,12 +1,12 @@
 // ======================================================================================
 // Mod Name: NC Zoning District Guide
-// File: translations/German.reds
+// File: translations/ChineseSimplified.reds
 // Author: Spuddeh
-// Description: The German slot. EMPTY ON PURPOSE - every key falls through to English.
+// Description: The ChineseSimplified slot. EMPTY ON PURPOSE - every key falls through to English.
 //
 //              THIS FILE EXISTS SO IT CAN BE REPLACED. A translation ships as a separate
 //              mod carrying this same path, this same module and this same class name;
-//              the mod manager hides this copy, so redscript compiles one NCZDG_German
+//              the mod manager hides this copy, so redscript compiles one NCZDG_ChineseSimplified
 //              and there is no duplicate class. A translation cannot add a case to
 //              Provider.reds, which is why the slot has to be here before anyone can fill
 //              it. [[CP2077-Mods/wiki/concepts/redscript-translation-as-a-separate-mod]]
@@ -27,6 +27,6 @@ module NCZoningDistrictGuide.Translations
 
 import Codeware.Localization.*
 
-public class NCZDG_German extends ModLocalizationPackage {
+public class NCZDG_ChineseSimplified extends ModLocalizationPackage {
   protected func DefineTexts() -> Void {}
 }
