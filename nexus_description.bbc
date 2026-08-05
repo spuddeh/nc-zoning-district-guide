@@ -39,7 +39,7 @@ A gallery of location mods, filed by district.
 [/list]
 
 [color=#00f0ff][size=5][b]2a. THE INSTALL FILTER[/b][/size][/color]
-With [b]Cyber Engine Tweaks[/b] installed, the guide marks which of these location mods you already have. One button cycles the whole list:
+With [b][url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url][/b] installed, the guide marks which of these location mods you already have. One button cycles the whole list:
 [list]
 [*][b]ALL[/b] - every location on file.
 [*][b]INSTALLED[/b] - only the ones already on your machine.
@@ -54,7 +54,7 @@ A waypoint only starts routing once the world map has been opened. That is the g
 The guide opens the map and tracks the waypoint for you by default. If you switch both [b]Open the Map on Show[/b] and [b]Track the Waypoint[/b] off: the pin is placed, and it draws no route until you open the map and track it yourself.
 [line]
 [color=#00f0ff][size=5][b]4. SETTINGS[/b][/size][/color]
-Everything is in the [b]Redscript Configuration Framework[/b] overlay - press [b]F8[/b] in game.
+Everything is in the [b][url=https://www.nexusmods.com/cyberpunk2077/mods/30726]Redscript Configuration Framework[/url][/b] overlay - press [b]F8[/b] in game.
 [list]
 [*][b]Narrow to Subdistrict.[/b] Scopes every count to your subdistrict when you are in one, rather than the whole district. Applies to all four surfaces.
 [*][b]Enable District Guide.[/b] Turns the browser on or off.
@@ -76,20 +76,20 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 [color=#00f0ff][size=5][b]5. CONDITIONS OF ISSUE[/b][/size][/color]
 [b]Required:[/b]
 [list]
-[*]RED4ext
-[*]redscript
-[*]Codeware
+[*][url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url]
+[*][url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url]
+[*][url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url]
 [*][url=https://www.nexusmods.com/cyberpunk2077/mods/31920]RedLogger[/url]
-[*][b]NC Zoning Board - Core[/b], and its own requirements, which include RedData and RedFileSystem
-[*]Input Loader - for the rebindable key
+[*][b]NC Zoning Board - Core[/b], and its own requirements, which include [url=https://www.nexusmods.com/cyberpunk2077/mods/14139]RedData[/url] and [url=https://www.nexusmods.com/cyberpunk2077/mods/13378]RedFileSystem[/url]
+[*][url=https://www.nexusmods.com/cyberpunk2077/mods/4575]Input Loader[/url] - for the rebindable key
 [/list]
 [color=#ffb300][b]NC Zoning Board - Core 1.0.0 or newer is a hard requirement.[/b][/color] Redscript compiles every installed mod as one unit, so an older Core is a compile failure that takes down [i]every[/i] redscript mod on your machine, not just this one. The two release together.
 
 [b]Strongly recommended:[/b]
 [list]
-[*][b]Redscript Configuration Framework[/b] - the only settings UI. Without it nothing can be rebound.
-[*][b]Cyber Engine Tweaks[/b] - what detects which location mods you already have.
-[*][b]RedIMGRetriever[/b] - what fetches the card images. Without it the cards show a placeholder and everything else is unchanged.
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/30726]Redscript Configuration Framework[/url][/b] - the only settings UI. Without it nothing can be rebound.
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url][/b] - what detects which location mods you already have.
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/31941]RedIMGRetriever[/url][/b] - what fetches the card images. Without it the cards show a placeholder and everything else is unchanged.
 [/list]
 [i]The mod is whole without the three optional ones. Each removes a feature, not the mod.[/i]
 [line]
