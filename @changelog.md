@@ -17,11 +17,16 @@ Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
   `NCZDG_ParseQuery` walks the string character by character - `StrSplit` cannot express it,
   because the operators have to be read in the order they appear. The whole query is tested as a
   plain substring first, which is what keeps a phrase searchable.
-  - Two World Builder behaviours carried over deliberately: a query with **no plain word matches
-    nothing** (`!corpo` never sets the OR flag), and **spaces belong to the word** - spaced out,
-    `watson & apartment` searches for watson-with-a-trailing-space and space-with-apartment, which
-    hit 6 and 103 records against the 85 and 156 the tight spelling hits. Both are stated in the
-    help panel, in amber.
+  - **One deliberate departure: an exclusion on its own is a search.** `!corpo` lists everything
+    except corpo (248 of 295); World Builder returns an empty list, because nothing sets its OR
+    flag. `NCZDGQuery.hasPlainWord` is set at parse time and seeds `anyMatch`, so the OR pool is
+    already satisfied when nothing is in it. **This cannot change a query that already works** -
+    the first word of a query is governed by `|`, so the pool is empty only when the query OPENS
+    with an operator, and every one of those matches nothing today.
+  - **Spaces belong to the word**, as they do in World Builder, which trims nothing at the
+    function or at the ImGui input. Spaced out, `watson & apartment` searches for
+    watson-with-a-trailing-space and space-with-apartment, which hit 6 and 103 records against the
+    85 and 156 the tight spelling hits. Stated in the help panel, in amber.
   - Hoisted out of the per-location loop: World Builder re-walks the query string for every item
     and the answer does not depend on the item. Same terms, same order, same result.
 - An `[ i ]` beside the search box, hover-only, revealing the syntax panel
@@ -37,7 +42,7 @@ Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
   - `NCZDG_OverlayBgColor()` (#040912) at full opacity, not the panel navy at 0.97. The panel
     hangs over the cards and reference text cannot be read against a thumbnail.
 - Nine keys in `translations/English.reds` (`NCZDG.helpTitle`, `helpAnd`, `helpOr`, `helpNot`,
-  `helpMix`, `helpPhrase`, `helpNeedWord`, `helpSpaces`, `helpFields`), each carrying its own
+  `helpNotWith`, `helpMix`, `helpPhrase`, `helpSpaces`, `helpFields`), each carrying its own
   example, because the example words are English and a translator has to be able to swap them.
   Every example word is in the registry - `watson` 85 records, `apartment` 156, `pacifica` 14,
   `corpo` 38 - so each line demonstrates itself when typed. The operators are not translated.

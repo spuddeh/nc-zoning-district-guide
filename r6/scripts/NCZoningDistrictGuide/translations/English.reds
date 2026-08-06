@@ -48,10 +48,10 @@ public class NCZDG_English extends ModLocalizationPackage {
     this.Text("NCZDG.helpTitle",       "SEARCH SYNTAX");
     this.Text("NCZDG.helpAnd",         "watson&apartment   -   both must match");
     this.Text("NCZDG.helpOr",          "watson|pacifica   -   either may match");
-    this.Text("NCZDG.helpNot",         "apartment!corpo   -   apartments, minus anything corpo");
+    this.Text("NCZDG.helpNot",         "!corpo   -   everything except corpo");
+    this.Text("NCZDG.helpNotWith",     "apartment!corpo   -   apartments, minus anything corpo");
     this.Text("NCZDG.helpMix",         "watson|pacifica&apartment   -   either district, and an apartment");
     this.Text("NCZDG.helpPhrase",      "night city   -   with no operator, the whole line is searched as typed");
-    this.Text("NCZDG.helpNeedWord",    "Start with a plain word. !corpo on its own finds nothing - an exclusion narrows a search rather than being one.");
     this.Text("NCZDG.helpSpaces",      "Write the operators tight. watson & apartment looks for 'watson ' and ' apartment', spaces and all.");
     this.Text("NCZDG.helpFields",      "Every word is matched against the name, description, category, district, tags and authors.");
 

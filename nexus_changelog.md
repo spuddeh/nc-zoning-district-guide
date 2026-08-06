@@ -6,9 +6,10 @@ mod. The full technical detail lives in `@changelog.md`.
 ### [Unreleased - v1.1.0]
 
 - New: The guide's search box takes expressions, using the same operators as World Builder.
-  `watson&apartment` needs both, `watson|pacifica` takes either, and `apartment!corpo` drops
-  anything corpo. Type a plain word with no operator and the whole line is searched as you typed
-  it, so anything you searched for before means the same thing.
+  `watson&apartment` needs both, `watson|pacifica` takes either, `apartment!corpo` drops anything
+  corpo, and `!corpo` on its own lists everything except corpo. Type a plain word with no operator
+  and the whole line is searched as you typed it, so anything you searched for before means the
+  same thing.
 - New: An `i` beside the search box. Hover it for the syntax, without leaving the guide.
 - New: The in-game documentation page has a SEARCH SYNTAX section, in RCF's hub under DOCS.
 - New: A mod card for the Redscript Configuration Framework 2.1.0. The guide now appears in RCF's
@@ -49,7 +50,7 @@ The guide's search box now takes & | and !, the same operators as World Builder,
 
 <!-- nexus-description-end -->
 
-New: The guide's search box takes expressions, using the same operators as World Builder. watson&apartment needs both, watson|pacifica takes either, and apartment!corpo drops anything corpo. Type a plain word with no operator and the whole line is searched as you typed it, so anything you searched for before means the same thing.
+New: The guide's search box takes expressions, using the same operators as World Builder. watson&apartment needs both, watson|pacifica takes either, apartment!corpo drops anything corpo, and !corpo on its own lists everything except corpo. Type a plain word with no operator and the whole line is searched as you typed it, so anything you searched for before means the same thing.
 New: An i beside the search box. Hover it for the syntax, without leaving the guide.
 New: The in-game documentation page has a SEARCH SYNTAX section, in RCF's hub under DOCS.
 New: A mod card for the Redscript Configuration Framework 2.1.0, so the guide appears in its new picker with a header image, category and description.

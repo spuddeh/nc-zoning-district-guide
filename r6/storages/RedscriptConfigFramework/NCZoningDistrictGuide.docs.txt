@@ -25,14 +25,13 @@ Each can be switched off on its own. With all four off, the game behaves exactly
 [*][b]Cyan "INSTALLED"[/b] on a card image marks the ones you already have. It appears while SHOWING: ALL, and needs Cyber Engine Tweaks.
 [line]
 [color=#00f0ff][size=5][b]3. SEARCH SYNTAX[/b][/size][/color]
-The search box uses the same operators as World Builder, so if you already search there, you already know this. Hover the [b]i[/b] beside the box for the same list in game.
+The search box uses the same operators as World Builder, so if you already search there, you already know this. One difference: here an exclusion on its own is a search, so [b]!corpo[/b] lists everything except corpo. Hover the [b]i[/b] beside the box for this list in game.
 [*][b]watson&apartment[/b] - both must match.
 [*][b]watson|pacifica[/b] - either may match.
+[*][b]!corpo[/b] - everything except corpo.
 [*][b]apartment!corpo[/b] - apartments, minus anything corpo.
 [*][b]watson|pacifica&apartment[/b] - either district, and an apartment.
 [*][b]night city[/b] - with no operator, the whole line is searched as typed.
-
-[color=#ffb300]Start with a plain word.[/color] [b]!corpo[/b] on its own finds nothing - an exclusion narrows a search rather than being one.
 
 [color=#ffb300]Write the operators tight.[/color] [b]watson & apartment[/b] looks for "watson " and " apartment", spaces and all.
 

@@ -213,34 +213,29 @@ public class NCZDGGuideModel {
 // --------------------------------------------------------------------------------------
 // The search expression
 // --------------------------------------------------------------------------------------
-// WORLD BUILDER'S GRAMMAR, TERM FOR TERM - `_source/CP77_entSpawner`, `modules/utils/utils.lua`,
-// `miscUtils.matchSearch`. It is the search a Cyberpunk modder has already learnt, so it is the
-// one this box speaks. Match it exactly rather than improving on it: two search boxes in the same
-// hobby that ALMOST agree is worse than either convention on its own.
+// World Builder's grammar: `_source/CP77_entSpawner`, `modules/utils/utils.lua`,
+// `miscUtils.matchSearch`.
 //
-// FLAT: NO PRECEDENCE, NO BRACKETS. The query is scanned left to right. Each operator ends the
+// FLAT - no precedence, no brackets. The query is scanned left to right. Each operator ends the
 // current word and governs the NEXT one; the first word is governed by `|`.
 //
-//   watson&apartment!corpo   ->   `watson` OR-word, `apartment` AND-word, `corpo` NOT-word
+//   watson&apartment!corpo   ->   `watson` OR word, `apartment` AND word, `corpo` NOT word
 //
-// and the answer is
+// A location matches when
 //
 //   (some OR word matched) AND (every AND word matched) AND (no NOT word matched)
 //
-// TWO CONSEQUENCES, both World Builder's and neither of them accidental:
+// and an empty OR pool counts as satisfied, so `!corpo` means everything except corpo. That last
+// clause is this mod's; World Builder returns an empty list there.
 //
-//   - A QUERY WITH NO PLAIN WORD MATCHES NOTHING. `!corpo` alone never sets the OR flag, so it
-//     returns an empty list rather than everything-except-corpo. An exclusion narrows a search
-//     and cannot be one.
-//   - SPACES BELONG TO THE WORD. `watson & apartment` searches for `watson ` and ` apartment`,
-//     spaces included, and those are different searches: `watson ` is in 6 records where `watson`
-//     is in 85. The operators are written tight, and the help panel says so.
+// SPACES BELONG TO THE WORD. Nothing is trimmed, here or in World Builder. `watson & apartment`
+// searches for `watson ` and ` apartment` - 6 and 103 records, against 85 and 156 for the tight
+// spelling. The help panel states this.
 //
-// The whole query is tested as a plain substring FIRST, which is what keeps a phrase searchable
-// (`night city`) and lets a name that really contains an operator character find itself.
+// The whole query is tested as a plain substring first, so a phrase (`night city`) and a name
+// containing an operator character both still find themselves.
 //
-// The scan is hoisted out of the per-location loop - World Builder re-walks the query string for
-// every item, and the answer does not depend on the item. Same terms, same order, same result.
+// Parsed once per Query() call; the terms do not depend on the location.
 // --------------------------------------------------------------------------------------
 public func NCZDG_OpOr() -> Int32 { return 0; }
 public func NCZDG_OpAnd() -> Int32 { return 1; }
@@ -257,6 +252,7 @@ public class NCZDGQueryTerm {
 public class NCZDGQuery {
   public let raw: String;                        // the whole lowercased query, for the plain test
   public let terms: array<ref<NCZDGQueryTerm>>;  // in the order they were typed
+  public let hasPlainWord: Bool;                 // is any word governed by `|`
 
   public func Matches(loc: ref<NCZLocation>) -> Bool {
     if StrLen(this.raw) == 0 {
@@ -265,9 +261,13 @@ public class NCZDGQuery {
     if NCZDG_Matches(loc, this.raw) {
       return true;
     }
-    // IN ORDER, AND BAILING EARLY, matching World Builder: an AND word that misses or a NOT word
-    // that hits ends the test before any later word is looked at.
-    let anyMatch = false;
+    // An empty OR pool counts as satisfied, so `!corpo` reads as everything except corpo. The
+    // first word of a query is governed by `|`, so the pool is empty only when the query opens
+    // with an operator.
+    //
+    // IN ORDER, AND BAILING EARLY: an AND word that misses, or a NOT word that hits, ends the
+    // test before any later word is looked at.
+    let anyMatch = !this.hasPlainWord;
     let i = 0;
     while i < ArraySize(this.terms) {
       let t = this.terms[i];
@@ -295,8 +295,8 @@ public class NCZDGQuery {
 // One left-to-right pass, character by character. StrSplit cannot do this: the three operators
 // have to be read in the order they appear, and each one governs the word that follows it.
 //
-// AN EMPTY WORD IS DROPPED, which has two effects worth relying on: `||` and `&&` behave as
-// single operators, and the card list holds steady while `watson&` waits for its next character.
+// AN EMPTY WORD IS DROPPED, so `||` and `&&` behave as single operators, and the card list holds
+// steady while `watson&` waits for its next character.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_ParseQuery(raw: String) -> ref<NCZDGQuery> {
   let q = new NCZDGQuery();
@@ -320,6 +320,9 @@ public func NCZDG_ParseQuery(raw: String) -> ref<NCZDGQuery> {
         t.text = word;
         t.op = op;
         ArrayPush(q.terms, t);
+        if op == NCZDG_OpOr() {
+          q.hasPlainWord = true;
+        }
       }
       word = "";
       if UnicodeStringEqual(ch, "&") {

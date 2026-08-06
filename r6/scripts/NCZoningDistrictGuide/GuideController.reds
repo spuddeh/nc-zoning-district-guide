@@ -114,21 +114,21 @@ public func NCZDG_ClearLeft() -> Float {
   return NCZDG_HelpLeft() + NCZDG_HelpSize() + NCZDG_SearchGap();
 }
 
-// The hover panel is MEASURED, then sized - see SizeHelpTip. `SetFitToContent` on the panel is
-// the wrong tool and looks like the right one: the backing and the frame are anchored Fill, a Fill
-// child takes its size FROM its parent, and a parent that sizes itself from its children has no
-// size to give them. Both collapse and the text draws with no box behind it. Fit-to-content and a
-// Fill-anchored backdrop cannot both be right in one widget.
+// The hover panel is MEASURED, then sized - see SizeHelpTip.
+//
+// FIT-TO-CONTENT AND A FILL-ANCHORED BACKDROP CANNOT BOTH BE RIGHT IN ONE WIDGET. A Fill child
+// takes its size from its parent; a fit-to-content parent takes its size from its children. Set
+// both and the backing and the frame collapse, leaving the text with no box behind it.
 //
 // So the stack fits its content, `GetDesiredSize` reads it back after layout, and the panel is set
 // to that plus the padding. No line carries a wrap position: a wrapped text reports its wrap
-// position as its width, which would measure the budget rather than the text.
+// position as its width, which measures the budget rather than the text.
 //
-// The two below are the FALLBACK, held until the first measurement lands, and generous on purpose.
-// Too big is a panel with empty space in it; too small is text drawn across the cards, and ink
-// cannot clip. Budgeted for a 34px title, seven 30px lines, and the padding at both ends.
+// The two below are the FALLBACK, held until the first measurement lands. They are generous: too
+// big is a panel with empty space in it, too small is text drawn across the cards, and ink cannot
+// clip. Budgeted for a 34px title, seven 30px lines and the padding at both ends.
 //
-// THE ONE BOUND EITHER WAY: the panel starts at NCZDG_HelpLeft() inside a body NCZDG_UsableWidth()
+// THE BOUND EITHER WAY: the panel starts at NCZDG_HelpLeft() inside a body NCZDG_UsableWidth()
 // wide, so a line wider than the difference runs off the popup. English's longest is ~1150 units
 // against ~1870 available.
 public func NCZDG_HelpTipWidth() -> Float { return 1560.0; }
@@ -901,26 +901,19 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.MakeHelpLine(stack, "NCZDG.helpAnd", NCZDG_White(), 12.0);
     this.MakeHelpLine(stack, "NCZDG.helpOr", NCZDG_White(), 12.0);
     this.MakeHelpLine(stack, "NCZDG.helpNot", NCZDG_White(), 12.0);
+    this.MakeHelpLine(stack, "NCZDG.helpNotWith", NCZDG_White(), 12.0);
     this.MakeHelpLine(stack, "NCZDG.helpMix", NCZDG_White(), 12.0);
     this.MakeHelpLine(stack, "NCZDG.helpPhrase", NCZDG_White(), 22.0);
-    // The two rules a reader only meets by being caught out by them, so they are stated rather
-    // than left to be discovered: an exclusion cannot be a whole query, and a space is a character.
-    this.MakeHelpLine(stack, "NCZDG.helpNeedWord", NCZDG_Amber(), 12.0);
+    // The one rule a reader meets only by being caught out by it, so it is stated rather than
+    // left to be discovered: a space is a character like any other.
     this.MakeHelpLine(stack, "NCZDG.helpSpaces", NCZDG_Amber(), 22.0);
     this.MakeHelpLine(stack, "NCZDG.helpFields", NCZDG_Gray(), 0.0);
   }
 
-  // Sizes the panel to its text, from ink's own measurement.
-  //
-  // MEASURED, NOT FITTED. `SetFitToContent` on the panel collapses the backing and the frame to
-  // nothing: both are anchored Fill, a Fill child takes its size FROM its parent, and a parent
-  // sizing itself from its children has no size to give them. The text then draws with no box
-  // behind it. Fit-to-content and a Fill-anchored backdrop cannot both be right in one widget.
-  //
-  // `GetDesiredSize` is only a real number after a layout pass. The panel therefore ships with a
-  // budgeted size and is marked AffectsLayoutWhenHidden, so the stack lays out while the panel is
-  // hidden and the first hover already has something to read. A zero reading means layout has not
-  // run yet and keeps the budget, which is never wrong, only generous.
+  // Sizes the panel to its text. `GetDesiredSize` is only a real number after a layout pass, so
+  // the panel ships with a budgeted size and is marked AffectsLayoutWhenHidden - the stack lays
+  // out while the panel is hidden, and the first hover already has something to read. A zero
+  // reading means layout has not run yet, and keeps the budget.
   private func SizeHelpTip() -> Void {
     if !IsDefined(this.m_helpTip) || !IsDefined(this.m_helpStack) {
       return;
