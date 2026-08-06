@@ -213,9 +213,6 @@ public class NCZDGGuideModel {
 // --------------------------------------------------------------------------------------
 // The search expression
 // --------------------------------------------------------------------------------------
-// World Builder's grammar: `_source/CP77_entSpawner`, `modules/utils/utils.lua`,
-// `miscUtils.matchSearch`.
-//
 // FLAT - no precedence, no brackets. The query is scanned left to right. Each operator ends the
 // current word and governs the NEXT one; the first word is governed by `|`.
 //
@@ -225,12 +222,11 @@ public class NCZDGGuideModel {
 //
 //   (some OR word matched) AND (every AND word matched) AND (no NOT word matched)
 //
-// and an empty OR pool counts as satisfied, so `!corpo` means everything except corpo. That last
-// clause is this mod's; World Builder returns an empty list there.
+// An empty OR pool counts as satisfied, so `!corpo` means everything except corpo.
 //
-// SPACES BELONG TO THE WORD. Nothing is trimmed, here or in World Builder. `watson & apartment`
-// searches for `watson ` and ` apartment` - 6 and 103 records, against 85 and 156 for the tight
-// spelling. The help panel states this.
+// SPACES BELONG TO THE WORD. Nothing is trimmed. `watson & apartment` searches for `watson ` and
+// ` apartment` - 6 and 103 records, against 85 and 156 for the tight spelling. The help panel
+// states this.
 //
 // The whole query is tested as a plain substring first, so a phrase (`night city`) and a name
 // containing an operator character both still find themselves.
