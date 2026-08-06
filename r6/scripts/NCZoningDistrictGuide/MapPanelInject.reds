@@ -29,10 +29,10 @@
 //              cannot report a Badlands SUBdistrict, so this is always the district total and
 //              deliberately ignores matchSubdistrict.
 //
-//              The web panel's "N recently updated" stat IS reproduced here now: the core exposes the
-//              API's server-computed recently_updated bool per location (NCZLocation.RecentlyUpdated()),
-//              so this counts it over the district's locations. redscript still has no wall clock - the
-//              server did the date math and shipped the answer.
+//              The web panel's "N recently updated" stat IS reproduced here: the core answers
+//              NCZLocation.RecentlyUpdated() per location and this counts it over the district's
+//              locations. The core computes that against a real clock, so it stays right on a
+//              cache read weeks after it was written.
 //
 //              ADDITIVE ONLY. wrappedMethod() runs first and unconditionally in both wraps, so the
 //              vanilla map is byte-identical whether or not this mod is installed. enableMapPanel
