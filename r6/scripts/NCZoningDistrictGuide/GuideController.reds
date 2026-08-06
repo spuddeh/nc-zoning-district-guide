@@ -114,21 +114,25 @@ public func NCZDG_ClearLeft() -> Float {
   return NCZDG_HelpLeft() + NCZDG_HelpSize() + NCZDG_SearchGap();
 }
 
-// The hover panel SIZES ITSELF. `SetFitToContent` is declared on `inkWidget`, not on
-// `inkCompoundWidget` - EVERY widget has it, an inkCanvas included - so the panel does not need a
-// budgeted width and height at all. The longest line sets the width and the stack sets the height,
-// which is what keeps a translated line from deciding whether the box still fits.
+// The hover panel is MEASURED, then sized - see SizeHelpTip. `SetFitToContent` on the panel is
+// the wrong tool and looks like the right one: the backing and the frame are anchored Fill, a Fill
+// child takes its size FROM its parent, and a parent that sizes itself from its children has no
+// size to give them. Both collapse and the text draws with no box behind it. Fit-to-content and a
+// Fill-anchored backdrop cannot both be right in one widget.
 //
-// The backing and the frame are anchored Fill INSIDE that fitted canvas, so they take their size
-// from the text rather than the text being cut to them. A Fill child has no size of its own and
-// so does not feed the fit; the padded stack is the only thing that does.
+// So the stack fits its content, `GetDesiredSize` reads it back after layout, and the panel is set
+// to that plus the padding. No line carries a wrap position: a wrapped text reports its wrap
+// position as its width, which would measure the budget rather than the text.
 //
-// So there is no wrap position anywhere in the panel. Wrapping a line would fix its width, and a
-// fixed-width child is exactly what stops a fitted parent from following its content.
+// The two below are the FALLBACK, held until the first measurement lands, and generous on purpose.
+// Too big is a panel with empty space in it; too small is text drawn across the cards, and ink
+// cannot clip. Budgeted for a 34px title, seven 30px lines, and the padding at both ends.
 //
-// THE ONE BOUND LEFT: the panel starts at NCZDG_HelpLeft() and the body is NCZDG_UsableWidth()
-// wide, so a line wider than the difference runs off the popup - ink cannot clip. English's
-// longest line is ~1150 units against ~1870 available.
+// THE ONE BOUND EITHER WAY: the panel starts at NCZDG_HelpLeft() inside a body NCZDG_UsableWidth()
+// wide, so a line wider than the difference runs off the popup. English's longest is ~1150 units
+// against ~1870 available.
+public func NCZDG_HelpTipWidth() -> Float { return 1560.0; }
+public func NCZDG_HelpTipHeight() -> Float { return 540.0; }
 public func NCZDG_HelpTipPad() -> Float { return 26.0; }
 
 public func NCZDG_BodyHeight() -> Float {
@@ -412,6 +416,7 @@ public class NCZDGGuidePopup extends InGamePopup {
   private let m_search: ref<HubTextInput>;
   private let m_searchClear: wref<inkCanvas>;   // the X beside the input; visible only with a query
   private let m_helpTip: wref<inkCanvas>;       // the search-syntax panel; shown while [ i ] is hovered
+  private let m_helpStack: wref<inkVerticalPanel>;   // its text column, and what the panel is sized from
   private let m_status: wref<inkText>;
   private let m_proxies: array<ref<NCZDGGuideProxy>>;
 
@@ -844,11 +849,16 @@ public class NCZDGGuidePopup extends InGamePopup {
     // [ i ] itself - a panel under the pointer would take the hover and close the moment it opened.
     let tip = new inkCanvas();
     tip.SetName(n"nczdg_search_help_tip");
-    tip.SetFitToContent(true);   // no SetSize: the stack below is what decides how big this is
+    // The BUDGET, not the answer. SizeHelpTip replaces it with the stack's measured size on the
+    // first hover; this is what the panel falls back to if the measurement is not ready.
+    tip.SetSize(new Vector2(NCZDG_HelpTipWidth(), NCZDG_HelpTipHeight()));
     tip.SetAnchor(inkEAnchor.TopLeft);
     tip.SetAnchorPoint(new Vector2(0.0, 0.0));
     tip.SetMargin(new inkMargin(NCZDG_HelpLeft(), NCZDG_TopStripHeight(), 0.0, 0.0));
     tip.SetVisible(false);
+    // So the stack still lays out while the panel is hidden, which is what makes GetDesiredSize
+    // a real number on the FIRST hover rather than on the second.
+    tip.SetAffectsLayoutWhenHidden(true);
     tip.Reparent(body);
     this.m_helpTip = tip;
 
@@ -881,6 +891,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     stack.SetMargin(new inkMargin(NCZDG_HelpTipPad(), NCZDG_HelpTipPad(),
                                   NCZDG_HelpTipPad(), NCZDG_HelpTipPad()));
     stack.Reparent(tip);
+    this.m_helpStack = stack;
 
     let title = this.MakeText(NCZDG_T("NCZDG.helpTitle"), NCZDG_Cyan(), 34);
     title.SetFontStyle(n"Semi-Bold");
@@ -899,8 +910,32 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.MakeHelpLine(stack, "NCZDG.helpFields", NCZDG_Gray(), 0.0);
   }
 
-  // One line of the help panel. NO WRAP POSITION: a wrapped text has a fixed width, and a
-  // fixed-width child is what would stop the fitted panel above from following its content.
+  // Sizes the panel to its text, from ink's own measurement.
+  //
+  // MEASURED, NOT FITTED. `SetFitToContent` on the panel collapses the backing and the frame to
+  // nothing: both are anchored Fill, a Fill child takes its size FROM its parent, and a parent
+  // sizing itself from its children has no size to give them. The text then draws with no box
+  // behind it. Fit-to-content and a Fill-anchored backdrop cannot both be right in one widget.
+  //
+  // `GetDesiredSize` is only a real number after a layout pass. The panel therefore ships with a
+  // budgeted size and is marked AffectsLayoutWhenHidden, so the stack lays out while the panel is
+  // hidden and the first hover already has something to read. A zero reading means layout has not
+  // run yet and keeps the budget, which is never wrong, only generous.
+  private func SizeHelpTip() -> Void {
+    if !IsDefined(this.m_helpTip) || !IsDefined(this.m_helpStack) {
+      return;
+    }
+    let inner = this.m_helpStack.GetDesiredSize();
+    if inner.X <= 0.0 || inner.Y <= 0.0 {
+      return;
+    }
+    // The stack's own margin is the padding, and it is applied on both sides.
+    let pad = NCZDG_HelpTipPad() * 2.0;
+    this.m_helpTip.SetSize(new Vector2(inner.X + pad, inner.Y + pad));
+  }
+
+  // One line of the help panel. NO WRAP POSITION: a wrapped text has a fixed width, so the
+  // measurement above would return the wrap position rather than the width of the text.
   private func MakeHelpLine(parent: wref<inkCompoundWidget>, key: String, colour: CName,
                             gapBelow: Float) -> Void {
     let t = this.MakeText(NCZDG_T(key), colour, 30);
@@ -2072,6 +2107,11 @@ public class NCZDGGuidePopup extends InGamePopup {
     // hover, and its index is negative, so the range check would drop it.
     if index == NCZDG_IdxSearchHelp() {
       if IsDefined(this.m_helpTip) {
+        // Re-measured on every open rather than once: the panel is built before the first layout
+        // pass, and a language change rewrites every line in it.
+        if entered {
+          this.SizeHelpTip();
+        }
         this.m_helpTip.SetVisible(entered);
       }
       return;
