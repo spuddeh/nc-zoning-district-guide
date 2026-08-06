@@ -17,14 +17,24 @@ Each can be switched off on its own. With all four off, the game behaves exactly
 [color=#00f0ff][size=5][b]2. USING THE GUIDE[/b][/size][/color]
 [*][b]Open it[/b] with the key set under District Guide. The default is the apostrophe.
 [*][b]Browse[/b] by district and subdistrict. It opens on wherever you are standing.
-[*][b]Search[/b] by name, author or tag.
+[*][b]Search[/b] by name, author or tag, with & || and ! - see section 3.
 [*][b]SHOW ON MAP[/b] drops a waypoint on the location, opens the world map on it and starts routing. The same button reads CLEAR WAYPOINT once one is set.
 [*][b]TELEPORT[/b] takes you there. Not available while you are in a vehicle - get out first.
 [*][b]Click a card's image[/b] for the full-size photograph. Click anywhere to close it.
 [*][b]Green "RECENTLY UPDATED"[/b] on a card image marks locations changed lately. They sort to the front.
 [*][b]Cyan "INSTALLED"[/b] on a card image marks the ones you already have. It appears while SHOWING: ALL, and needs Cyber Engine Tweaks.
 [line]
-[color=#00f0ff][size=5][b]3. SETTINGS[/b][/size][/color]
+[color=#00f0ff][size=5][b]3. SEARCH SYNTAX[/b][/size][/color]
+The search box takes more than one word. Hover the [b]i[/b] beside it for this list in game.
+[*][b]watson & interior[/b] - both must match.
+[*][b]watson || pacifica[/b] - either may match.
+[*][b]!wip[/b] - hide everything that matches.
+[*][b]watson & !wip || pacifica[/b] - reads as (watson and not wip) or (pacifica).
+[*][b]night city[/b] - a space belongs to the phrase, so this is not two terms.
+
+Every term is matched against the name, description, category, district, tags and authors. [b]&&[/b] and a single [b]|[/b] work as well.
+[line]
+[color=#00f0ff][size=5][b]4. SETTINGS[/b][/size][/color]
 All of them are in this hub, under NC Zoning Board - District Guide.
 
 [b]Locations[/b]
@@ -47,7 +57,7 @@ All of them are in this hub, under NC Zoning Board - District Guide.
 [*][b]Name the Nearest Location.[/b] Also names the closest location in the area. Off shows only the count.
 [*][b]Show on Fast Travel.[/b] The arrival panel after a fast travel. Off leaves fast travel entirely to the game.
 [line]
-[color=#00f0ff][size=5][b]4. THE INSTALL FILTER[/b][/size][/color]
+[color=#00f0ff][size=5][b]5. THE INSTALL FILTER[/b][/size][/color]
 With Cyber Engine Tweaks installed, the guide marks which of these location mods you already have, and one button cycles the list:
 [*][b]ALL[/b] - every location on file.
 [*][b]INSTALLED[/b] - only the ones already on your machine.
@@ -56,12 +66,12 @@ With Cyber Engine Tweaks installed, the guide marks which of these location mods
 
 [color=#ffb300]Without Cyber Engine Tweaks the filter button is hidden.[/color] Everything else is unchanged.
 [line]
-[color=#00f0ff][size=5][b]5. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
+[color=#00f0ff][size=5][b]6. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
 A waypoint only starts routing once the world map has been opened. The guide does that for you, so you will not normally meet this.
 
 You will meet it if you turn both [b]Open the Map on Show[/b] and [b]Track the Waypoint[/b] off. The pin is then placed but draws no route until you open the map and track it yourself.
 [line]
-[color=#00f0ff][size=5][b]6. IF SOMETHING LOOKS WRONG[/b][/size][/color]
+[color=#00f0ff][size=5][b]7. IF SOMETHING LOOKS WRONG[/b][/size][/color]
 [*][b]No counts anywhere, or "NO LOCATION DATA".[/b] The registry did not load. That is the Core's side - check its requirements, and whether you have RedHttpClient or a hand-placed data file.
 [*][b]A district reads zero.[/b] Some have none on file; NCX Spaceport / Morro Rock is one. Zero and "no data" are different answers, and the guide says which.
 [*][b]Cards show a placeholder instead of a photograph.[/b] RedIMGRetriever is missing, or that location has no image on file.

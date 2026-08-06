@@ -23,6 +23,8 @@ Feature state for NC Zoning District Guide. Legend: Done, In Progress, Planned.
 | Waypoint: show, route, clear | Done, verified in-game | SHOW ON MAP places the waypoint, **opens the world map from script**, centres on the pin and fills the player-tracked slot - the route draws with no player action. `openMapOnMarker` / `autoTrackMarker`, both default ON. Clearing deactivates → untracks → destroys, so nothing is left on map, minimap or HUD |
 | Recent-first card sort | Done | Recently-updated first, then A-Z; decays with the core's flag |
 | Hover-revealed card actions | Done | SHOW ON MAP / TELEPORT on card hover, opaque backing; click kept as fallback. Widths derive from `NCZDG_CardBtnWidth` so the strip cannot desync |
+| Search expressions | Done | `&` and, `\|\|` or, leading `!` exclude; an OR of AND-groups one level deep, no brackets. `&&` and a single `\|` accepted too. A space stays part of the term, so a phrase is still searchable. Empty terms dropped, so a half-typed operator does not blank the list |
+| Search syntax panel | Done | Hover-only `[ i ]` beside the input; built once, hidden, parented after both columns so it draws over the cards. No click handler - a click would cost the text input its focus |
 | Search clear button | Done | Pager-styled CLEAR beside the input, shown only with a query |
 | Button hover feedback | Done | Frame brightens to Archival White on all buttons; hide sites reset it |
 | Scroll reset on context change | Done | Card list returns to top on page turn, area change, search edit |

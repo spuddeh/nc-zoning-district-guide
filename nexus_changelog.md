@@ -5,6 +5,11 @@ mod. The full technical detail lives in `@changelog.md`.
 
 ### [Unreleased - v1.1.0]
 
+- New: The guide's search box takes expressions. `watson & interior` needs both, `watson ||
+  pacifica` takes either, and a leading `!` hides matches - so `!wip` drops every work in progress.
+  A space still belongs to the phrase, so anything you searched for before means the same thing.
+- New: An `i` beside the search box. Hover it for the syntax, without leaving the guide.
+- New: The in-game documentation page has a SEARCH SYNTAX section, in RCF's hub under DOCS.
 - New: A mod card for the Redscript Configuration Framework 2.1.0. The guide now appears in RCF's
   new picker with its header image, category and a short description.
 - New: Translation slots for all 19 game languages. A translation is a single file, and anyone can
@@ -39,17 +44,20 @@ carry no `-`, no markdown and no version heading: a wrapped line arrives as two 
 dash arrives inside the bullet, and the version is sent in its own field.
 
 ```text
-Adds a mod card for the Redscript Configuration Framework 2.1.0 and translation slots for 19 languages. RedLogger 1.3.0 or newer is now required.
+The guide's search box now takes & || and !, with an i beside it for the syntax. Adds a mod card for the Redscript Configuration Framework 2.1.0 and translation slots for 19 languages. RedLogger 1.3.0 or newer is now required.
 
 <!-- nexus-description-end -->
 
+New: The guide's search box takes expressions. watson & interior needs both, watson || pacifica takes either, and a leading ! hides matches, so !wip drops every work in progress. A space still belongs to the phrase, so anything you searched for before means the same thing.
+New: An i beside the search box. Hover it for the syntax, without leaving the guide.
+New: The in-game documentation page has a SEARCH SYNTAX section, in RCF's hub under DOCS.
 New: A mod card for the Redscript Configuration Framework 2.1.0, so the guide appears in its new picker with a header image, category and description.
 New: Translation slots for all 19 game languages. A translation is a single file, and anyone can release one as its own mod without waiting for an update here.
 Changed: Log lines now carry a level, so RCF 2.1.0's log viewer shows errors in red and warnings in amber. If you attach a log to a bug report, the important lines now stand out.
 Changed: RedLogger 1.3.0 or newer is now required. RCF 2.1.0 calls RedLogger functions older builds do not have, and the two together stop every redscript mod on your machine from loading.
 ```
 
-> File description: 145 / 255 characters.
+> File description: 226 / 255 characters.
 
 ---
 
@@ -59,7 +67,10 @@ Changed: RedLogger 1.3.0 or newer is now required. RCF 2.1.0 calls RedLogger fun
 [color=#00f0ff][size=5][b]- Changes -[/b][/size][/color]
 
 [b][size=3]Version 1.1.0[/size][/b]
-[list][*]New: A mod card for the Redscript Configuration Framework 2.1.0.
+[list][*]New: The search box takes expressions - a & b, a || b, and !a to exclude.
+[*]New: An i beside the search box, hover it for the syntax.
+[*]New: A SEARCH SYNTAX section on the in-game documentation page.
+[*]New: A mod card for the Redscript Configuration Framework 2.1.0.
 [*]New: Translation slots for all 19 game languages, releasable as separate mods.
 [*]Changed: Log lines now carry a level, colour-coded in RCF 2.1.0's log viewer.
 [*]Changed: RedLogger 1.3.0 or newer is now required.

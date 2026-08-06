@@ -33,7 +33,21 @@ public class NCZDG_English extends ModLocalizationPackage {
     this.Text("NCZDG.title",           "NC ZONING BOARD");
     this.Text("NCZDG.headerLeft",      "NIGHT CORP // URBAN PLANNING DIVISION");
     this.Text("NCZDG.headerRight",     "NC-ZB-01");
-    this.Text("NCZDG.searchHint",      "SEARCH NAME, AUTHOR, TAG");
+    this.Text("NCZDG.searchHint",      "SEARCH NAME, TAG, AUTHOR - & || !");
+
+    // --- search syntax, shown by the [ i ] beside the search box ------------------------
+    // EACH LINE CARRIES ITS OWN EXAMPLE, because the example words are English: "watson" and
+    // "interior" are what a translator has to be free to swap for words their reader would
+    // actually type. A shared example held in code could not be reached.
+    //
+    // The operators themselves (& || !) are NOT translated. They are what the parser reads.
+    this.Text("NCZDG.helpTitle",       "SEARCH SYNTAX");
+    this.Text("NCZDG.helpAnd",         "watson & interior   -   both must match");
+    this.Text("NCZDG.helpOr",          "watson || pacifica   -   either may match");
+    this.Text("NCZDG.helpNot",         "!wip   -   hide everything that matches");
+    this.Text("NCZDG.helpMix",         "watson & !wip || pacifica   -   reads as (watson and not wip) or (pacifica)");
+    this.Text("NCZDG.helpPhrase",      "night city   -   a space belongs to the phrase, so this is not two terms");
+    this.Text("NCZDG.helpFields",      "Every term is matched against the name, description, category, district, tags and authors.");
 
     // --- buttons -----------------------------------------------------------------------
     this.Text("NCZDG.btnClear",        "CLEAR");

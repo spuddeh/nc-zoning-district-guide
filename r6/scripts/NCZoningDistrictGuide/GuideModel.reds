@@ -169,7 +169,7 @@ public class NCZDGGuideModel {
     return -1;
   }
 
-  // The locations in an area, filtered by a free-text query, sorted recently-updated first, then
+  // The locations in an area, filtered by a search expression, sorted recently-updated first, then
   // A-Z by name.
   //
   // Search covers EVERY text field a location carries - name, description, category, tags and
@@ -181,12 +181,14 @@ public class NCZDGGuideModel {
       return out;
     }
     let all = GetAllLocations();
-    let q = StrLower(search);
+    // Parsed ONCE, not once per location: the expression is the same for all 295 of them, and
+    // parsing it inside the loop would run several string splits per card per keystroke.
+    let q = NCZDG_ParseQuery(search);
 
     let i = 0;
     while i < ArraySize(all) {
       let loc = all[i];
-      if this.InArea(loc, area) && NCZDG_Matches(loc, q) {
+      if this.InArea(loc, area) && q.Matches(loc) {
         ArrayPush(out, loc);
       }
       i += 1;
@@ -208,7 +210,134 @@ public class NCZDGGuideModel {
   }
 }
 
-// Every text field, case-insensitive. An empty query matches everything.
+// --------------------------------------------------------------------------------------
+// The search expression
+// --------------------------------------------------------------------------------------
+// The grammar is an OR of AND-GROUPS, one level deep, with no brackets:
+//
+//   watson & interior || pacifica & !wip
+//   -> (watson AND interior) OR (pacifica AND NOT wip)
+//
+// A SPACE IS PART OF A TERM, not an operator, so "night city" searches that phrase. A space that
+// meant AND would take phrase search away entirely: there would be nothing left to express it with.
+//
+// `&&` and a single `|` are accepted alongside `&` and `||`. Neither character means anything as
+// a literal in a mod name, description or tag, so there is nothing to lose by accepting both
+// spellings, and typing `a || b` passes through `a | b` on the way.
+// --------------------------------------------------------------------------------------
+
+// One term: a substring to look for, and whether finding it should EXCLUDE the location.
+// The text is already lowercased and trimmed, and is never empty.
+public class NCZDGQueryTerm {
+  public let text: String;
+  public let negated: Bool;
+}
+
+// One AND-group. Every term must pass.
+@if(ModuleExists("NCZoning.Api"))
+public class NCZDGQueryGroup {
+  public let terms: array<ref<NCZDGQueryTerm>>;
+
+  public func Matches(loc: ref<NCZLocation>) -> Bool {
+    let i = 0;
+    while i < ArraySize(this.terms) {
+      let t = this.terms[i];
+      let found = NCZDG_Matches(loc, t.text);
+      if t.negated {
+        if found {
+          return false;
+        }
+      } else {
+        if !found {
+          return false;
+        }
+      }
+      i += 1;
+    }
+    return true;
+  }
+}
+
+// The whole expression. No group means no filter - which is the empty box, and also every
+// half-typed state on the way to a real query.
+@if(ModuleExists("NCZoning.Api"))
+public class NCZDGQuery {
+  public let groups: array<ref<NCZDGQueryGroup>>;
+
+  public func Matches(loc: ref<NCZLocation>) -> Bool {
+    if ArraySize(this.groups) == 0 {
+      return true;
+    }
+    let g = 0;
+    while g < ArraySize(this.groups) {
+      if this.groups[g].Matches(loc) {
+        return true;
+      }
+      g += 1;
+    }
+    return false;
+  }
+}
+
+// Splits on `|` first and `&` second, which is what makes `&` bind tighter than `||`.
+//
+// AN EMPTY TERM IS DROPPED, NOT TREATED AS A FILTER. `watson &` has an empty second term for as
+// long as it takes to type the next character, and failing it there would blank the card list on
+// every keystroke that opens a new term.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_ParseQuery(raw: String) -> ref<NCZDGQuery> {
+  let q = new NCZDGQuery();
+  let norm = StrReplaceAll(StrLower(raw), "||", "|");
+  norm = StrReplaceAll(norm, "&&", "&");
+
+  let chunks = StrSplit(norm, "|");   // bind before ArraySize: rvalue-array bug
+  let c = 0;
+  while c < ArraySize(chunks) {
+    let group = new NCZDGQueryGroup();
+    let parts = StrSplit(chunks[c], "&");
+    let p = 0;
+    while p < ArraySize(parts) {
+      let term = NCZDG_TrimSpaces(parts[p]);
+      let negated = StrBeginsWith(term, "!");
+      if negated {
+        // StrAfterFirst rather than an index cut: it drops the `!` without counting characters,
+        // so a multi-byte term after it survives intact.
+        term = NCZDG_TrimSpaces(StrAfterFirst(term, "!"));
+      }
+      if StrLen(term) > 0 {
+        let t = new NCZDGQueryTerm();
+        t.text = term;
+        t.negated = negated;
+        ArrayPush(group.terms, t);
+      }
+      p += 1;
+    }
+    if ArraySize(group.terms) > 0 {
+      ArrayPush(q.groups, group);
+    }
+    c += 1;
+  }
+  return q;
+}
+
+// redscript has no trim. Spaces only: the string comes from a text input, so a tab or a newline
+// cannot reach it.
+//
+// Trimming is what lets `watson & interior` be typed the way it reads. Without it the second term
+// is " interior", and a leading space matches almost nothing.
+public func NCZDG_TrimSpaces(s: String) -> String {
+  let out = s;
+  while StrLen(out) > 0 && StrBeginsWith(out, " ") {
+    out = StrAfterFirst(out, " ");
+  }
+  while StrLen(out) > 0 && StrEndsWith(out, " ") {
+    out = StrBeforeLast(out, " ");
+  }
+  return out;
+}
+
+// Every text field, case-insensitive. This is ONE TERM's test, not the whole expression - the
+// expression is NCZDGQuery.Matches, which composes this.
 //
 // Tags and authors MUST be read through TagCount()/TagAt() and AuthorCount()/AuthorAt(): applying
 // an array intrinsic straight to a method's array return reads garbage in redscript, and the core's

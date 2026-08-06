@@ -5,11 +5,28 @@ This project uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased] - 1.1.0
 
-Prepared, not released. One further feature is still to land, and the Guide ships alongside
-NC Zoning Board - Core 1.1.0.
+Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
 
 ### Added
 
+- Search expressions in the guide: `&` (and), `||` (or) and a leading `!` (exclude), parsed in
+  `GuideModel.reds` as an OR of AND-groups one level deep, with no brackets.
+  `NCZDG_ParseQuery` splits on `|` then `&`, so `&` binds tighter; `NCZDGQuery.Matches` composes
+  the per-term test `NCZDG_Matches` was already doing. `&&` and a single `|` are accepted as
+  well. A SPACE STAYS PART OF THE TERM, so a phrase is still searchable and every query that
+  worked against 1.0.0 means the same thing. An empty term is dropped rather than failed, which
+  is what keeps the card list steady while `watson &` is half-typed. Parsed once per `Query()`
+  call, not once per location.
+- An `[ i ]` beside the search box, hover-only, revealing a panel of the six syntax lines
+  (`GuideController.reds` `BuildSearchHelp`). Built once and hidden, and parented AFTER both
+  columns - ink draws in child order, so a panel built up in the top strip would open behind the
+  cards it hangs over. No `OnRelease` is registered: a click would cost the text input its focus,
+  and the index would then need an arm in `OnProxyClick`'s dispatch chain.
+- Seven keys in `translations/English.reds` (`NCZDG.helpTitle`, `helpAnd`, `helpOr`, `helpNot`,
+  `helpMix`, `helpPhrase`, `helpFields`), each carrying its own example, because the example words
+  are English and a translator has to be able to swap them. The operators themselves are not
+  translated - they are what the parser reads.
+- Section 3 of the in-game docs page, SEARCH SYNTAX; sections 3-6 renumbered to 4-7.
 - Nineteen language slots under `translations/`, all empty but English, each wired into
   `Provider.reds`. A translation replaces one slot file and ships as its own mod, so anyone can
   publish one without a release here. Empty rather than English-seeded: a package fills after the
@@ -20,6 +37,9 @@ NC Zoning Board - Core 1.1.0.
 
 ### Changed
 
+- The search hint reads `SEARCH NAME, TAG, AUTHOR - & || !`. `NCZDG_ClearLeft()` places CLEAR,
+  which the `[ i ]` shifts right by 96; both sit at absolute positions in the top strip rather
+  than in a flow, so CLEAR appearing cannot move the `[ i ]` out from under the pointer.
 - `NCZDGLog` / `NCZDGWarn` / `NCZDGError` write through `RedLog.AppendLevel` instead of stamping
   their own `[INFO ]` / `[WARN ]` / `[ERROR]` prefix into the text. The level is a tag RedLogger
   owns, so RCF 2.1.0 colours on it and its SHOWING filter selects on it. Wrapper bodies only - all

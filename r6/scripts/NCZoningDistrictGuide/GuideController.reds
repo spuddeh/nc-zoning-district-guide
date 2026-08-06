@@ -78,7 +78,7 @@ public func NCZDG_UsableHeight() -> Float {
 
 // --- the split ---------------------------------------------------------------------------
 //   +--------------------------------------------------------------+
-//   | search                                     N OF M IN <AREA>   |  top strip
+//   | search  [i] [CLEAR]                        N OF M IN <AREA>   |  top strip
 //   +-------------+------------------------------------------------+
 //   | districts   |  cards, 2 across                               |  body
 //   | (scrolls)   |  (scrolls)                                     |
@@ -101,6 +101,32 @@ public func NCZDG_NavWidth() -> Float { return 760.0; }
 public func NCZDG_NavRowHeight(isSub: Bool) -> Float { return isSub ? 54.0 : 64.0; }
 public func NCZDG_NavRowGap(isAll: Bool, isSub: Bool) -> Float { return isAll || isSub ? 0.0 : 18.0; }
 public func NCZDG_ColumnGap() -> Float { return 40.0; }
+
+// --- the search row: input, [ i ], CLEAR ---------------------------------------------------
+// Three ABSOLUTE positions in the top strip, not a flow. CLEAR is hidden until there is a query,
+// and in a flow its arrival would shove the [ i ] sideways under the pointer.
+//
+// The [ i ] is FULL 80 HIGH like the input and CLEAR, so the row reads as one band.
+public func NCZDG_SearchGap() -> Float { return 16.0; }
+public func NCZDG_HelpSize() -> Float { return 80.0; }
+public func NCZDG_HelpLeft() -> Float { return NCZDG_NavWidth() + NCZDG_SearchGap(); }
+public func NCZDG_ClearLeft() -> Float {
+  return NCZDG_HelpLeft() + NCZDG_HelpSize() + NCZDG_SearchGap();
+}
+
+// The hover panel. FIXED, because an inkCanvas does not size to its children and there is no way
+// to query a wrapped text's rendered height - so it is budgeted rather than measured: a 34px
+// title, five 30px lines and a wrapped 30px note, at ~1.2x font size per rendered line, plus the
+// padding at both ends. The slack absorbs a translated line wrapping where English does not.
+//
+// Ink cannot clip, so a line longer than the budget draws past the frame rather than being cut.
+// Every line inside carries a wrap position for that reason.
+public func NCZDG_HelpTipWidth() -> Float { return 1560.0; }
+public func NCZDG_HelpTipHeight() -> Float { return 470.0; }
+public func NCZDG_HelpTipPad() -> Float { return 26.0; }
+public func NCZDG_HelpTipWrap() -> Float {
+  return NCZDG_HelpTipWidth() - NCZDG_HelpTipPad() - NCZDG_HelpTipPad();
+}
 
 public func NCZDG_BodyHeight() -> Float {
   return NCZDG_UsableHeight() - NCZDG_TopStripHeight();
@@ -266,6 +292,8 @@ public func NCZDG_IdxClearWaypoint() -> Int32 { return -4; }
 public func NCZDG_IdxClearSearch() -> Int32 { return -5; }
 public func NCZDG_IdxCloseLightbox() -> Int32 { return -6; }
 public func NCZDG_IdxCycleFilter() -> Int32 { return -7; }
+// HOVER ONLY. The [ i ] registers no OnRelease, so this index never reaches OnProxyClick.
+public func NCZDG_IdxSearchHelp() -> Int32 { return -8; }
 
 // --- install filter -----------------------------------------------------------------------
 // Four states, cycled by one button. The guide is partly a DISCOVERY tool, so MISSING answers
@@ -380,6 +408,7 @@ public class NCZDGGuidePopup extends InGamePopup {
   private let m_content: ref<InGamePopupContent>;
   private let m_search: ref<HubTextInput>;
   private let m_searchClear: wref<inkCanvas>;   // the X beside the input; visible only with a query
+  private let m_helpTip: wref<inkCanvas>;       // the search-syntax panel; shown while [ i ] is hovered
   private let m_status: wref<inkText>;
   private let m_proxies: array<ref<NCZDGGuideProxy>>;
 
@@ -569,7 +598,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     clearBox.SetSize(new Vector2(160.0, 80.0));
     clearBox.SetAnchor(inkEAnchor.TopLeft);
     clearBox.SetAnchorPoint(new Vector2(0.0, 0.0));
-    clearBox.SetMargin(new inkMargin(NCZDG_NavWidth() + 16.0, 0.0, 0.0, 0.0));
+    clearBox.SetMargin(new inkMargin(NCZDG_ClearLeft(), 0.0, 0.0, 0.0));
     clearBox.SetInteractive(true);
     clearBox.SetVisible(false);
     clearBox.Reparent(body);
@@ -718,6 +747,10 @@ public class NCZDGGuidePopup extends InGamePopup {
     // After the filter has settled which rows are in the flow: a subdistrict below the fold is
     // otherwise selected but out of sight.
     this.ScrollNavToSelected();
+    // AFTER BOTH COLUMNS, not up in the top strip where the button belongs. Ink draws in child
+    // order with no z-index, so a hover panel built alongside the search box would open BEHIND
+    // the cards it hangs over.
+    this.BuildSearchHelp(body);
     // LAST, and onto the popup's own root widget rather than the body: ink draws in child order
     // with no z-index, so this is the only way the overlay covers the header and footer too.
     // Note `this` is an inkCustomController, NOT a widget - reach the widget explicitly.
@@ -748,6 +781,124 @@ public class NCZDGGuidePopup extends InGamePopup {
     why.SetHorizontalAlignment(textHorizontalAlignment.Center);
     why.SetWrappingAtPosition(1100.0);
     why.Reparent(box);
+  }
+
+  // --------------------------------------------------------------------------------------
+  // Search syntax help
+  // --------------------------------------------------------------------------------------
+  // A hover-only [ i ] beside the search box, and the panel it reveals. The panel is BUILT ONCE
+  // AND HIDDEN, like the lightbox and the card action strips: revealing it reflows nothing.
+  //
+  // HOVER, NOT CLICK. A click would need a second click to dismiss, and the search box is a text
+  // input the player is mid-way through typing into - taking a click to open a reference panel
+  // costs the input its focus.
+  private func BuildSearchHelp(body: ref<inkCanvas>) -> Void {
+    let helpBox = new inkCanvas();
+    helpBox.SetName(n"nczdg_search_help");
+    helpBox.SetSize(new Vector2(NCZDG_HelpSize(), NCZDG_HelpSize()));
+    helpBox.SetAnchor(inkEAnchor.TopLeft);
+    helpBox.SetAnchorPoint(new Vector2(0.0, 0.0));
+    helpBox.SetMargin(new inkMargin(NCZDG_HelpLeft(), 0.0, 0.0, 0.0));
+    helpBox.SetInteractive(true);
+    helpBox.Reparent(body);
+
+    let helpFrame = new inkImage();
+    helpFrame.SetName(n"frame");
+    helpFrame.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    helpFrame.SetTexturePart(n"cell_fg");
+    helpFrame.SetNineSliceScale(true);
+    helpFrame.SetAnchor(inkEAnchor.Fill);
+    helpFrame.SetTintColor(NCZDG_CyanColor());   // interactive: tint directly, not via a style bind
+    helpFrame.SetOpacity(0.8);
+    helpFrame.Reparent(helpBox);
+
+    // NOT A TRANSLATION KEY. A lowercase i in a box is the information glyph in every locale this
+    // mod ships a slot for, and an atlas part would have to be found, measured and hoped for.
+    let helpGlyph = this.MakeText("i", NCZDG_Cyan(), 44);
+    helpGlyph.SetFontStyle(n"Semi-Bold");
+    helpGlyph.SetHAlign(inkEHorizontalAlign.Center);
+    helpGlyph.SetVAlign(inkEVerticalAlign.Center);
+    helpGlyph.SetAnchor(inkEAnchor.Centered);
+    helpGlyph.SetAnchorPoint(new Vector2(0.5, 0.5));
+    // MakeText leaves a 24 BOTTOM margin for stacking in vertical panels, which lifts a centred
+    // glyph out of its box.
+    helpGlyph.SetMargin(new inkMargin(0.0, 0.0, 0.0, 0.0));
+    helpGlyph.Reparent(helpBox);
+
+    let helpProxy = new NCZDGGuideProxy();
+    helpProxy.popup = this;
+    helpProxy.index = NCZDG_IdxSearchHelp();
+    helpProxy.hoverFrame = helpFrame;
+    helpProxy.restOpacity = 0.8;
+    ArrayPush(this.m_proxies, helpProxy);   // the widget does not keep the proxy alive
+    // NO OnRelease: the button has nothing to do on a click, and registering one would put a
+    // dead index through OnProxyClick's dispatch chain.
+    helpBox.RegisterToCallback(n"OnEnter", helpProxy, n"OnEnter");
+    helpBox.RegisterToCallback(n"OnLeave", helpProxy, n"OnLeave");
+
+    // --- the panel -----------------------------------------------------------------------
+    // Hangs BELOW the button with the top strip's own height as the gap, so it never covers the
+    // [ i ] itself - a panel under the pointer would take the hover and close the moment it opened.
+    let tip = new inkCanvas();
+    tip.SetName(n"nczdg_search_help_tip");
+    tip.SetSize(new Vector2(NCZDG_HelpTipWidth(), NCZDG_HelpTipHeight()));
+    tip.SetAnchor(inkEAnchor.TopLeft);
+    tip.SetAnchorPoint(new Vector2(0.0, 0.0));
+    tip.SetMargin(new inkMargin(NCZDG_HelpLeft(), NCZDG_TopStripHeight(), 0.0, 0.0));
+    tip.SetVisible(false);
+    tip.Reparent(body);
+    this.m_helpTip = tip;
+
+    // SOLID, unlike the panel around it. The guide has no backdrop on purpose - the blurred world
+    // shows between the cards - but this hangs OVER the cards, and reference text has to be read.
+    let tipBg = new inkImage();
+    tipBg.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    tipBg.SetTexturePart(n"cell_bg");
+    tipBg.SetNineSliceScale(true);
+    tipBg.SetAnchor(inkEAnchor.Fill);
+    tipBg.SetTintColor(NCZDG_NavyColor());
+    tipBg.SetOpacity(0.97);
+    tipBg.Reparent(tip);
+
+    let tipFrame = new inkImage();
+    tipFrame.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
+    tipFrame.SetTexturePart(n"cell_fg");
+    tipFrame.SetNineSliceScale(true);
+    tipFrame.SetAnchor(inkEAnchor.Fill);
+    tipFrame.SetTintColor(NCZDG_CyanColor());
+    tipFrame.SetOpacity(0.9);
+    tipFrame.Reparent(tip);
+
+    let stack = new inkVerticalPanel();
+    stack.SetChildOrder(inkEChildOrder.Forward);
+    stack.SetFitToContent(true);
+    stack.SetAnchor(inkEAnchor.TopLeft);
+    stack.SetAnchorPoint(new Vector2(0.0, 0.0));
+    stack.SetMargin(new inkMargin(NCZDG_HelpTipPad(), NCZDG_HelpTipPad(),
+                                  NCZDG_HelpTipPad(), NCZDG_HelpTipPad()));
+    stack.Reparent(tip);
+
+    let title = this.MakeText(NCZDG_T("NCZDG.helpTitle"), NCZDG_Cyan(), 34);
+    title.SetFontStyle(n"Semi-Bold");
+    title.SetMargin(new inkMargin(0.0, 0.0, 0.0, 18.0));
+    title.Reparent(stack);
+
+    this.MakeHelpLine(stack, "NCZDG.helpAnd", NCZDG_White(), 12.0);
+    this.MakeHelpLine(stack, "NCZDG.helpOr", NCZDG_White(), 12.0);
+    this.MakeHelpLine(stack, "NCZDG.helpNot", NCZDG_White(), 12.0);
+    this.MakeHelpLine(stack, "NCZDG.helpMix", NCZDG_White(), 12.0);
+    this.MakeHelpLine(stack, "NCZDG.helpPhrase", NCZDG_White(), 18.0);
+    this.MakeHelpLine(stack, "NCZDG.helpFields", NCZDG_Gray(), 0.0);
+  }
+
+  // One line of the help panel. Every line wraps rather than running on, because ink cannot clip
+  // and a translated line that outgrew the box would otherwise draw across the cards beside it.
+  private func MakeHelpLine(parent: wref<inkCompoundWidget>, key: String, colour: CName,
+                            gapBelow: Float) -> Void {
+    let t = this.MakeText(NCZDG_T(key), colour, 30);
+    t.SetWrappingAtPosition(NCZDG_HelpTipWrap());
+    t.SetMargin(new inkMargin(0.0, 0.0, 0.0, gapBelow));
+    t.Reparent(parent);
   }
 
   // Every keystroke re-queries and re-binds the pool. No debounce is needed: nothing is allocated,
@@ -1910,6 +2061,14 @@ public class NCZDGGuidePopup extends InGamePopup {
   // keeps this honest anyway. On a card-to-card move the events can land in either order: OnEnter
   // first is fine (the OnLeave that follows fails the m_selCard guard), OnLeave first is fine too.
   public func OnProxyHover(index: Int32, entered: Bool) -> Void {
+    // Ahead of the card range check: the [ i ] is the one non-card widget with something to do on
+    // hover, and its index is negative, so the range check would drop it.
+    if index == NCZDG_IdxSearchHelp() {
+      if IsDefined(this.m_helpTip) {
+        this.m_helpTip.SetVisible(entered);
+      }
+      return;
+    }
     if index < NCZDG_IdxCardBase() || index >= NCZDG_IdxWaypointBase() {
       return;
     }
