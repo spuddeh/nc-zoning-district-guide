@@ -39,7 +39,8 @@ public class NCZDGConfig extends ScriptableService {
   // not a memory of the last click - cycling the filter in the guide is session-local and does
   // not write back here.
   //
-  // Has no effect without CET, which detection needs; the guide then hides the filter control.
+  // Has no effect until the core's install scan has answered; the guide hides the filter
+  // control until then.
   public let defaultInstallFilter: Int32 = 0;
 
   // Which AREA the guide opens on: the district the player is standing in (ON), or the ALL

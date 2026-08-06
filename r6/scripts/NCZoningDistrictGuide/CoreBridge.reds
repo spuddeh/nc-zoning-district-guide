@@ -27,8 +27,8 @@ import NCZoningDistrictGuide.Config.*
 public func NCZDG_RequiredApiVersion() -> Int32 { return 1; }
 
 // How long to wait for install detection before reporting [READY] without it. Only reached when
-// NCZoning-InstallScanComplete never arrives, which means no CET - a normal state, not a failure.
-// Long enough that a slow CET scan still wins the race.
+// NCZoning-InstallScanComplete never arrives, which means the core never got data - a normal
+// state, not a failure. Long enough that a slow scan still wins the race.
 public func NCZDG_ReadyFallbackDelay() -> Float { return 10.0; }
 
 // --- core presence ---------------------------------------------------------------
@@ -72,9 +72,9 @@ public func NCZDG_CoreVersion() -> String { return "absent"; }
 // There is no @if(FunctionExists). NCZoningCore 1.0.0+ is a hard floor for this mod and must
 // be stated in its requirements.
 //
-// AVAILABILITY IS A GATE, NOT A BRANCH. False means the answer is unknowable this session -
-// detection needs CET, which this mod does not require - so the filter UI is HIDDEN rather
-// than shown empty. Same rule as NCZDG_CoreUsable() vs NCZDG_HasData().
+// AVAILABILITY IS A GATE, NOT A BRANCH. False means the scan has not answered yet - so the
+// filter UI is HIDDEN rather than shown empty. Same rule as NCZDG_CoreUsable() vs
+// NCZDG_HasData().
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_InstallDetection() -> Bool {
   return NCZDG_CoreUsable() && IsInstallDetectionAvailable();
@@ -82,8 +82,9 @@ public func NCZDG_InstallDetection() -> Bool {
 @if(!ModuleExists("NCZoning.Api"))
 public func NCZDG_InstallDetection() -> Bool { return false; }
 
-// Unknown is a real answer and must render as one. It covers "no CET" and "cannot be detected
-// at all" (AMM location mods); do not render either as "not installed".
+// Unknown is a real answer and must render as one. It covers "the scan has not run" and
+// "cannot be detected at all" - an AMM mod, which ships no archive, and a mod shipping only
+// ArchiveXL .xl manifests. Do not render any of them as "not installed".
 //
 // GUARDED ARM ONLY - there is no `!ModuleExists` twin, because both the parameter and the
 // return type are core types that do not exist without the core, so a fallback arm cannot be
@@ -222,7 +223,7 @@ public class NCZDGCoreBridge extends ScriptableSystem {
   //
   // THE LINE IS DEFERRED, AND HAS TO BE. "The registry is usable" is not the same instant as
   // "the registry has finished populating", and install detection settles later still, since
-  // the CET scan that feeds it lands after Session/Ready. Written at this moment it would
+  // the scan that feeds it lands after Session/Ready. Written at this moment it would
   // report locations=0 installDetection=off on a session holding 297 locations with detection
   // working.
   private func OnCoreDataUsable(isRefresh: Bool) -> Void {
@@ -235,8 +236,9 @@ public class NCZDGCoreBridge extends ScriptableSystem {
 
   // ONE SHOT, NOT A POLL. The [READY] line needs two facts, and both announce themselves:
   // locations with NCZoning-DataReady, detection with NCZoning-InstallScanComplete. This timer
-  // covers the third case - detection that never completes, because "no CET" produces no event
-  // at all. Whichever arrives first wins; ReportReadyNow is idempotent.
+  // covers the third case - detection that never completes, because a session with no registry
+  // data never scans and so produces no event at all. Whichever arrives first wins;
+  // ReportReadyNow is idempotent.
   private func ScheduleReadyFallback() -> Void {
     let cb = new NCZDGReadyCallback();
     cb.gi = this.GetGameInstance();
@@ -259,8 +261,8 @@ public class NCZDGCoreBridge extends ScriptableSystem {
   }
 }
 
-// The fallback for a session where install detection never completes - no CET, so no scan and no
-// NCZoning-InstallScanComplete to wait for. Fires once and carries no retry state.
+// The fallback for a session where install detection never completes - no registry data, so no
+// scan and no NCZoning-InstallScanComplete to wait for. Fires once and carries no retry state.
 public class NCZDGReadyCallback extends DelayCallback {
   public let gi: GameInstance;
 

@@ -39,14 +39,13 @@ A gallery of location mods, filed by district.
 [/list]
 
 [color=#00f0ff][size=5][b]2a. THE INSTALL FILTER[/b][/size][/color]
-With [b][url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url][/b] installed, the guide marks which of these location mods you already have. One button cycles the whole list:
+The guide marks which of these location mods you already have. One button cycles the whole list:
 [list]
 [*][b]ALL[/b] - every location on file.
 [*][b]INSTALLED[/b] - only the ones already on your machine.
 [*][b]MISSING[/b] - only the ones you do not have.
-[*][b]UNKNOWN[/b] - the ones that cannot be detected either way. AMM location mods are the usual case: they ship a single file into CET's own folder, which no mod can read.
+[*][b]UNKNOWN[/b] - the ones that cannot be detected either way. AMM location mods are the usual case: they ship no archive at all. Mods that ship only ArchiveXL .xl files land here too, for the same reason - nothing can see them.
 [/list]
-[i]Without CET the filter button is hidden. Everything else works exactly as described.[/i]
 [line]
 [color=#00f0ff][size=5][b]3. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
 A waypoint only starts routing once the world map has been opened. That is the game's own behavior: only the map can adopt a script-placed pin as your tracked waypoint.
@@ -60,7 +59,7 @@ Everything is in the [b][url=https://www.nexusmods.com/cyberpunk2077/mods/30726]
 [*][b]Enable District Guide.[/b] Turns the browser on or off.
 [*][b]Open Guide Key.[/b] The key that opens it. Needs Input Loader.
 [*][b]Open Guide Modifier.[/b] An optional key to hold alongside it. Any key, not just Shift, Alt or Ctrl. Leave unset for none.
-[*][b]Open Guide Showing.[/b] Which locations the guide lists when it opens. Needs [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url] installed - the Core detects your installed mods through it.
+[*][b]Open Guide Showing.[/b] Which locations the guide lists when it opens.
 [*][b]Open on Your District.[/b] The guide opens on the district you are standing in. Off opens it on ALL LOCATIONS.
 [*][b]Open the Map on Show.[/b] SHOW ON MAP opens the world map and centers it on the waypoint. Off places the waypoint and leaves you in the guide.
 [*][b]Track the Waypoint.[/b] Routes to the waypoint straight away. This replaces a custom waypoint you have placed; your tracked quest is a separate slot and is left alone.
@@ -89,10 +88,9 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 [b]Strongly recommended:[/b]
 [list]
 [*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/30726]Redscript Configuration Framework[/url][/b] - the only settings UI. Without it nothing can be rebound.
-[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url][/b] - what detects which location mods you already have.
 [*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/31941]RedIMGRetriever[/url][/b] - what fetches the card images. Without it the cards show a placeholder and everything else is unchanged.
 [/list]
-[i]The mod is whole without the three optional ones. Each removes a feature, not the mod.[/i]
+[i]The mod is whole without the optional ones. Each removes a feature, not the mod.[/i]
 [line]
 [color=#00f0ff][size=5][b]6. INSTALLATION[/b][/size][/color]
 [list=1]

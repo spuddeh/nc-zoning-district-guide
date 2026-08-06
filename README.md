@@ -48,11 +48,10 @@ Optional:
 - [RedIMGRetriever](https://www.nexusmods.com/cyberpunk2077/mods/31941) by DigitalVixen - shows
   each location's screenshot on its card, and the full-size image when you click it. Without it
   the guide simply has no images; nothing else changes.
-- **Cyber Engine Tweaks** - lets the guide mark which location mods you already have, and filter
-  the list to installed or missing. Without it the filter button is hidden and no card is marked.
-
-  A handful of location mods are **AMM** mods, whose files live in CET's own sandboxed folder and
-  cannot be detected by anything. Those read as UNKNOWN rather than as missing.
+Installed-mod marking comes from the Core and needs nothing extra here. Some location mods
+cannot be checked and read as **UNKNOWN** rather than as missing: **AMM** mods, which ship no
+archive at all, and mods that ship only ArchiveXL `.xl` files, which are manifests rather than
+archives. Nothing can detect either.
 
 Without RCF the mod still runs, but on its defaults only: the guide opens with the
 apostrophe key, there is no modifier, and **nothing can be rebound.** RCF also pulls in

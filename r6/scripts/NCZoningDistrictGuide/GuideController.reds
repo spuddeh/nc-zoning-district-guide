@@ -647,9 +647,9 @@ public class NCZDGGuidePopup extends InGamePopup {
     // Placed as a sibling ABOVE the nav scroll rather than as its first row, or it would scroll
     // away with the districts.
     //
-    // Its visibility is a GATE, not a preference: without CET nothing is detectable, so the
-    // control is hidden. Refresh() re-applies that, because the scan completes on session ready
-    // and the guide may be built either side of it.
+    // Its visibility is a GATE, not a preference: until the scan has answered nothing is
+    // known, so the control is hidden. Refresh() re-applies that, because the scan completes
+    // on session ready and the guide may be built either side of it.
     let filterBox = new inkCanvas();
     filterBox.SetName(n"nczdg_filter");
     filterBox.SetSize(new Vector2(NCZDG_NavWidth() - NCZDG_ScrollBarStrip(), NCZDG_NavFilterHeight()));

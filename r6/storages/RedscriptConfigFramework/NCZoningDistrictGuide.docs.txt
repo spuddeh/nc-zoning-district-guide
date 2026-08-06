@@ -22,7 +22,7 @@ Each can be switched off on its own. With all four off, the game behaves exactly
 [*][b]TELEPORT[/b] takes you there. Not available while you are in a vehicle - get out first.
 [*][b]Click a card's image[/b] for the full-size photograph. Click anywhere to close it.
 [*][b]Green "RECENTLY UPDATED"[/b] on a card image marks locations changed lately. They sort to the front.
-[*][b]Cyan "INSTALLED"[/b] on a card image marks the ones you already have. It appears while SHOWING: ALL, and needs Cyber Engine Tweaks.
+[*][b]Cyan "INSTALLED"[/b] on a card image marks the ones you already have. It appears while SHOWING: ALL.
 [line]
 [color=#00f0ff][size=5][b]3. SEARCH SYNTAX[/b][/size][/color]
 The search box uses the same operators as World Builder, so if you already search there, you already know this. One difference: here an exclusion on its own is a search, so [b]!corpo[/b] lists everything except corpo. Hover the [b]i[/b] beside the box for this list in game.
@@ -47,7 +47,7 @@ All of them are in this hub, under NC Zoning Board - District Guide.
 [*][b]Enable District Guide.[/b] Turns the browser on or off.
 [*][b]Open Guide Key.[/b] The key that opens it. Needs Input Loader.
 [*][b]Open Guide Modifier.[/b] An optional key to hold alongside it. Any key, not just Shift, Alt or Ctrl. Leave unset for none.
-[*][b]Open Guide Showing.[/b] Which locations the guide lists when it opens. You can still switch inside the guide. Needs Cyber Engine Tweaks.
+[*][b]Open Guide Showing.[/b] Which locations the guide lists when it opens. You can still switch inside the guide.
 [*][b]Open on Your District.[/b] The guide opens on the district you are standing in. Off opens it on ALL LOCATIONS, as does being off the map.
 [*][b]Open the Map on Show.[/b] SHOW ON MAP opens the world map and centers it on the waypoint. Off places the waypoint and leaves you in the guide.
 [*][b]Track the Waypoint.[/b] Routes to the waypoint straight away. This replaces a custom waypoint you have placed; your tracked quest is a separate slot and is left alone.
@@ -61,13 +61,12 @@ All of them are in this hub, under NC Zoning Board - District Guide.
 [*][b]Show on Fast Travel.[/b] The arrival panel after a fast travel. Off leaves fast travel entirely to the game.
 [line]
 [color=#00f0ff][size=5][b]5. THE INSTALL FILTER[/b][/size][/color]
-With Cyber Engine Tweaks installed, the guide marks which of these location mods you already have, and one button cycles the list:
+The guide marks which of these location mods you already have, and one button cycles the list:
 [*][b]ALL[/b] - every location on file.
 [*][b]INSTALLED[/b] - only the ones already on your machine.
 [*][b]MISSING[/b] - only the ones you do not have.
-[*][b]UNKNOWN[/b] - the ones that cannot be detected either way. AMM location mods are the usual case: they ship a single file into CET's own folder, which no mod can read.
+[*][b]UNKNOWN[/b] - the ones that cannot be detected either way. AMM location mods are the usual case: they ship no archive at all. Mods that ship only ArchiveXL .xl files land here too, for the same reason - nothing can see them.
 
-[color=#ffb300]Without Cyber Engine Tweaks the filter button is hidden.[/color] Everything else is unchanged.
 [line]
 [color=#00f0ff][size=5][b]6. A KNOWN LIMIT OF THE ROAD NETWORK[/b][/size][/color]
 A waypoint only starts routing once the world map has been opened. The guide does that for you, so you will not normally meet this.
