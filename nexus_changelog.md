@@ -5,6 +5,14 @@ mod. The full technical detail lives in `@changelog.md`.
 
 ### [Unreleased - v1.1.0]
 
+- Changed: Cyber Engine Tweaks is no longer needed to mark which location mods you have. The Core
+  does that itself now, so the filter is always available. If you installed CET only for this, you
+  no longer need it.
+- Fix: The green "recently updated" flag is worked out against the real date on your machine. Play
+  offline, or on a cached copy of the registry, and it no longer keeps flagging mods weeks after
+  they stopped being recent.
+- Fix: A location mod that ships only ArchiveXL files shows under UNKNOWN rather than MISSING.
+  Nothing can detect those files, so calling them missing pointed you at mods you may already have.
 - New: The guide's search box takes expressions, using the same operators as World Builder.
   `watson&apartment` needs both, `watson|pacifica` takes either, `apartment!corpo` drops anything
   corpo, and `!corpo` on its own lists everything except corpo. Type a plain word with no operator
@@ -46,10 +54,13 @@ carry no `-`, no markdown and no version heading: a wrapped line arrives as two 
 dash arrives inside the bullet, and the version is sent in its own field.
 
 ```text
-The guide's search box now takes & | and !, the same operators as World Builder, with an i beside it for the syntax. Adds an RCF 2.1.0 mod card and translation slots for 19 languages. RedLogger 1.3.0 or newer is now required.
+Cyber Engine Tweaks is no longer needed - the Core detects installed mods itself. The search box now takes & | and !, the same operators as World Builder, with an i beside it for the syntax. "Recently updated" is now worked out on your machine.
 
 <!-- nexus-description-end -->
 
+Changed: Cyber Engine Tweaks is no longer needed to mark which location mods you have. The Core does that itself now, so the filter is always available. If you installed CET only for this, you no longer need it.
+Fix: The green "recently updated" flag is worked out against the real date on your machine. Play offline, or on a cached copy of the registry, and it no longer keeps flagging mods weeks after they stopped being recent.
+Fix: A location mod that ships only ArchiveXL files shows under UNKNOWN rather than MISSING. Nothing can detect those files, so calling them missing pointed you at mods you may already have.
 New: The guide's search box takes expressions, using the same operators as World Builder. watson&apartment needs both, watson|pacifica takes either, apartment!corpo drops anything corpo, and !corpo on its own lists everything except corpo. Type a plain word with no operator and the whole line is searched as you typed it, so anything you searched for before means the same thing.
 New: An i beside the search box. Hover it for the syntax, without leaving the guide.
 New: The in-game documentation page has a SEARCH SYNTAX section, in RCF's hub under DOCS.
@@ -59,7 +70,7 @@ Changed: Log lines now carry a level, so RCF 2.1.0's log viewer shows errors in 
 Changed: RedLogger 1.3.0 or newer is now required. RCF 2.1.0 calls RedLogger functions older builds do not have, and the two together stop every redscript mod on your machine from loading.
 ```
 
-> File description: 225 / 255 characters.
+> File description: 244 / 255 characters.
 
 ---
 
@@ -69,7 +80,10 @@ Changed: RedLogger 1.3.0 or newer is now required. RCF 2.1.0 calls RedLogger fun
 [color=#00f0ff][size=5][b]- Changes -[/b][/size][/color]
 
 [b][size=3]Version 1.1.0[/size][/b]
-[list][*]New: The search box takes expressions - the same & | and ! operators as World Builder.
+[list][*]Changed: Cyber Engine Tweaks is no longer needed - the Core detects installed mods itself.
+[*]Fix: "Recently updated" is worked out on your machine, so a cached registry stops flagging mods forever.
+[*]Fix: A mod shipping only ArchiveXL files shows under UNKNOWN rather than MISSING.
+[*]New: The search box takes expressions - the same & | and ! operators as World Builder.
 [*]New: An i beside the search box, hover it for the syntax.
 [*]New: A SEARCH SYNTAX section on the in-game documentation page.
 [*]New: A mod card for the Redscript Configuration Framework 2.1.0.
@@ -82,4 +96,4 @@ Changed: RedLogger 1.3.0 or newer is now required. RCF 2.1.0 calls RedLogger fun
 [/list][/spoiler]
 ```
 
-> Character count: 488 / 5000
+> Character count: 993 / 5000

@@ -7,6 +7,23 @@ This project uses [semantic versioning](https://semver.org/).
 
 Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
 
+### Changed
+
+- Install marking and the install filter no longer depend on Cyber Engine Tweaks. Core 1.1.0 detects
+  in redscript over `RedFunc.ArchiveExists`, so the capability arrives through the Core and CET
+  leaves this mod's requirements. **RedFunctions is not added to them either** - it reaches here
+  through the Core, and a requirement list names direct dependencies only.
+- The recency badge and the map panel's "N recently updated" count answer from a real clock. No call
+  site changed: `NCZLocation.RecentlyUpdated()` is the same method, and the Core recomputes it
+  against `RedFunc.RealTimestamp()` at every store swap. A cache read weeks later now answers for
+  today rather than for the day it was written.
+- `UNKNOWN` gains a second permanent case beside AMM: a location mod shipping only ArchiveXL `.xl`
+  files. An `.xl` is a manifest rather than a mounted archive, so no archive query can see one.
+  Stated in the README, the Nexus description and the in-game docs page.
+- Eight source comments describing the removed CET scan rewritten - `CoreBridge.reds` (the ready
+  fallback, the availability gate, the Unknown cases, the deferred `[READY]` line),
+  `GuideController.reds` (the filter's visibility gate), `Config.reds` and `MapPanelInject.reds`.
+
 ### Added
 
 - Search expressions in the guide: `&`, `|` and `!`, matching **World Builder's grammar term for
