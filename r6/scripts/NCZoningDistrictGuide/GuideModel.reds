@@ -213,127 +213,130 @@ public class NCZDGGuideModel {
 // --------------------------------------------------------------------------------------
 // The search expression
 // --------------------------------------------------------------------------------------
-// The grammar is an OR of AND-GROUPS, one level deep, with no brackets:
+// WORLD BUILDER'S GRAMMAR, TERM FOR TERM - `_source/CP77_entSpawner`, `modules/utils/utils.lua`,
+// `miscUtils.matchSearch`. It is the search a Cyberpunk modder has already learnt, so it is the
+// one this box speaks. Match it exactly rather than improving on it: two search boxes in the same
+// hobby that ALMOST agree is worse than either convention on its own.
 //
-//   watson & interior || pacifica & !wip
-//   -> (watson AND interior) OR (pacifica AND NOT wip)
+// FLAT: NO PRECEDENCE, NO BRACKETS. The query is scanned left to right. Each operator ends the
+// current word and governs the NEXT one; the first word is governed by `|`.
 //
-// A SPACE IS PART OF A TERM, not an operator, so "night city" searches that phrase. A space that
-// meant AND would take phrase search away entirely: there would be nothing left to express it with.
+//   watson&apartment!corpo   ->   `watson` OR-word, `apartment` AND-word, `corpo` NOT-word
 //
-// `&&` and a single `|` are accepted alongside `&` and `||`. Neither character means anything as
-// a literal in a mod name, description or tag, so there is nothing to lose by accepting both
-// spellings, and typing `a || b` passes through `a | b` on the way.
+// and the answer is
+//
+//   (some OR word matched) AND (every AND word matched) AND (no NOT word matched)
+//
+// TWO CONSEQUENCES, both World Builder's and neither of them accidental:
+//
+//   - A QUERY WITH NO PLAIN WORD MATCHES NOTHING. `!corpo` alone never sets the OR flag, so it
+//     returns an empty list rather than everything-except-corpo. An exclusion narrows a search
+//     and cannot be one.
+//   - SPACES BELONG TO THE WORD. `watson & apartment` searches for `watson ` and ` apartment`,
+//     spaces included, and those are different searches: `watson ` is in 6 records where `watson`
+//     is in 85. The operators are written tight, and the help panel says so.
+//
+// The whole query is tested as a plain substring FIRST, which is what keeps a phrase searchable
+// (`night city`) and lets a name that really contains an operator character find itself.
+//
+// The scan is hoisted out of the per-location loop - World Builder re-walks the query string for
+// every item, and the answer does not depend on the item. Same terms, same order, same result.
 // --------------------------------------------------------------------------------------
+public func NCZDG_OpOr() -> Int32 { return 0; }
+public func NCZDG_OpAnd() -> Int32 { return 1; }
+public func NCZDG_OpNot() -> Int32 { return 2; }
 
-// One term: a substring to look for, and whether finding it should EXCLUDE the location.
-// The text is already lowercased and trimmed, and is never empty.
+// One word of the query, and the operator that governs it. Lowercased, never empty, and NOT
+// trimmed - a space the player typed is part of what they asked for.
 public class NCZDGQueryTerm {
   public let text: String;
-  public let negated: Bool;
+  public let op: Int32;
 }
 
-// One AND-group. Every term must pass.
 @if(ModuleExists("NCZoning.Api"))
-public class NCZDGQueryGroup {
-  public let terms: array<ref<NCZDGQueryTerm>>;
+public class NCZDGQuery {
+  public let raw: String;                        // the whole lowercased query, for the plain test
+  public let terms: array<ref<NCZDGQueryTerm>>;  // in the order they were typed
 
   public func Matches(loc: ref<NCZLocation>) -> Bool {
+    if StrLen(this.raw) == 0 {
+      return true;
+    }
+    if NCZDG_Matches(loc, this.raw) {
+      return true;
+    }
+    // IN ORDER, AND BAILING EARLY, matching World Builder: an AND word that misses or a NOT word
+    // that hits ends the test before any later word is looked at.
+    let anyMatch = false;
     let i = 0;
     while i < ArraySize(this.terms) {
       let t = this.terms[i];
-      let found = NCZDG_Matches(loc, t.text);
-      if t.negated {
-        if found {
+      if t.op == NCZDG_OpAnd() {
+        if !NCZDG_Matches(loc, t.text) {
           return false;
         }
       } else {
-        if !found {
-          return false;
+        if t.op == NCZDG_OpNot() {
+          if NCZDG_Matches(loc, t.text) {
+            return false;
+          }
+        } else {
+          if !anyMatch && NCZDG_Matches(loc, t.text) {
+            anyMatch = true;
+          }
         }
       }
       i += 1;
     }
-    return true;
+    return anyMatch;
   }
 }
 
-// The whole expression. No group means no filter - which is the empty box, and also every
-// half-typed state on the way to a real query.
-@if(ModuleExists("NCZoning.Api"))
-public class NCZDGQuery {
-  public let groups: array<ref<NCZDGQueryGroup>>;
-
-  public func Matches(loc: ref<NCZLocation>) -> Bool {
-    if ArraySize(this.groups) == 0 {
-      return true;
-    }
-    let g = 0;
-    while g < ArraySize(this.groups) {
-      if this.groups[g].Matches(loc) {
-        return true;
-      }
-      g += 1;
-    }
-    return false;
-  }
-}
-
-// Splits on `|` first and `&` second, which is what makes `&` bind tighter than `||`.
+// One left-to-right pass, character by character. StrSplit cannot do this: the three operators
+// have to be read in the order they appear, and each one governs the word that follows it.
 //
-// AN EMPTY TERM IS DROPPED, NOT TREATED AS A FILTER. `watson &` has an empty second term for as
-// long as it takes to type the next character, and failing it there would blank the card list on
-// every keystroke that opens a new term.
+// AN EMPTY WORD IS DROPPED, which has two effects worth relying on: `||` and `&&` behave as
+// single operators, and the card list holds steady while `watson&` waits for its next character.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_ParseQuery(raw: String) -> ref<NCZDGQuery> {
   let q = new NCZDGQuery();
-  let norm = StrReplaceAll(StrLower(raw), "||", "|");
-  norm = StrReplaceAll(norm, "&&", "&");
+  q.raw = StrLower(raw);
 
-  let chunks = StrSplit(norm, "|");   // bind before ArraySize: rvalue-array bug
-  let c = 0;
-  while c < ArraySize(chunks) {
-    let group = new NCZDGQueryGroup();
-    let parts = StrSplit(chunks[c], "&");
-    let p = 0;
-    while p < ArraySize(parts) {
-      let term = NCZDG_TrimSpaces(parts[p]);
-      let negated = StrBeginsWith(term, "!");
-      if negated {
-        // StrAfterFirst rather than an index cut: it drops the `!` without counting characters,
-        // so a multi-byte term after it survives intact.
-        term = NCZDG_TrimSpaces(StrAfterFirst(term, "!"));
-      }
-      if StrLen(term) > 0 {
+  let word = "";
+  let op = NCZDG_OpOr();   // the first word is a plain word
+  let n = StrLen(q.raw);
+  let i = 0;
+  // ONE PAST THE END, where the pending word is flushed under the operator it is already under.
+  while i <= n {
+    let atEnd = i >= n;
+    let ch = atEnd ? "" : StrMid(q.raw, i, 1);
+    let isOp = atEnd
+      || UnicodeStringEqual(ch, "|")
+      || UnicodeStringEqual(ch, "&")
+      || UnicodeStringEqual(ch, "!");
+    if isOp {
+      if StrLen(word) > 0 {
         let t = new NCZDGQueryTerm();
-        t.text = term;
-        t.negated = negated;
-        ArrayPush(group.terms, t);
+        t.text = word;
+        t.op = op;
+        ArrayPush(q.terms, t);
       }
-      p += 1;
+      word = "";
+      if UnicodeStringEqual(ch, "&") {
+        op = NCZDG_OpAnd();
+      }
+      if UnicodeStringEqual(ch, "!") {
+        op = NCZDG_OpNot();
+      }
+      if UnicodeStringEqual(ch, "|") {
+        op = NCZDG_OpOr();
+      }
+    } else {
+      word = word + ch;
     }
-    if ArraySize(group.terms) > 0 {
-      ArrayPush(q.groups, group);
-    }
-    c += 1;
+    i += 1;
   }
   return q;
-}
-
-// redscript has no trim. Spaces only: the string comes from a text input, so a tab or a newline
-// cannot reach it.
-//
-// Trimming is what lets `watson & interior` be typed the way it reads. Without it the second term
-// is " interior", and a leading space matches almost nothing.
-public func NCZDG_TrimSpaces(s: String) -> String {
-  let out = s;
-  while StrLen(out) > 0 && StrBeginsWith(out, " ") {
-    out = StrAfterFirst(out, " ");
-  }
-  while StrLen(out) > 0 && StrEndsWith(out, " ") {
-    out = StrBeforeLast(out, " ");
-  }
-  return out;
 }
 
 // Every text field, case-insensitive. This is ONE TERM's test, not the whole expression - the

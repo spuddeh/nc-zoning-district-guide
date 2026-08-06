@@ -59,6 +59,14 @@ public func NCZDG_CardBgColor() -> Color {
   return new Color(Cast<Uint8>(17u), Cast<Uint8>(34u), Cast<Uint8>(64u), Cast<Uint8>(255u));
 }
 
+// For chrome that hangs OVER the cards and has to be read against whatever is behind it. The
+// panel's own surfaces stay on NCZDG_NavyColor; this is Corporate Navy taken most of the way to
+// black, and it is used at full opacity - a thumbnail showing through reference text is the
+// failure this exists to prevent.
+public func NCZDG_OverlayBgColor() -> Color {
+  return new Color(Cast<Uint8>(4u), Cast<Uint8>(9u), Cast<Uint8>(18u), Cast<Uint8>(255u));
+}
+
 public func NCZDG_TextColor() -> Color {
   return new Color(Cast<Uint8>(230u), Cast<Uint8>(241u), Cast<Uint8>(255u), Cast<Uint8>(255u));
 }

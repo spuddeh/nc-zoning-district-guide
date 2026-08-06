@@ -9,23 +9,38 @@ Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
 
 ### Added
 
-- Search expressions in the guide: `&` (and), `||` (or) and a leading `!` (exclude), parsed in
-  `GuideModel.reds` as an OR of AND-groups one level deep, with no brackets.
-  `NCZDG_ParseQuery` splits on `|` then `&`, so `&` binds tighter; `NCZDGQuery.Matches` composes
-  the per-term test `NCZDG_Matches` was already doing. `&&` and a single `|` are accepted as
-  well. A SPACE STAYS PART OF THE TERM, so a phrase is still searchable and every query that
-  worked against 1.0.0 means the same thing. An empty term is dropped rather than failed, which
-  is what keeps the card list steady while `watson &` is half-typed. Parsed once per `Query()`
-  call, not once per location.
-- An `[ i ]` beside the search box, hover-only, revealing a panel of the six syntax lines
+- Search expressions in the guide: `&`, `|` and `!`, matching **World Builder's grammar term for
+  term** (`_source/CP77_entSpawner`, `modules/utils/utils.lua`, `miscUtils.matchSearch`). Flat,
+  no precedence, no brackets: the query is scanned left to right, each operator governs the word
+  that FOLLOWS it, and the first word is governed by `|`. The answer is
+  `(some | word matched) AND (every & word matched) AND (no ! word matched)`.
+  `NCZDG_ParseQuery` walks the string character by character - `StrSplit` cannot express it,
+  because the operators have to be read in the order they appear. The whole query is tested as a
+  plain substring first, which is what keeps a phrase searchable.
+  - Two World Builder behaviours carried over deliberately: a query with **no plain word matches
+    nothing** (`!corpo` never sets the OR flag), and **spaces belong to the word** - spaced out,
+    `watson & apartment` searches for watson-with-a-trailing-space and space-with-apartment, which
+    hit 6 and 103 records against the 85 and 156 the tight spelling hits. Both are stated in the
+    help panel, in amber.
+  - Hoisted out of the per-location loop: World Builder re-walks the query string for every item
+    and the answer does not depend on the item. Same terms, same order, same result.
+- An `[ i ]` beside the search box, hover-only, revealing the syntax panel
   (`GuideController.reds` `BuildSearchHelp`). Built once and hidden, and parented AFTER both
   columns - ink draws in child order, so a panel built up in the top strip would open behind the
   cards it hangs over. No `OnRelease` is registered: a click would cost the text input its focus,
   and the index would then need an arm in `OnProxyClick`'s dispatch chain.
-- Seven keys in `translations/English.reds` (`NCZDG.helpTitle`, `helpAnd`, `helpOr`, `helpNot`,
-  `helpMix`, `helpPhrase`, `helpFields`), each carrying its own example, because the example words
-  are English and a translator has to be able to swap them. The operators themselves are not
-  translated - they are what the parser reads.
+  - **The panel sizes itself.** `SetFitToContent` is declared on `inkWidget`, not on
+    `inkCompoundWidget`, so an `inkCanvas` has it too - the panel needs no budgeted width or
+    height, the backing and frame anchor `Fill` inside the fitted canvas, and no line carries a
+    wrap position, because a wrapped text has a fixed width and a fixed-width child is what stops
+    a fitted parent following its content.
+  - `NCZDG_OverlayBgColor()` (#040912) at full opacity, not the panel navy at 0.97. The panel
+    hangs over the cards and reference text cannot be read against a thumbnail.
+- Nine keys in `translations/English.reds` (`NCZDG.helpTitle`, `helpAnd`, `helpOr`, `helpNot`,
+  `helpMix`, `helpPhrase`, `helpNeedWord`, `helpSpaces`, `helpFields`), each carrying its own
+  example, because the example words are English and a translator has to be able to swap them.
+  Every example word is in the registry - `watson` 85 records, `apartment` 156, `pacifica` 14,
+  `corpo` 38 - so each line demonstrates itself when typed. The operators are not translated.
 - Section 3 of the in-game docs page, SEARCH SYNTAX; sections 3-6 renumbered to 4-7.
 - Nineteen language slots under `translations/`, all empty but English, each wired into
   `Provider.reds`. A translation replaces one slot file and ships as its own mod, so anyone can
@@ -37,7 +52,7 @@ Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
 
 ### Changed
 
-- The search hint reads `SEARCH NAME, TAG, AUTHOR - & || !`. `NCZDG_ClearLeft()` places CLEAR,
+- The search hint reads `SEARCH NAME, TAG, AUTHOR - & | !`. `NCZDG_ClearLeft()` places CLEAR,
   which the `[ i ]` shifts right by 96; both sit at absolute positions in the top strip rather
   than in a flow, so CLEAR appearing cannot move the `[ i ]` out from under the pointer.
 - `NCZDGLog` / `NCZDGWarn` / `NCZDGError` write through `RedLog.AppendLevel` instead of stamping

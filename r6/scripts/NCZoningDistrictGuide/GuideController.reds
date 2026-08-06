@@ -114,19 +114,22 @@ public func NCZDG_ClearLeft() -> Float {
   return NCZDG_HelpLeft() + NCZDG_HelpSize() + NCZDG_SearchGap();
 }
 
-// The hover panel. FIXED, because an inkCanvas does not size to its children and there is no way
-// to query a wrapped text's rendered height - so it is budgeted rather than measured: a 34px
-// title, five 30px lines and a wrapped 30px note, at ~1.2x font size per rendered line, plus the
-// padding at both ends. The slack absorbs a translated line wrapping where English does not.
+// The hover panel SIZES ITSELF. `SetFitToContent` is declared on `inkWidget`, not on
+// `inkCompoundWidget` - EVERY widget has it, an inkCanvas included - so the panel does not need a
+// budgeted width and height at all. The longest line sets the width and the stack sets the height,
+// which is what keeps a translated line from deciding whether the box still fits.
 //
-// Ink cannot clip, so a line longer than the budget draws past the frame rather than being cut.
-// Every line inside carries a wrap position for that reason.
-public func NCZDG_HelpTipWidth() -> Float { return 1560.0; }
-public func NCZDG_HelpTipHeight() -> Float { return 470.0; }
+// The backing and the frame are anchored Fill INSIDE that fitted canvas, so they take their size
+// from the text rather than the text being cut to them. A Fill child has no size of its own and
+// so does not feed the fit; the padded stack is the only thing that does.
+//
+// So there is no wrap position anywhere in the panel. Wrapping a line would fix its width, and a
+// fixed-width child is exactly what stops a fitted parent from following its content.
+//
+// THE ONE BOUND LEFT: the panel starts at NCZDG_HelpLeft() and the body is NCZDG_UsableWidth()
+// wide, so a line wider than the difference runs off the popup - ink cannot clip. English's
+// longest line is ~1150 units against ~1870 available.
 public func NCZDG_HelpTipPad() -> Float { return 26.0; }
-public func NCZDG_HelpTipWrap() -> Float {
-  return NCZDG_HelpTipWidth() - NCZDG_HelpTipPad() - NCZDG_HelpTipPad();
-}
 
 public func NCZDG_BodyHeight() -> Float {
   return NCZDG_UsableHeight() - NCZDG_TopStripHeight();
@@ -841,7 +844,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     // [ i ] itself - a panel under the pointer would take the hover and close the moment it opened.
     let tip = new inkCanvas();
     tip.SetName(n"nczdg_search_help_tip");
-    tip.SetSize(new Vector2(NCZDG_HelpTipWidth(), NCZDG_HelpTipHeight()));
+    tip.SetFitToContent(true);   // no SetSize: the stack below is what decides how big this is
     tip.SetAnchor(inkEAnchor.TopLeft);
     tip.SetAnchorPoint(new Vector2(0.0, 0.0));
     tip.SetMargin(new inkMargin(NCZDG_HelpLeft(), NCZDG_TopStripHeight(), 0.0, 0.0));
@@ -850,14 +853,15 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.m_helpTip = tip;
 
     // SOLID, unlike the panel around it. The guide has no backdrop on purpose - the blurred world
-    // shows between the cards - but this hangs OVER the cards, and reference text has to be read.
+    // shows between the cards - but this hangs OVER the cards, and reference text cannot be read
+    // against a thumbnail. Full opacity on the darkest colour the brand has, not the panel navy.
     let tipBg = new inkImage();
     tipBg.SetAtlasResource(r"base\\gameplay\\gui\\common\\shapes\\atlas_shapes_sync.inkatlas");
     tipBg.SetTexturePart(n"cell_bg");
     tipBg.SetNineSliceScale(true);
     tipBg.SetAnchor(inkEAnchor.Fill);
-    tipBg.SetTintColor(NCZDG_NavyColor());
-    tipBg.SetOpacity(0.97);
+    tipBg.SetTintColor(NCZDG_OverlayBgColor());
+    tipBg.SetOpacity(1.0);
     tipBg.Reparent(tip);
 
     let tipFrame = new inkImage();
@@ -887,16 +891,19 @@ public class NCZDGGuidePopup extends InGamePopup {
     this.MakeHelpLine(stack, "NCZDG.helpOr", NCZDG_White(), 12.0);
     this.MakeHelpLine(stack, "NCZDG.helpNot", NCZDG_White(), 12.0);
     this.MakeHelpLine(stack, "NCZDG.helpMix", NCZDG_White(), 12.0);
-    this.MakeHelpLine(stack, "NCZDG.helpPhrase", NCZDG_White(), 18.0);
+    this.MakeHelpLine(stack, "NCZDG.helpPhrase", NCZDG_White(), 22.0);
+    // The two rules a reader only meets by being caught out by them, so they are stated rather
+    // than left to be discovered: an exclusion cannot be a whole query, and a space is a character.
+    this.MakeHelpLine(stack, "NCZDG.helpNeedWord", NCZDG_Amber(), 12.0);
+    this.MakeHelpLine(stack, "NCZDG.helpSpaces", NCZDG_Amber(), 22.0);
     this.MakeHelpLine(stack, "NCZDG.helpFields", NCZDG_Gray(), 0.0);
   }
 
-  // One line of the help panel. Every line wraps rather than running on, because ink cannot clip
-  // and a translated line that outgrew the box would otherwise draw across the cards beside it.
+  // One line of the help panel. NO WRAP POSITION: a wrapped text has a fixed width, and a
+  // fixed-width child is what would stop the fitted panel above from following its content.
   private func MakeHelpLine(parent: wref<inkCompoundWidget>, key: String, colour: CName,
                             gapBelow: Float) -> Void {
     let t = this.MakeText(NCZDG_T(key), colour, 30);
-    t.SetWrappingAtPosition(NCZDG_HelpTipWrap());
     t.SetMargin(new inkMargin(0.0, 0.0, 0.0, gapBelow));
     t.Reparent(parent);
   }

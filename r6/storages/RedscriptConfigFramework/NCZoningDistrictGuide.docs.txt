@@ -17,7 +17,7 @@ Each can be switched off on its own. With all four off, the game behaves exactly
 [color=#00f0ff][size=5][b]2. USING THE GUIDE[/b][/size][/color]
 [*][b]Open it[/b] with the key set under District Guide. The default is the apostrophe.
 [*][b]Browse[/b] by district and subdistrict. It opens on wherever you are standing.
-[*][b]Search[/b] by name, author or tag, with & || and ! - see section 3.
+[*][b]Search[/b] by name, author or tag, with & | and ! - see section 3.
 [*][b]SHOW ON MAP[/b] drops a waypoint on the location, opens the world map on it and starts routing. The same button reads CLEAR WAYPOINT once one is set.
 [*][b]TELEPORT[/b] takes you there. Not available while you are in a vehicle - get out first.
 [*][b]Click a card's image[/b] for the full-size photograph. Click anywhere to close it.
@@ -25,14 +25,18 @@ Each can be switched off on its own. With all four off, the game behaves exactly
 [*][b]Cyan "INSTALLED"[/b] on a card image marks the ones you already have. It appears while SHOWING: ALL, and needs Cyber Engine Tweaks.
 [line]
 [color=#00f0ff][size=5][b]3. SEARCH SYNTAX[/b][/size][/color]
-The search box takes more than one word. Hover the [b]i[/b] beside it for this list in game.
-[*][b]watson & interior[/b] - both must match.
-[*][b]watson || pacifica[/b] - either may match.
-[*][b]!wip[/b] - hide everything that matches.
-[*][b]watson & !wip || pacifica[/b] - reads as (watson and not wip) or (pacifica).
-[*][b]night city[/b] - a space belongs to the phrase, so this is not two terms.
+The search box uses the same operators as World Builder, so if you already search there, you already know this. Hover the [b]i[/b] beside the box for the same list in game.
+[*][b]watson&apartment[/b] - both must match.
+[*][b]watson|pacifica[/b] - either may match.
+[*][b]apartment!corpo[/b] - apartments, minus anything corpo.
+[*][b]watson|pacifica&apartment[/b] - either district, and an apartment.
+[*][b]night city[/b] - with no operator, the whole line is searched as typed.
 
-Every term is matched against the name, description, category, district, tags and authors. [b]&&[/b] and a single [b]|[/b] work as well.
+[color=#ffb300]Start with a plain word.[/color] [b]!corpo[/b] on its own finds nothing - an exclusion narrows a search rather than being one.
+
+[color=#ffb300]Write the operators tight.[/color] [b]watson & apartment[/b] looks for "watson " and " apartment", spaces and all.
+
+Every word is matched against the name, description, category, district, tags and authors. There is no bracketing: plain words are pooled, every [b]&[/b] word must match, and no [b]![/b] word may.
 [line]
 [color=#00f0ff][size=5][b]4. SETTINGS[/b][/size][/color]
 All of them are in this hub, under NC Zoning Board - District Guide.
