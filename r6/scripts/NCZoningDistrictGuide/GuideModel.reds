@@ -17,7 +17,7 @@
 //              to a district directly, inside no subdistrict (Badlands has 3). Counts therefore come
 //              from one pass over GetAllLocations(), bucketed by District()/Subdistrict() - never
 //              from 40 separate GetLocationsByDistrict calls.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
 

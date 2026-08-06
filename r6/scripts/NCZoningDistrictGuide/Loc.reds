@@ -21,7 +21,7 @@
 //
 //              A MISSING KEY RENDERS AS THE KEY. Returning "" would draw an empty widget,
 //              which reads as a layout bug; "NCZDG.btnTeleport" on a button names the fault.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: psiberx (Codeware)
 // ======================================================================================
 

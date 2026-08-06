@@ -31,7 +31,7 @@
 //              on the tag - errors red, warnings amber, debug dimmed - and its SHOWING filter
 //              selects on it, so a correctly levelled line is findable in a way a prefix
 //              written into the text never was. Keep a line short and self-describing.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: DigitalVixen (RedLogger)
 // ======================================================================================
 

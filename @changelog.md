@@ -3,6 +3,41 @@
 All notable changes to NC Zoning District Guide are documented here.
 This project uses [semantic versioning](https://semver.org/).
 
+## [Unreleased] - 1.1.0
+
+Prepared, not released. One further feature is still to land, and the Guide ships alongside
+NC Zoning Board - Core 1.1.0.
+
+### Added
+
+- Nineteen language slots under `translations/`, all empty but English, each wired into
+  `Provider.reds`. A translation replaces one slot file and ships as its own mod, so anyone can
+  publish one without a release here. Empty rather than English-seeded: a package fills after the
+  English fallback, so a copied string would override newer English wording.
+- `NCZoningDistrictGuide.card.json` - category, description and the Nexus header image (1300x372)
+  for RCF 2.1.0's Big UI picker. Read by `DVRCF_Cards`, which is language-blind.
+- `docs/TRANSLATING.md`.
+
+### Changed
+
+- `NCZDGLog` / `NCZDGWarn` / `NCZDGError` write through `RedLog.AppendLevel` instead of stamping
+  their own `[INFO ]` / `[WARN ]` / `[ERROR]` prefix into the text. The level is a tag RedLogger
+  owns, so RCF 2.1.0 colours on it and its SHOWING filter selects on it. Wrapper bodies only - all
+  thirty-three call sites already chose the right level. Needs RedLogger 1.2.0+.
+- RedLogger floor raised to 1.3.0 in the README and the Nexus description. Set by RCF 2.1.0 rather
+  than by this mod - `ModuleExists` reports presence and never a version, so an older RedLogger
+  beside RCF 2.1.0 fails the whole redscript compile.
+- `release.yml`: `archive_existing_version` is false. A superseded file belongs in OLD FILES, which
+  stays downloadable; archived does not.
+- Vault wikilinks removed from shipped source. Redscript ships as plaintext and the vault has no
+  remote, so they resolved for nobody who downloaded the mod.
+
+### Fixed
+
+- The German and Russian packages both declared themselves `NCZDG_English`, a duplicate class that
+  fails the whole redscript compile. Never released - 1.0.0 shipped only `English.reds` and
+  `Provider.reds`.
+
 ## [1.0.0] - 2026-08-05
 
 First public release, on Nexus and GitHub together with NC Zoning Board - Core 1.0.0. Everything

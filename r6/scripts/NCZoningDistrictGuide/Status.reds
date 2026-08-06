@@ -13,7 +13,7 @@
 //
 //              The wording belongs to the core (NCZoning.Api.GetStatusMessage), which owns the
 //              single copy its own banner reads. Do not restate it here.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
 

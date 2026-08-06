@@ -22,7 +22,7 @@
 //              MIRRORING A SETTING BACK TO MOD SETTINGS IS FORBIDDEN. The only commit call
 //              available to redscript, ModSettings.AcceptChanges(), is GLOBAL: it applies
 //              every other mod's pending unapplied changes as a side effect.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: DigitalVixen (RCF)
 // ======================================================================================
 

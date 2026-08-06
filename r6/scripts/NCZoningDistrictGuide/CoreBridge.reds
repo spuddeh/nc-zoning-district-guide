@@ -6,7 +6,7 @@
 //              NCZoning.Api is guarded by @if(ModuleExists(...)), so this mod still
 //              compiles and loads when the core is absent. At runtime it gates on
 //              ApiVersion() and listens for the core's data lifecycle events.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: Spuddeh (NCZoningCore), psiberx (Codeware)
 // ======================================================================================
 

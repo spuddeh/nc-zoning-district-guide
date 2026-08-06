@@ -31,7 +31,7 @@
 //              TrackQuestMappin against CanPlayerTrackMappin -> TrackMappin, and the player branch
 //              clears only UntrackCustomPositionMappin. Taking the player slot costs the player a
 //              custom map waypoint, never their quest.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: Spuddeh
 // ======================================================================================
 

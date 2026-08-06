@@ -13,7 +13,7 @@
 //
 //              An unlisted language hits default and gets English, so a code the game
 //              adds later degrades rather than breaking.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: psiberx (Codeware)
 // ======================================================================================
 

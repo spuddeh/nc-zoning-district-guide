@@ -9,7 +9,7 @@
 //
 //              The hook is the FastTRavelSystem blackboard bool FastTravelLoadingScreenFinished
 //              (verified from bossHealthBar.RegisterFastTravelCallback).
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
 

@@ -34,7 +34,7 @@
 //              MAINTAINER: empty on purpose - a filled slot would override newer
 //              English wording. The path, module and class name are public API,
 //              because a translation mod REPLACES this file.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: psiberx (Codeware)
 // ======================================================================================
 

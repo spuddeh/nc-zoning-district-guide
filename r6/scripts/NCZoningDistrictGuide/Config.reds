@@ -17,7 +17,7 @@
 //              RCF IS OPTIONAL ONLY ON PAPER. Without it the mod still runs, but the
 //              key is stuck on the nczdg.xml default with no modifier and no way to rebind,
 //              and RED4ext is in the chain either way via RCF's bundled plugin.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: jackhumbert (Mod Settings, Input Loader), DigitalVixen (RCF)
 // ======================================================================================
 

@@ -15,7 +15,7 @@
 //              THE KEYBIND OPENS ONLY, IT DOES NOT TOGGLE. The ModalPopup input context swallows
 //              the key while the popup is up, and the panel owns a text input the key would
 //              otherwise be typed into. ESC closes.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: Spuddeh (NCZoningCore), psiberx (Codeware), DigitalVixen (RCF, the popup pattern)
 // ======================================================================================
 

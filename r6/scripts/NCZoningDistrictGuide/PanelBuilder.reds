@@ -12,7 +12,7 @@
 //
 //              Keeping the widget build here means both surfaces stay visually identical and
 //              only the parent + placement differ per host.
-// Mod Version: 1.0.0
+// Mod Version: 1.1.0
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
 
