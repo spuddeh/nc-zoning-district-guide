@@ -35,7 +35,8 @@ Every feature can be turned off on its own.
   builds do not have, and redscript compiles every installed mod as one unit, so an older
   RedLogger alongside RCF 2.1.0 takes every redscript mod on your machine down.
 
-- Input Loader (for the guide keybind)
+- Input Loader - registers the key that opens the guide. Without it the action never
+  registers and the guide has no key at all, rebindable or otherwise.
 
 Strongly recommended:
 
