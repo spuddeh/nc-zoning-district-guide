@@ -1224,7 +1224,7 @@ public class NCZDGGuidePopup extends InGamePopup {
   }
 
   // Narrows m_shown to the current filter. A no-op when the filter is ALL, and ALSO a no-op
-  // when detection is unavailable - without CET every record is Unknown, so filtering would
+  // when detection is unavailable - before the scan answers every record is Unknown, so filtering would
   // either empty the list or change nothing, and neither answer is true.
   //
   // Unknown is excluded from INSTALLED and MISSING and has its own view.
@@ -1412,7 +1412,7 @@ public class NCZDGGuidePopup extends InGamePopup {
     // Under SHOWING: INSTALLED every card would wear it; under SHOWING: MISSING none would.
     //
     // Nothing is drawn for NotInstalled or Unknown. An AMM mod cannot be detected at all, and
-    // without CET nothing can, so a "not installed" badge would assert what the guide cannot know.
+    // before the scan answers nothing can, so a "not installed" badge would assert what the guide cannot know.
     if IsDefined(slot.installBadge) {
       let showInstalled = Equals(NCZDG_InstallStateOf(loc), NCZInstallState.Installed)
                           && this.m_filter == NCZDG_FilterAll();

@@ -119,7 +119,7 @@ public class NCZDG_German extends ModLocalizationPackage {
     this.Text("NCZDG.optModifier",     "Reiseführer-Tastenkombi");
     this.Text("NCZDG.tipModifier",     "Optionale Taste, die zusätzlich gedrückt gehalten werden muss. Kann neben Umschalt, Strg, Alt auch jede andere Taste sein. Leer lassen für keine Tastenkombi.");
     this.Text("NCZDG.optShowing",      "Zeige beim Öffnen");
-    this.Text("NCZDG.tipShowing",      "Welche Orte der Reiseführer beim Öffnen anzeigt. Ansicht kann innerhalb des Reiseführers frei gewechselt werden. Benötigt Cyber Engine Tweaks zum Erkennen installierter Mods.");
+    this.Text("NCZDG.tipShowing",      "Welche Orte der Reiseführer beim Öffnen anzeigt. Ansicht kann innerhalb des Reiseführers frei gewechselt werden.");
     this.Text("NCZDG.optOpenArea",     "Aktueller Stadtteil beim Öffnen");
     this.Text("NCZDG.tipOpenArea",     "Der Reiseführer öffnet sich für deinen momentanen Stadtteil. Wenn dies deaktiviert ist oder du dich außerhalb der Karte befindest, werden immer ALLE ORTE angezeigt.");
     this.Text("NCZDG.optOpenMap",      "Zum Anzeigen Karte öffnen");
