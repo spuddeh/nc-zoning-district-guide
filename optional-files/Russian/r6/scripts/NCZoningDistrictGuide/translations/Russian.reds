@@ -2,25 +2,40 @@
 // Mod Name: NC Zoning District Guide
 // File: translations/Russian.reds
 // Author: Parasitko
-// Description: The source of truth for every player-facing string. Codeware's
-//              ModLocalizationPackage; no TweakXL, no locale JSON, no LocKey registration.
+// Description: The Russian slot. Empty - every string shows in English until someone
+//              fills this in. Filling it in is welcome, and takes no coding.
 //
-//              ADDING A LANGUAGE IS ADDITIVE: copy this file, translate the second
-//              argument of every Text() call, extend ModLocalizationPackage under a new
-//              name, and add one case to Provider.reds. Never translate the KEY.
+//              TO TRANSLATE - three steps:
 //
-//              PLACEHOLDERS ARE WHY THE SENTENCES ARE WHOLE. {n}, {area}, {total} and
-//              friends are substituted at the call site, so a translator can put the
-//              number after the noun, or the area before the count, or drop a word
-//              entirely. Assembling a sentence by concatenating a count with " locations"
-//              cannot do that - it hardcodes English word order into the code, where a
-//              translator cannot reach it.
+//                1. Open English.reds and copy ONLY the this.Text(...) lines.
+//                   NOT the whole file. Copying the file brings the English
+//                   class name with it, and two classes with one name stops
+//                   EVERY redscript mod on the player's machine from loading.
+//                2. Paste them below, over the "translations go here" line.
+//                   Leave everything else in this file exactly as it is.
+//                3. Translate the SECOND text on each line. Never change the first.
 //
-//              PLURALS ARE WHOLE STRINGS, one key per form, never a stem plus "S".
-//              English has two forms; Polish and Russian have three, Arabic six. A key
-//              per form is a key a translator can fill in; a suffix is not.
-// Mod Version: 1.0.0
-// Credits: psiberx (Codeware), DigitalVixen (RCF, the reference implementation)
+//              this.Text("NCZDG.title",  "NC ZONING BOARD");
+//                        ^^^^^^^^^^^^^  the KEY - never change it
+//                                        ^^^^^^^^^^^^^^^^^  translate this
+//
+//              RULES:
+//                - Partial is fine. Anything you leave out falls back to English.
+//                - Keep {n}, {area}, {name} and friends exactly as written. They are
+//                  replaced at runtime, and you may move them anywhere in the sentence.
+//                - Plurals are one key per form. Fill in the forms your language uses
+//                  and leave the rest.
+//
+//              Then it ships as its own mod - one file, and nothing has to be
+//              released at this end. Full instructions, including how to package
+//              and upload it:
+//              https://github.com/spuddeh/nc-zoning-district-guide/blob/main/docs/TRANSLATING.md
+//
+//              MAINTAINER: empty on purpose - a filled slot would override newer
+//              English wording. The path, module and class name are public API,
+//              because a translation mod REPLACES this file.
+// Mod Version: 1.1.0
+// Credits: psiberx (Codeware)
 // ======================================================================================
 
 module NCZoningDistrictGuide.Translations
@@ -33,7 +48,27 @@ public class NCZDG_Russian extends ModLocalizationPackage {
     this.Text("NCZDG.title",           "NC ZONING BOARD");
     this.Text("NCZDG.headerLeft",      "NIGHT CORP // URBAN PLANNING DIVISION");
     this.Text("NCZDG.headerRight",     "NC-ZB-01");
-    this.Text("NCZDG.searchHint",      "ПОИСК ПО НАЗВАНИЮ, АВТОРУ, ТЕГУ");
+    this.Text("NCZDG.searchHint",      "ПОИСК ПО НАЗВАНИЮ, АВТОРУ, ТЕГУ - & | !");
+
+    // --- search syntax, shown by the [ i ] beside the search box ------------------------
+    // EACH LINE CARRIES ITS OWN EXAMPLE, because the example words are English and a translator
+    // has to be free to swap them for words their reader would actually type. A shared example
+    // held in code could not be reached.
+    //
+    // EVERY EXAMPLE WORD IS IN THE REGISTRY. `watson` is 85 records, `apartment` 156, `pacifica`
+    // 14, `corpo` 38 - so each line demonstrates itself when it is typed. An example that returns
+    // nothing teaches the reader that the feature is broken.
+    //
+    // The operators themselves (& | !) are NOT translated. They are what the parser reads.
+    this.Text("NCZDG.helpTitle",       "СИНТАКСИС ПОИСКА");
+    this.Text("NCZDG.helpAnd",         "watson&apartment   -   оба слова должны совпадать");
+    this.Text("NCZDG.helpOr",          "watson|pacifica   -   может совпадать с любым из них");
+    this.Text("NCZDG.helpNot",         "!corpo   -   всё, кроме corpo");
+    this.Text("NCZDG.helpNotWith",     "apartment!corpo   -   квартиры, за исключением всего, что связано с корпоративным жильем");
+    this.Text("NCZDG.helpMix",         "watson|pacifica&apartment   -   любой район и квартира");
+    this.Text("NCZDG.helpPhrase",      "night city   -   если не указано оператор, производится поиск по всей строке в том виде, в каком она введена");
+    this.Text("NCZDG.helpSpaces",      "Операторы следует указывать без пробелов. Поисковая система watson & apartment ищет фразы watson  и  apartment с пробелами и всем остальным.");
+    this.Text("NCZDG.helpFields",      "Каждое слово сопоставляется с названием, описанием, категорией, районом, тегами и авторами.");
 
     // --- buttons -----------------------------------------------------------------------
     this.Text("NCZDG.btnClear",        "ОЧИСТИТЬ");
@@ -54,13 +89,13 @@ public class NCZDG_Russian extends ModLocalizationPackage {
     // Three forms because the sentence differs, not because the numbers do: a search says
     // how many of the area matched, a paged list says which slice is on screen, and a
     // short list says only the total.
-    this.Text("NCZDG.countSearch",     "{n} ИЗ {всего} В {области}");
-    this.Text("NCZDG.countPaged",      "{от}-{до} из {n} в {область}");
-    this.Text("NCZDG.countPlain",      "{n} В {области}");
+    this.Text("NCZDG.countSearch",     "{n} ИЗ {total} В {area}");
+    this.Text("NCZDG.countPaged",      "{from}-{to} ИЗ {n} В {area}");
+    this.Text("NCZDG.countPlain",      "{n} В {area}");
 
     // --- nav column --------------------------------------------------------------------
     this.Text("NCZDG.areaAll",         "ВСЕ ЛОКАЦИИ");
-    this.Text("NCZDG.navRecent",       "{n} ПОЛЕДНИЕ");
+    this.Text("NCZDG.navRecent",       "{n} ПОСЛЕДНИЕ");
 
     // --- cards -------------------------------------------------------------------------
     this.Text("NCZDG.badgeRecent",     "НЕДАВНО ОБНОВЛЕНО");
@@ -85,13 +120,13 @@ public class NCZDG_Russian extends ModLocalizationPackage {
     this.Text("NCZDG.catOtherPlural",  "ДРУГИЕ");
 
     // --- district notice + fast-travel panel -------------------------------------------
-    this.Text("NCZDG.panelEmpty",      "В {области} пока нет зарегистрированных локаций");
-    this.Text("NCZDG.panelCountOne",   "{n} зарегистрированная локация в {области}");
-    this.Text("NCZDG.panelCountMany",  "{n} зарегистрированные локации в {области}");
-    this.Text("NCZDG.panelNearest",    "Ближайший: {название}");
+    this.Text("NCZDG.panelEmpty",      "В {area} пока нет зарегистрированных локаций");
+    this.Text("NCZDG.panelCountOne",   "{n} зарегистрированная локация в {area}");
+    this.Text("NCZDG.panelCountMany",  "{n} зарегистрированные локации в {area}");
+    this.Text("NCZDG.panelNearest",    "Ближайший: {name}");
 
     // --- world map panel ---------------------------------------------------------------
-    this.Text("NCZDG.mapCaption",      "ЗОНИРОВАНИЕ NC :");
+    this.Text("NCZDG.mapCaption",      "ЗОНИРОВАНИЕ NC:");
     this.Text("NCZDG.mapEmpty",        "НЕТ ЗАРЕГИСТРИРОВАННЫХ ЛОКАЦИЙ");
     this.Text("NCZDG.mapCountOne",     "{n} ЛОКАЦИЯ");
     this.Text("NCZDG.mapCountMany",    "{n} ЛОКАЦИИ");
@@ -128,12 +163,12 @@ public class NCZDG_Russian extends ModLocalizationPackage {
     this.Text("NCZDG.tipAutoTrack",    "Сразу же проложите маршрут до контрольной точки, вместо того чтобы самостоятельно отслеживать её на карте. Это заменит установленную вами пользовательскую контрольную точку; ваш отслеживаемый квест занимает отдельный слот и останется без изменений.");
     this.Text("NCZDG.noteWaypoint",    "Маршрутизация по путевой точке начинается только после открытия карты мира. Это ограничение игры, а не настройка.");
 
-    this.Text("NCZDG.dropAll",         "Все");
-    this.Text("NCZDG.dropInstalled",   "Только установленные");
-    this.Text("NCZDG.dropMissing",     "Только пропущенные");
+    this.Text("NCZDG.dropAll",         "ВСЕ");
+    this.Text("NCZDG.dropInstalled",   "ТОЛЬКО УСТАНОВЛЕННЫЕ");
+    this.Text("NCZDG.dropMissing",     "ТОЛЬКО ПРОПУЩЕННЫЕ");
 
-    this.Text("NCZDG.secMap",          "Карта мира");
-    this.Text("NCZDG.optMap",          "Показать на карте мира");
+    this.Text("NCZDG.secMap",          "КАРТА МИРА");
+    this.Text("NCZDG.optMap",          "ПОКАЗАТЬ НА КАРТЕ МИРА");
     this.Text("NCZDG.tipMap",          "Добавить на панели с информацией о районах карты количество модификаций по местоположению и разбивку по категориям.");
 
     this.Text("NCZDG.secNotice",       "Уведомление округа");
