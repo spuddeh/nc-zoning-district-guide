@@ -2,7 +2,7 @@
 // Mod Name: NC Zoning District Guide
 // File: translations/Russian.reds
 // Author: Parasitko
-// Description: The Russian slot. Empty - every string shows in English until someone
+// Description: The Russian slot. Current to Ver 1.1.0; new strings show in English until someone
 //              fills this in. Filling it in is welcome, and takes no coding.
 //
 //              TO TRANSLATE - three steps:
