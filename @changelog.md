@@ -23,6 +23,17 @@ Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
 - Eight source comments describing the removed CET scan rewritten - `CoreBridge.reds` (the ready
   fallback, the availability gate, the Unknown cases, the deferred `[READY]` line),
   `GuideController.reds` (the filter's visibility gate), `Config.reds` and `MapPanelInject.reds`.
+- Every area name on screen is translated. A registry district or subdistrict name is English data,
+  and four sites rendered one raw: `NCZDGArea.Label()` (the left nav, and the `{area}` token in the
+  status line through it), `NCZDG_AreaName()` (the district-enter banner and the fast-travel arrival
+  panel, both through `PanelBuilder`) and both arms of `NCZDG_AreaLabel()`. All four now go through
+  `NCZDG_LocalizeArea`, a bridge over Core 1.1.0's `LocalizeArea`. The world map panel needed no
+  change: it draws counts, and the district name above it is the game's own widget.
+  **This raises the minimum Core to 1.1.0** - `ModuleExists` cannot test for a function, so an older
+  Core compiles the guarded arm and then fails on `UNRESOLVED_FN`, taking every redscript mod on the
+  machine with it. Stated in the Nexus description and `release-manifest.json`.
+  `district` and `subdistrict` stay English throughout - they are the matching keys, and only what
+  reaches a widget is translated.
 
 ### Added
 

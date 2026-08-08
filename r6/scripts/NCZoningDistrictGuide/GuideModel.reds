@@ -27,6 +27,8 @@ module NCZoningDistrictGuide.Guide
 import NCZoning.Api.*
 @if(ModuleExists("NCZoning.Api"))
 import NCZoning.Data.*
+// Unguarded: NCZDG_LocalizeArea has both arms, so the bridge module exists either way.
+import NCZoningDistrictGuide.Bridge.*
 
 // One row in the left nav. "All" is a row like any other, so nothing downstream special-cases it.
 @if(ModuleExists("NCZoning.Api"))
@@ -38,13 +40,14 @@ public class NCZDGArea {
   public let count: Int32;
   public let recentCount: Int32;   // of `count`, how many carry the API's recently_updated flag
 
-  // Only the All row is translated. A district or subdistrict name is registry data and is
-  // shown exactly as the board publishes it.
+  // The All row is this mod's own string; an area name comes from the core, which reads the
+  // game's district record for it. `district` and `subdistrict` stay English throughout - they
+  // are the matching keys, and only what reaches the widget is translated.
   public func Label() -> String {
     if this.isAll {
       return NCZDG_T("NCZDG.areaAll");
     }
-    return this.isSub ? this.subdistrict : this.district;
+    return NCZDG_LocalizeArea(this.district, this.isSub ? this.subdistrict : "");
   }
 
   // Stable identity, for remembering the selection across a close/reopen.

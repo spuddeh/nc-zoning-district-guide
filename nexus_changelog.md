@@ -11,6 +11,9 @@ mod. The full technical detail lives in `@changelog.md`.
   and the whole line is searched as you typed it, so anything you searched for before means the
   same thing.
 - New: An `i` beside the search box. Hover it for the syntax, without leaving the guide.
+- Fix: District and subdistrict names are shown in your game's language, in the district list, the
+  status line, the district-enter banner and the fast-travel panel. They were English for everyone.
+  The names come from Cyberpunk itself, so they read the same as on the world map.
 - New: The in-game documentation page has a SEARCH SYNTAX section, in RCF's hub under DOCS.
 - New: A mod card for the Redscript Configuration Framework 2.1.0. The guide now appears in RCF's
   new picker with its header image, category and a short description.

@@ -108,6 +108,29 @@ public func NCZDG_TotalLocations() -> Int32 {
 @if(!ModuleExists("NCZoning.Api"))
 public func NCZDG_TotalLocations() -> Int32 { return 0; }
 
+// --- area names in the player's language (needs NCZoningCore 1.1.0+) -------------
+//
+// ⚠ THIS RAISES THE MINIMUM CORE VERSION - the same trap as install detection above, for the
+// same reason: against a core older than 1.1.0 the guarded arm still compiles and LocalizeArea
+// is an UNRESOLVED_FN, which fails the whole compilation and takes every redscript mod on that
+// machine down with it. NCZoningCore 1.1.0+ is a hard floor and must be in the requirements.
+//
+// EVERY SURFACE THAT SHOWS AN AREA NAME GOES THROUGH HERE. The registry publishes those names in
+// English, so one rendered raw is English on a Japanese player's screen. The core answers from
+// the game's own district record, which is also what the world map reads, so the two agree.
+//
+// `subdistrict` is "" to name the district itself.
+@if(ModuleExists("NCZoning.Api"))
+public func NCZDG_LocalizeArea(district: String, subdistrict: String) -> String {
+  return LocalizeArea(district, subdistrict);
+}
+// Without the core there is no registry, so no area name ever reaches a widget through this. The
+// arm exists so the callers need no guard of their own.
+@if(!ModuleExists("NCZoning.Api"))
+public func NCZDG_LocalizeArea(district: String, subdistrict: String) -> String {
+  return StrLen(subdistrict) > 0 ? subdistrict : district;
+}
+
 // --- the bridge system -----------------------------------------------------------
 // Subscribes to the core's Codeware CallbackSystem events. A redscript consumer gets
 // these directly (unlike CET Lua, which has to Observe the facade).

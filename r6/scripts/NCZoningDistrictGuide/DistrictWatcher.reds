@@ -22,6 +22,8 @@ import NCZoning.Data.*
 @if(ModuleExists("NCZoning.Api"))
 import NCZoningDistrictGuide.District.*
 import NCZoningDistrictGuide.Config.*
+// Unguarded: NCZDG_LocalizeArea has both arms, so the bridge module exists either way.
+import NCZoningDistrictGuide.Bridge.*
 
 // The last district reported, so a single boundary crossing does not fire twice. Stepping from an
 // interior out to the street queues OnDistrictChanged once per district entered, which reports the
@@ -83,16 +85,17 @@ public func NCZDG_UseSubdistrict(here: ref<NCZDistrictName>) -> Bool {
   return !IsDefined(cfg) || cfg.matchSubdistrict;
 }
 
-// "Watson / Kabuki", or just "Dogtown" for a top-level district.
+// "Watson / Kabuki", or just "Dogtown" for a top-level district. Both halves are named
+// separately, because the core translates one area at a time and " / " is this mod's joiner.
 @if(ModuleExists("NCZoning.Api"))
 public func NCZDG_AreaLabel(here: ref<NCZDistrictName>) -> String {
   if !IsDefined(here) {
     return "";
   }
   if NCZDG_UseSubdistrict(here) {
-    return here.district + " / " + here.subdistrict;
+    return NCZDG_LocalizeArea(here.district, "") + " / " + NCZDG_LocalizeArea(here.district, here.subdistrict);
   }
-  return here.district;
+  return NCZDG_LocalizeArea(here.district, "");
 }
 
 // The most-specific area name the count is scoped to: the subdistrict when narrowing is on
@@ -103,9 +106,9 @@ public func NCZDG_AreaName(here: ref<NCZDistrictName>) -> String {
     return "";
   }
   if NCZDG_UseSubdistrict(here) {
-    return here.subdistrict;
+    return NCZDG_LocalizeArea(here.district, here.subdistrict);
   }
-  return here.district;
+  return NCZDG_LocalizeArea(here.district, "");
 }
 
 // The registry locations in the area the player occupies: the subdistrict when there is one
