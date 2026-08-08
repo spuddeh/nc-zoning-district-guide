@@ -6,7 +6,7 @@
 //              NCZoning.Api is guarded by @if(ModuleExists(...)), so this mod still
 //              compiles and loads when the core is absent. At runtime it gates on
 //              ApiVersion() and listens for the core's data lifecycle events.
-// Mod Version: 1.1.0
+// Mod Version: 1.1.1
 // Credits: Spuddeh (NCZoningCore), psiberx (Codeware)
 // ======================================================================================
 
@@ -108,12 +108,12 @@ public func NCZDG_TotalLocations() -> Int32 {
 @if(!ModuleExists("NCZoning.Api"))
 public func NCZDG_TotalLocations() -> Int32 { return 0; }
 
-// --- area names in the player's language (needs NCZoningCore 1.1.0+) -------------
+// --- area names in the player's language (needs NCZoningCore 1.2.0+) -------------
 //
 // ⚠ THIS RAISES THE MINIMUM CORE VERSION - the same trap as install detection above, for the
-// same reason: against a core older than 1.1.0 the guarded arm still compiles and LocalizeArea
+// same reason: against a core older than 1.2.0 the guarded arm still compiles and LocalizeArea
 // is an UNRESOLVED_FN, which fails the whole compilation and takes every redscript mod on that
-// machine down with it. NCZoningCore 1.1.0+ is a hard floor and must be in the requirements.
+// machine down with it. NCZoningCore 1.2.0+ is a hard floor and must be in the requirements.
 //
 // EVERY SURFACE THAT SHOWS AN AREA NAME GOES THROUGH HERE. The registry publishes those names in
 // English, so one rendered raw is English on a Japanese player's screen. The core answers from

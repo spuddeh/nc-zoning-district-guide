@@ -3,7 +3,20 @@
 Public, user-facing changelog. Plain language, only what matters to the people playing with this
 mod. The full technical detail lives in `@changelog.md`.
 
-### [Unreleased - v1.1.0]
+### [Unreleased - v1.1.1]
+
+- Fix: District and subdistrict names are shown in your game's language, in the district list, the
+  status line, the district-enter banner and the fast-travel banner. They were English for everyone.
+  The names come from Cyberpunk itself, so they read the same as on the world map.
+- Fix: The fast-travel banner sits in the right place at any resolution. Its position was set for a
+  1440p screen, so on 1080p it appeared two thirds of the way down, over the quick-slot icons. It
+  now sits in the same spot as the banner you get walking across a district boundary.
+- Fix: The SHOWING tooltip no longer mentions Cyber Engine Tweaks, which the mod stopped needing.
+- Changed: NC Zoning Board - Core 1.2.0 or newer is now required. An older Core stops every
+  redscript mod on your machine from loading, so update both together.
+- Changed: The German and Russian translations cover the search panel added in 1.1.0.
+
+### v1.1.0
 
 - New: The guide's search box takes expressions, using the same operators as World Builder.
   `watson&apartment` needs both, `watson|pacifica` takes either, `apartment!corpo` drops anything
@@ -11,13 +24,6 @@ mod. The full technical detail lives in `@changelog.md`.
   and the whole line is searched as you typed it, so anything you searched for before means the
   same thing.
 - New: An `i` beside the search box. Hover it for the syntax, without leaving the guide.
-- Fix: District and subdistrict names are shown in your game's language, in the district list, the
-  status line, the district-enter banner and the fast-travel banner. They were English for everyone.
-  The names come from Cyberpunk itself, so they read the same as on the world map.
-- Fix: The fast-travel banner sits in the right place at any resolution. Its position was measured
-  once at 1440p and never adjusted, so on a 1080p screen it appeared two thirds of the way down,
-  over the quick-slot icons. It now sits in the same spot as the banner you get walking across a
-  district boundary, whatever your resolution.
 - New: The in-game documentation page has a SEARCH SYNTAX section, in RCF's hub under DOCS.
 - New: A mod card for the Redscript Configuration Framework 2.1.0. The guide now appears in RCF's
   new picker with its header image, category and a short description.
@@ -43,6 +49,8 @@ mod. The full technical detail lives in `@changelog.md`.
 
 ---
 
+---
+
 ## Release body
 
 Paste into the GitHub release body. The workflow splits on `<!-- nexus-description-end -->`: what is
@@ -53,20 +61,18 @@ carry no `-`, no markdown and no version heading: a wrapped line arrives as two 
 dash arrives inside the bullet, and the version is sent in its own field.
 
 ```text
-The guide's search box now takes & | and !, the same operators as World Builder, with an i beside it for the syntax. Adds a SEARCH SYNTAX page, an RCF 2.1.0 mod card and 19 translation slots. RedLogger 1.3.0 or newer is now required.
+District names now show in your game's language, and the fast-travel banner sits correctly at any resolution. NC Zoning Board - Core 1.2.0 or newer is required - update both together, or no redscript mod will load.
 
 <!-- nexus-description-end -->
 
-New: The guide's search box takes expressions, using the same operators as World Builder. watson&apartment needs both, watson|pacifica takes either, apartment!corpo drops anything corpo, and !corpo on its own lists everything except corpo. Type a plain word with no operator and the whole line is searched as you typed it, so anything you searched for before means the same thing.
-New: An i beside the search box. Hover it for the syntax, without leaving the guide.
-New: The in-game documentation page has a SEARCH SYNTAX section, in RCF's hub under DOCS.
-New: A mod card for the Redscript Configuration Framework 2.1.0, so the guide appears in its new picker with a header image, category and description.
-New: Translation slots for all 19 game languages. A translation is a single file, and anyone can release one as its own mod without waiting for an update here.
-Changed: Log lines now carry a level, so RCF 2.1.0's log viewer shows errors in red and warnings in amber. If you attach a log to a bug report, the important lines now stand out.
-Changed: RedLogger 1.3.0 or newer is now required. RCF 2.1.0 calls RedLogger functions older builds do not have, and the two together stop every redscript mod on your machine from loading.
+Fix: District and subdistrict names are shown in your game's language, in the district list, the status line, the district-enter banner and the fast-travel banner. They were English for everyone. The names come from Cyberpunk itself, so they read the same as on the world map.
+Fix: The fast-travel banner sits in the right place at any resolution. Its position was set for a 1440p screen, so on a 1080p screen it appeared two thirds of the way down, over the quick-slot icons. It now sits in the same spot as the banner you get walking across a district boundary.
+Fix: The SHOWING tooltip no longer mentions Cyber Engine Tweaks, which the mod stopped needing.
+Changed: NC Zoning Board - Core 1.2.0 or newer is now required. An older Core stops every redscript mod on your machine from loading, so update both together.
+Changed: The German and Russian translations cover the search panel added in 1.1.0.
 ```
 
-> File description: 233 / 255 characters.
+> File description: 214 / 255 characters.
 
 ---
 
@@ -75,18 +81,25 @@ Changed: RedLogger 1.3.0 or newer is now required. RCF 2.1.0 calls RedLogger fun
 ```text
 [color=#00f0ff][size=5][b]- Changes -[/b][/size][/color]
 
+[b][size=3]Version 1.1.1[/size][/b]
+[list][*]Fix: District names show in your game's language, matching the world map.
+[*]Fix: The fast-travel banner sits correctly at any resolution, not just 1440p.
+[*]Fix: The SHOWING tooltip no longer mentions Cyber Engine Tweaks.
+[*]Changed: NC Zoning Board - Core 1.2.0 or newer is now required.
+[*]Changed: German and Russian cover the search panel added in 1.1.0.
+[/list]
 [b][size=3]Version 1.1.0[/size][/b]
-[list][*]New: The search box takes expressions - the same & | and ! operators as World Builder.
+[spoiler][list][*]New: The search box takes expressions - the same & | and ! operators as World Builder.
 [*]New: An i beside the search box, hover it for the syntax.
 [*]New: A SEARCH SYNTAX section on the in-game documentation page.
 [*]New: A mod card for the Redscript Configuration Framework 2.1.0.
 [*]New: Translation slots for all 19 game languages, releasable as separate mods.
 [*]Changed: Log lines now carry a level, colour-coded in RCF 2.1.0's log viewer.
 [*]Changed: RedLogger 1.3.0 or newer is now required.
-[/list]
+[/list][/spoiler]
 [b][size=3]Version 1.0.0[/size][/b]
 [spoiler][list][*]Initial public release.
 [/list][/spoiler]
 ```
 
-> Character count: 706 / 5000
+> Character count: 1138 / 5000

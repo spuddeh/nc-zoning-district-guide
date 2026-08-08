@@ -3,9 +3,59 @@
 All notable changes to NC Zoning District Guide are documented here.
 This project uses [semantic versioning](https://semver.org/).
 
-## [Unreleased] - 1.1.0
+## [Unreleased] - 1.1.1
 
-Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
+Requires NC Zoning Board - Core 1.2.0.
+
+### Fixed
+
+- Every area name on screen is translated. A registry district or subdistrict name is English data,
+  and four sites rendered one raw: `NCZDGArea.Label()` (the left nav, and the `{area}` token in the
+  status line through it), `NCZDG_AreaName()` (the district-enter banner and the fast-travel arrival
+  panel, both through `PanelBuilder`) and both arms of `NCZDG_AreaLabel()`. All four now go through
+  `NCZDG_LocalizeArea`, a bridge over Core 1.2.0's `LocalizeArea`. The world map panel needed no
+  change: it draws counts, and the district name above it is the game's own widget.
+  `district` and `subdistrict` stay English throughout - they are the matching keys, and only what
+  reaches a widget is translated. Verified in game in Chinese, on all four surfaces.
+
+- The fast-travel arrival panel is placed in the canvas that already scales. `FastTravelWatcher`
+  put it at `(56, 653)` against `Base Window`, which IS the screen at scale 1 - so those are screen
+  pixels and they suited one monitor: 45% down at 1440p, 69% down at 1080p, on top of the
+  quick-slot HUD. The panel's SIZE was never wrong, only its position.
+
+  It now parents into `BracketsContainer` (`Base Window` > `Root` > `BracketsContainer` on the
+  notifications layer), a 3840x2160 canvas whose scale is `screenH/2160` - 0.5 at 1080p, 0.667 at
+  1440p - and is positioned in 4K design units at `(84, 1169.5)`. The game does the scaling and the
+  positioning, so no resolution appears in the file. The explicit `SetScale` is gone with it:
+  applying it inside a canvas that already scales squares it.
+
+  Both constants are the confirmed-good 1440p rendering converted, `56 / 0.667 = 84` and
+  `780 / 0.667 = 1169.5`. Measured after: 1440p and 1080p both place the panel at 0.55 of screen
+  height, and the fast-travel panel and the district-crossing banner sit at the same height.
+
+  `NCZDG_ChildNamed` walks one level at a time on the index API rather than calling
+  `GetWidgetByPathName`, whose separator is undocumented; a wrong separator returns null in silence
+  and is indistinguishable from the tree having changed. Not found falls back to the screen-pixel
+  placement and warns. Both hosts are named when removing the previous panel, so a panel parented
+  to the window before a tree change is still cleaned up after it.
+
+  The banner and the guide popup are unaffected. Both parent into widgets that already carry the
+  game's scale, and neither holds a screen pixel.
+
+- The SHOWING filter tooltip named Cyber Engine Tweaks, which stopped being a dependency at 1.1.0.
+  Corrected in `GuideController.reds` and `translations/English.reds`, and in the German and
+  Russian slots.
+
+### Changed
+
+- **The minimum Core is 1.2.0**, up from 1.1.0. `LocalizeArea` arrives in that version and `@if`
+  cannot soften it: `ModuleExists` tests for a MODULE, not a function, so an older Core compiles
+  the guarded arm and then dies on `UNRESOLVED_FN`, taking every redscript mod on the machine with
+  it. Stated in the Nexus description and `release-manifest.json`.
+- German and Russian cover the 1.1.0 search panel. Both ship as their own downloads under
+  `optional-files/`, so neither needs a release here to reach a player.
+
+## [1.1.0] - 2026-08-07
 
 ### Changed
 
@@ -23,45 +73,6 @@ Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
 - Eight source comments describing the removed CET scan rewritten - `CoreBridge.reds` (the ready
   fallback, the availability gate, the Unknown cases, the deferred `[READY]` line),
   `GuideController.reds` (the filter's visibility gate), `Config.reds` and `MapPanelInject.reds`.
-- Every area name on screen is translated. A registry district or subdistrict name is English data,
-  and four sites rendered one raw: `NCZDGArea.Label()` (the left nav, and the `{area}` token in the
-  status line through it), `NCZDG_AreaName()` (the district-enter banner and the fast-travel arrival
-  panel, both through `PanelBuilder`) and both arms of `NCZDG_AreaLabel()`. All four now go through
-  `NCZDG_LocalizeArea`, a bridge over Core 1.1.0's `LocalizeArea`. The world map panel needed no
-  change: it draws counts, and the district name above it is the game's own widget.
-  **This raises the minimum Core to 1.1.0** - `ModuleExists` cannot test for a function, so an older
-  Core compiles the guarded arm and then fails on `UNRESOLVED_FN`, taking every redscript mod on the
-  machine with it. Stated in the Nexus description and `release-manifest.json`.
-  `district` and `subdistrict` stay English throughout - they are the matching keys, and only what
-  reaches a widget is translated.
-- The fast-travel arrival panel asks the HUD where to go instead of remembering. `FastTravelWatcher`
-  placed it at `(56, 653)`, a parent-chain walk measured once at 2560x1440 and left as a constant.
-  Those are Base Window units - SCREEN PIXELS - so the panel sat a fixed distance from the top of
-  every screen: 45% down at 1440p, 69% down at 1080p, on top of the quick-slot HUD. The panel's
-  SIZE was never wrong; `190.0 * scale` reads `winSize.Y` live and converts a 4K design unit
-  correctly. Only the position was pinned.
-
-  The panel now parents into `BracketsContainer` - `Base Window` > `Root` > `BracketsContainer` on
-  the notifications layer - and is placed in 4K design units at `(84, 1169.5)`. That canvas is
-  3840x2160 with its scale set to `screenH/2160` (0.5 at 1080p, 0.667 at 1440p), so the game does
-  both the positioning and the scaling and no resolution appears in the file. The explicit
-  `SetScale` is gone with it: applying it inside a canvas that already scales would square it.
-
-  Both constants are the confirmed-good 1440p rendering converted - `56 / 0.667 = 84` and
-  `780 / 0.667 = 1169.5` - so 1440p is reproduced exactly and every other resolution lands on the
-  same fraction of the screen. Measured after: 1440p and 1080p both place the panel at 0.55 of
-  screen height, and the fast-travel panel and the district-crossing banner now sit at the same
-  height as each other.
-
-  `NCZDG_ChildNamed` walks one level at a time on the index API rather than calling
-  `GetWidgetByPathName`, whose separator is undocumented; a wrong separator returns null in silence
-  and would be indistinguishable from the tree having changed. Not found falls back to the screen-
-  pixel placement and warns, because a missing panel sends the next search somewhere else entirely.
-  Both hosts are named when removing the previous panel, so a build that parented to the window
-  before a tree change is still cleaned up after it.
-
-  The banner and the guide popup are unaffected. Both parent into widgets that already carry the
-  game's scale, and neither holds a screen pixel.
 
 ### Added
 

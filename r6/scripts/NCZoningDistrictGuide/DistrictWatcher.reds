@@ -9,7 +9,7 @@
 //
 //              The event payload carries only gunshot/explosion ranges, not the district,
 //              so each fire re-resolves through Layer 2 (District.reds).
-// Mod Version: 1.1.0
+// Mod Version: 1.1.1
 // Credits: Spuddeh (NCZoningCore)
 // ======================================================================================
 
