@@ -88,6 +88,12 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     if IsDefined(layer) {
       let root = layer.GetVirtualWindow();
       if IsDefined(root) {
+        // Both hosts, for the reason given where the panel is built.
+        let rootCanvas = NCZDG_ChildNamed(root, n"Root") as inkCompoundWidget;
+        let brackets = NCZDG_ChildNamed(rootCanvas, n"BracketsContainer") as inkCompoundWidget;
+        if IsDefined(brackets) {
+          brackets.RemoveChildByName(n"nczdg_panel");
+        }
         root.RemoveChildByName(n"nczdg_panel");
       }
     }
@@ -139,54 +145,48 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
       return;
     }
 
-    // Walking the banner panel's parent chain in-game (nczdg_panel -> New_Quest_canvas -> Root ->
-    // Root -> HUDSlotMiddleWidget -> LeftCenter -> Root -> Base Window) showed where the banner
-    // block sits, and that ALL of the offset comes from the LeftCenter HUD slot. NOTE the banner
-    // does NOT live under BracketsContainer - it hangs off the HUD slots, so parent on Base
-    // Window and match the slot.
+    // POSITION IN 4K DESIGN UNITS, INSIDE A CANVAS THAT ALREADY SCALES.
     //
-    // Base Window is the SCREEN size while the content is authored at 4K, so the HUD chain scales
-    // the banner by screenH/2160 (0.667 at 1440p). Base Window does not, so apply it explicitly.
+    // `Base Window` is the SCREEN (1920x1080, 2560x1440, ...) at scale 1, so a coordinate given
+    // against it is a screen pixel and suits exactly one monitor. Its child `Root` holds
+    // `BracketsContainer`, a 3840x2160 canvas whose scale IS screenH/2160 - measured 0.5 at 1080p
+    // and 0.667 at 1440p. A child placed in there is positioned AND scaled by the game, so the
+    // panel needs no arithmetic of its own and no resolution ever appears in this file.
+    //
+    // The two constants come from the 1440p rendering that was confirmed correct on screen:
+    //   x  56 / 0.667 =   84
+    //   y 780 / 0.667 = 1169.5   (the banner block's top, 653, plus the panel's own 190 below it)
+    // so 1440p is reproduced exactly and every other resolution lands on the same FRACTION of the
+    // screen rather than the same pixel.
     let winSize = root.GetSize();
     let scale = winSize.Y > 1.0 ? (winSize.Y / 2160.0) : 0.667;
+    let rootCanvas = NCZDG_ChildNamed(root, n"Root") as inkCompoundWidget;
+    let brackets = NCZDG_ChildNamed(rootCanvas, n"BracketsContainer") as inkCompoundWidget;
 
-    // Remove any previous FT panel. This system persists across fast travels, so without the
-    // removal the panels stack up.
+    // Remove any previous FT panel, from both possible hosts: this system persists across fast
+    // travels, so without the removal the panels stack up. Naming both means a build that
+    // parented to the window before a tree change is still cleaned up after it.
+    if IsDefined(brackets) {
+      brackets.RemoveChildByName(n"nczdg_panel");
+    }
     root.RemoveChildByName(n"nczdg_panel");
     this.m_ftPanel = null;
 
     let player = GameInstance.GetPlayerSystem(gi).GetLocalPlayerMainGameObject();
-    // WHERE THE SLOT IS, ASKED AT RUNTIME - never a remembered number. The slot's position is in
-    // SCREEN pixels and it moves with screen height, so the 1440p measurement (56, 653) put the
-    // panel a fixed distance from the top of every screen: two thirds of the way down a 1080p
-    // one, over the quick-slot HUD.
-    //
-    // Falls back to that measurement if the slot cannot be found, which keeps a changed HUD tree
-    // to a misplaced panel rather than no panel, and says so - silence here reads as "the mod
-    // did nothing" and would send the search to the wrong place entirely.
-    let slotX = 56.0;
-    let slotY = 653.0;
-    let rootCanvas = NCZDG_ChildNamed(root, n"Root") as inkCompoundWidget;
-    let slot = NCZDG_ChildNamed(rootCanvas, n"LeftCenter");
-    if IsDefined(slot) {
-      let slotPos = rootCanvas.GetChildPosition(slot);
-      slotX = slotPos.X;
-      slotY = slotPos.Y;
-      // Logged because the fault it replaces was invisible at the resolution it was measured on.
-      // The ratio is what to read: it holds across resolutions, the raw Y does not.
-      NCZDGLog(s"ft: LeftCenter slot at (\(slotX), \(slotY)) on a \(winSize.X)x\(winSize.Y) window");
+    if IsDefined(brackets) {
+      this.m_ftPanel = NCZDG_BuildPanel(brackets, 84.0, 1169.5, here, player, cfg.showNearest);
+      // No SetScale here on purpose - BracketsContainer carries screenH/2160 already, and setting
+      // it again would square it.
     } else {
-      NCZDGWarn("ft: LeftCenter HUD slot not found - the arrival panel falls back to its 1440p position");
-    }
-
-    // The slot is the TOP of the banner block, so placing there lands where the game banner
-    // shows. The banner-path panel sits BELOW that block: it is translated +190 within the banner
-    // canvas (4K units), which in Base Window (screen) space is 190 * scale. So add it.
-    let panelY = slotY + (190.0 * scale);
-    this.m_ftPanel = NCZDG_BuildPanel(root, slotX, panelY, here, player, cfg.showNearest);
-    if IsDefined(this.m_ftPanel) {
-      this.m_ftPanel.SetRenderTransformPivot(new Vector2(0.0, 0.0));
-      this.m_ftPanel.SetScale(new Vector2(scale, scale));
+      // The tree has changed shape. Fall back to the screen-pixel placement, which is wrong
+      // anywhere but 1440p but is still a visible panel, and say so - silence reads as "the mod
+      // did nothing" and sends the next search somewhere else entirely.
+      NCZDGWarn("ft: BracketsContainer not found - the arrival panel falls back to its 1440p position");
+      this.m_ftPanel = NCZDG_BuildPanel(root, 56.0, 653.0 + (190.0 * scale), here, player, cfg.showNearest);
+      if IsDefined(this.m_ftPanel) {
+        this.m_ftPanel.SetRenderTransformPivot(new Vector2(0.0, 0.0));
+        this.m_ftPanel.SetScale(new Vector2(scale, scale));
+      }
     }
 
   }

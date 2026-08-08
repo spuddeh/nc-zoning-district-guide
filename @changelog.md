@@ -41,15 +41,24 @@ Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
   SIZE was never wrong; `190.0 * scale` reads `winSize.Y` live and converts a 4K design unit
   correctly. Only the position was pinned.
 
-  It now finds the `LeftCenter` HUD slot and reads `GetChildPosition`. That slot contributes the
-  whole of the offset, and it is present whether or not a banner is showing, so the read works on
-  the fast-travel path, where no banner fires. Not found means a changed HUD tree: the old
-  measurement is used and a warning names the cause, because a missing panel would send the search
-  somewhere else entirely.
+  The panel now parents into `BracketsContainer` - `Base Window` > `Root` > `BracketsContainer` on
+  the notifications layer - and is placed in 4K design units at `(84, 1169.5)`. That canvas is
+  3840x2160 with its scale set to `screenH/2160` (0.5 at 1080p, 0.667 at 1440p), so the game does
+  both the positioning and the scaling and no resolution appears in the file. The explicit
+  `SetScale` is gone with it: applying it inside a canvas that already scales would square it.
+
+  Both constants are the confirmed-good 1440p rendering converted - `56 / 0.667 = 84` and
+  `780 / 0.667 = 1169.5` - so 1440p is reproduced exactly and every other resolution lands on the
+  same fraction of the screen. Measured after: 1440p and 1080p both place the panel at 0.55 of
+  screen height, and the fast-travel panel and the district-crossing banner now sit at the same
+  height as each other.
 
   `NCZDG_ChildNamed` walks one level at a time on the index API rather than calling
   `GetWidgetByPathName`, whose separator is undocumented; a wrong separator returns null in silence
-  and would be indistinguishable from the HUD having changed.
+  and would be indistinguishable from the tree having changed. Not found falls back to the screen-
+  pixel placement and warns, because a missing panel sends the next search somewhere else entirely.
+  Both hosts are named when removing the previous panel, so a build that parented to the window
+  before a tree change is still cleaned up after it.
 
   The banner and the guide popup are unaffected. Both parent into widgets that already carry the
   game's scale, and neither holds a screen pixel.

@@ -16,7 +16,8 @@ mod. The full technical detail lives in `@changelog.md`.
   The names come from Cyberpunk itself, so they read the same as on the world map.
 - Fix: The fast-travel banner sits in the right place at any resolution. Its position was measured
   once at 1440p and never adjusted, so on a 1080p screen it appeared two thirds of the way down,
-  over the quick-slot icons. It now takes its position from the HUD.
+  over the quick-slot icons. It now sits in the same spot as the banner you get walking across a
+  district boundary, whatever your resolution.
 - New: The in-game documentation page has a SEARCH SYNTAX section, in RCF's hub under DOCS.
 - New: A mod card for the Redscript Configuration Framework 2.1.0. The guide now appears in RCF's
   new picker with its header image, category and a short description.
