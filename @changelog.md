@@ -34,6 +34,25 @@ Prepared, not released. The Guide ships alongside NC Zoning Board - Core 1.1.0.
   machine with it. Stated in the Nexus description and `release-manifest.json`.
   `district` and `subdistrict` stay English throughout - they are the matching keys, and only what
   reaches a widget is translated.
+- The fast-travel arrival panel asks the HUD where to go instead of remembering. `FastTravelWatcher`
+  placed it at `(56, 653)`, a parent-chain walk measured once at 2560x1440 and left as a constant.
+  Those are Base Window units - SCREEN PIXELS - so the panel sat a fixed distance from the top of
+  every screen: 45% down at 1440p, 69% down at 1080p, on top of the quick-slot HUD. The panel's
+  SIZE was never wrong; `190.0 * scale` reads `winSize.Y` live and converts a 4K design unit
+  correctly. Only the position was pinned.
+
+  It now finds the `LeftCenter` HUD slot and reads `GetChildPosition`. That slot contributes the
+  whole of the offset, and it is present whether or not a banner is showing, so the read works on
+  the fast-travel path, where no banner fires. Not found means a changed HUD tree: the old
+  measurement is used and a warning names the cause, because a missing panel would send the search
+  somewhere else entirely.
+
+  `NCZDG_ChildNamed` walks one level at a time on the index API rather than calling
+  `GetWidgetByPathName`, whose separator is undocumented; a wrong separator returns null in silence
+  and would be indistinguishable from the HUD having changed.
+
+  The banner and the guide popup are unaffected. Both parent into widgets that already carry the
+  game's scale, and neither holds a screen pixel.
 
 ### Added
 

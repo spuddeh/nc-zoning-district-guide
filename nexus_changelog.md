@@ -12,8 +12,11 @@ mod. The full technical detail lives in `@changelog.md`.
   same thing.
 - New: An `i` beside the search box. Hover it for the syntax, without leaving the guide.
 - Fix: District and subdistrict names are shown in your game's language, in the district list, the
-  status line, the district-enter banner and the fast-travel panel. They were English for everyone.
+  status line, the district-enter banner and the fast-travel banner. They were English for everyone.
   The names come from Cyberpunk itself, so they read the same as on the world map.
+- Fix: The fast-travel banner sits in the right place at any resolution. Its position was measured
+  once at 1440p and never adjusted, so on a 1080p screen it appeared two thirds of the way down,
+  over the quick-slot icons. It now takes its position from the HUD.
 - New: The in-game documentation page has a SEARCH SYNTAX section, in RCF's hub under DOCS.
 - New: A mod card for the Redscript Configuration Framework 2.1.0. The guide now appears in RCF's
   new picker with its header image, category and a short description.

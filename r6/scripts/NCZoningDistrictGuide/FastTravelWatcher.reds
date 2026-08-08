@@ -25,6 +25,26 @@ import NCZoningDistrictGuide.Bridge.*
 import NCZoningDistrictGuide.Panel.*
 import NCZoningDistrictGuide.Config.*
 
+// A direct child by name, or null. GetWidgetByPathName takes a whole path, but its separator is
+// undocumented and a wrong one returns null in silence - here that would be indistinguishable
+// from "the HUD tree has changed", which is the one case the caller must be able to report.
+// Walking one level at a time uses only the index API, which cannot be got wrong.
+func NCZDG_ChildNamed(parent: ref<inkCompoundWidget>, name: CName) -> wref<inkWidget> {
+  if !IsDefined(parent) {
+    return null;
+  }
+  let count = parent.GetNumChildren();
+  let i = 0;
+  while i < count {
+    let child = parent.GetWidgetByIndex(i);
+    if IsDefined(child) && Equals(child.GetName(), name) {
+      return child;
+    }
+    i += 1;
+  }
+  return null;
+}
+
 @if(ModuleExists("NCZoning.Api"))
 public class NCZDGFastTravelWatcher extends ScriptableSystem {
   private let m_ftCallbackID: ref<CallbackHandle>;
@@ -119,15 +139,14 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
       return;
     }
 
-    // Position COMPUTED, not guessed. Walking the banner panel's parent chain in-game
-    // (nczdg_panel -> New_Quest_canvas -> Root -> Root -> HUDSlotMiddleWidget -> LeftCenter ->
-    // Root -> Base Window) and summing GetChildPosition at each step gives its exact position in
-    // 'Base Window' space: (56, 653). NOTE the banner does NOT live under BracketsContainer - it
-    // hangs off the HUD slots, so parent on Base Window at the same coords.
+    // Walking the banner panel's parent chain in-game (nczdg_panel -> New_Quest_canvas -> Root ->
+    // Root -> HUDSlotMiddleWidget -> LeftCenter -> Root -> Base Window) showed where the banner
+    // block sits, and that ALL of the offset comes from the LeftCenter HUD slot. NOTE the banner
+    // does NOT live under BracketsContainer - it hangs off the HUD slots, so parent on Base
+    // Window and match the slot.
     //
-    // Base Window is the SCREEN size (2560x1440) while the content is authored at 4K, so the HUD
-    // chain scales the banner by screenH/2160 (0.667 at 1440p). Base Window does not, so
-    // apply it explicitly - derived live, so it stays correct at any resolution.
+    // Base Window is the SCREEN size while the content is authored at 4K, so the HUD chain scales
+    // the banner by screenH/2160 (0.667 at 1440p). Base Window does not, so apply it explicitly.
     let winSize = root.GetSize();
     let scale = winSize.Y > 1.0 ? (winSize.Y / 2160.0) : 0.667;
 
@@ -137,12 +156,34 @@ public class NCZDGFastTravelWatcher extends ScriptableSystem {
     this.m_ftPanel = null;
 
     let player = GameInstance.GetPlayerSystem(gi).GetLocalPlayerMainGameObject();
-    // The measured (56,653) is where the HUD's LeftCenter slot sits - i.e. the TOP of the banner
-    // block, so placing there lands where the game banner shows. The banner-path panel
-    // sits BELOW that block: it is translated +190 within the banner canvas (4K units), which in
-    // Base Window (screen) space is 190 * scale. So add it.
-    let panelY = 653.0 + (190.0 * scale);
-    this.m_ftPanel = NCZDG_BuildPanel(root, 56.0, panelY, here, player, cfg.showNearest);
+    // WHERE THE SLOT IS, ASKED AT RUNTIME - never a remembered number. The slot's position is in
+    // SCREEN pixels and it moves with screen height, so the 1440p measurement (56, 653) put the
+    // panel a fixed distance from the top of every screen: two thirds of the way down a 1080p
+    // one, over the quick-slot HUD.
+    //
+    // Falls back to that measurement if the slot cannot be found, which keeps a changed HUD tree
+    // to a misplaced panel rather than no panel, and says so - silence here reads as "the mod
+    // did nothing" and would send the search to the wrong place entirely.
+    let slotX = 56.0;
+    let slotY = 653.0;
+    let rootCanvas = NCZDG_ChildNamed(root, n"Root") as inkCompoundWidget;
+    let slot = NCZDG_ChildNamed(rootCanvas, n"LeftCenter");
+    if IsDefined(slot) {
+      let slotPos = rootCanvas.GetChildPosition(slot);
+      slotX = slotPos.X;
+      slotY = slotPos.Y;
+      // Logged because the fault it replaces was invisible at the resolution it was measured on.
+      // The ratio is what to read: it holds across resolutions, the raw Y does not.
+      NCZDGLog(s"ft: LeftCenter slot at (\(slotX), \(slotY)) on a \(winSize.X)x\(winSize.Y) window");
+    } else {
+      NCZDGWarn("ft: LeftCenter HUD slot not found - the arrival panel falls back to its 1440p position");
+    }
+
+    // The slot is the TOP of the banner block, so placing there lands where the game banner
+    // shows. The banner-path panel sits BELOW that block: it is translated +190 within the banner
+    // canvas (4K units), which in Base Window (screen) space is 190 * scale. So add it.
+    let panelY = slotY + (190.0 * scale);
+    this.m_ftPanel = NCZDG_BuildPanel(root, slotX, panelY, here, player, cfg.showNearest);
     if IsDefined(this.m_ftPanel) {
       this.m_ftPanel.SetRenderTransformPivot(new Vector2(0.0, 0.0));
       this.m_ftPanel.SetScale(new Vector2(scale, scale));
