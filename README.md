@@ -81,7 +81,8 @@ breaks every redscript mod. Install each one once, as its own mod.
 - [Akiway](https://www.nexusmods.com/profile/Akiway) for improvements to the NC Zoning map
   UI and UX.
 - [psiberx](https://www.nexusmods.com/profile/psiberx/mods) for Codeware.
-- DigitalVixen for the Redscript Configuration Framework and RedLogger.
+- DigitalVixen for the Redscript Configuration Framework, RedLogger and RedIMGRetriever.
+- [jackhumbert](https://www.nexusmods.com/profile/jackhumbert) for Input Loader.
 - The location-mod authors the registry maps, and the Locations Hub community.
 
 ## License
