@@ -46,7 +46,7 @@ Strongly recommended:
 
 Optional:
 
-- [RedIMGRetriever](https://www.nexusmods.com/cyberpunk2077/mods/31941) by DigitalVixen - shows
+- [RedIMGRetriever](https://www.nexusmods.com/cyberpunk2077/mods/31919) by DigitalVixen - shows
   each location's screenshot on its card, and the full-size image when you click it. Without it
   the guide simply has no images; nothing else changes.
 Installed-mod marking comes from the Core and needs nothing extra here. Some location mods

@@ -88,7 +88,7 @@ The mod runs on its defaults without RCF; you simply cannot rebind anything.
 [b]Strongly recommended:[/b]
 [list]
 [*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/30726]Redscript Configuration Framework[/url][/b] - the only settings UI. Without it nothing can be rebound.
-[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/31941]RedIMGRetriever[/url][/b] - what fetches the card images. Without it the cards show a placeholder and everything else is unchanged.
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/31919]RedIMGRetriever[/url][/b] - what fetches the card images. Without it the cards show a placeholder and everything else is unchanged.
 [/list]
 [i]The mod is whole without the optional ones. Each removes a feature, not the mod.[/i]
 [line]
