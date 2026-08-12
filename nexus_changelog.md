@@ -12,6 +12,9 @@ mod. The full technical detail lives in `@changelog.md`.
   1440p screen, so on 1080p it appeared two thirds of the way down, over the quick-slot icons. It
   now sits in the same spot as the banner you get walking across a district boundary.
 - Fix: The SHOWING tooltip no longer mentions Cyber Engine Tweaks, which the mod stopped needing.
+- Fix: Location pictures stay put while you use the guide. Typing in the search box, turning a page
+  or picking a district made every card on screen drop its picture and fetch it again, so they
+  flickered as you typed.
 - Changed: NC Zoning Board - Core 1.2.0 or newer is now required. An older Core stops every
   redscript mod on your machine from loading, so update both together.
 - Changed: The German and Russian translations cover the search panel added in 1.1.0.
@@ -68,6 +71,7 @@ District names now show in your game's language, and the fast-travel banner sits
 Fix: District and subdistrict names are shown in your game's language, in the district list, the status line, the district-enter banner and the fast-travel banner. They were English for everyone. The names come from Cyberpunk itself, so they read the same as on the world map.
 Fix: The fast-travel banner sits in the right place at any resolution. Its position was set for a 1440p screen, so on a 1080p screen it appeared two thirds of the way down, over the quick-slot icons. It now sits in the same spot as the banner you get walking across a district boundary.
 Fix: The SHOWING tooltip no longer mentions Cyber Engine Tweaks, which the mod stopped needing.
+Fix: Location pictures stay put while you use the guide. Typing in the search box, turning a page or picking a district made every card on screen drop its picture and fetch it again, so they flickered as you typed.
 Changed: NC Zoning Board - Core 1.2.0 or newer is now required. An older Core stops every redscript mod on your machine from loading, so update both together.
 Changed: The German and Russian translations cover the search panel added in 1.1.0.
 ```
@@ -85,6 +89,7 @@ Changed: The German and Russian translations cover the search panel added in 1.1
 [list][*]Fix: District names show in your game's language, matching the world map.
 [*]Fix: The fast-travel banner sits correctly at any resolution, not just 1440p.
 [*]Fix: The SHOWING tooltip no longer mentions Cyber Engine Tweaks.
+[*]Fix: Location pictures no longer flicker and reload as you type in the search box.
 [*]Changed: NC Zoning Board - Core 1.2.0 or newer is now required.
 [*]Changed: German and Russian cover the search panel added in 1.1.0.
 [/list]
@@ -102,4 +107,4 @@ Changed: The German and Russian translations cover the search panel added in 1.1
 [/list][/spoiler]
 ```
 
-> Character count: 1138 / 5000
+> Character count: 1224 / 5000

@@ -9,6 +9,23 @@ Requires NC Zoning Board - Core 1.2.0.
 
 ### Fixed
 
+- Card thumbnails are no longer hidden and re-fetched on every refresh. `BindCard` called
+  `SetCardImageState` unconditionally, which clears `slot.image` whether or not the incoming
+  location has a picture, and then re-queued the fetch. `QueueImage` dedupes only against entries
+  still in `m_pending`, and `OnImagePoll` erases an entry the moment it is applied, so nothing
+  stopped the repeat. `Refresh` runs on every search keystroke, every page turn and every district
+  click, so typing re-requested every visible thumbnail per character. `NCZDGCardSlot` carries
+  `locId` and `thumbUrl`, and both calls are skipped while the slot still holds the same picture.
+  A failed fetch is remembered the same way, so the placeholder stays put rather than the card
+  asking again.
+
+- `NCZDG_DescCap()` was declared twice in `GuideController.reds`, at 128 and at 140, the later
+  declaration winning. The 128 block described a card layout that predates the thumbnail - three
+  description lines at ~545 wide - and is gone with it; the rule it carried about deriving a cap
+  from a single measured line moved onto the survivor. One declaration remains, at 140, which is
+  the value that was already in force, so no card renders differently. `NCZDG_DescCapThumb()` (95)
+  is still declared and still unused.
+
 - Every area name on screen is translated. A registry district or subdistrict name is English data,
   and four sites rendered one raw: `NCZDGArea.Label()` (the left nav, and the `{area}` token in the
   status line through it), `NCZDG_AreaName()` (the district-enter banner and the fast-travel arrival
