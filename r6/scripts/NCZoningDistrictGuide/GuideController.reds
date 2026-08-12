@@ -240,21 +240,6 @@ public func NCZDG_TextWidth() -> Float {
 // the button band.
 public func NCZDG_TitleCap() -> Int32 { return 74; }
 
-// Description: 3 lines.
-//
-// 128, NOT 147. Three times the 49-character first line is wrong: a proportional font gives a
-// different count per line and per string. Across seven cards that overflowed at a 145 cap, three
-// lines held 133 to 141 characters, the narrowest being a wide-glyph run. 128 clears the worst
-// case seen with margin for ones not yet seen.
-//
-// A CAP CANNOT BE DERIVED FROM ONE MEASURED LINE. It has to clear the worst line, which means
-// capping high, looking for overflow, and counting what spilled.
-//
-// The third line fits because the height budget assumes ~1.42x font size per rendered line where
-// the real figure is nearer 1.2. That slack is now spent. A fourth line reaches the reserved
-// button band, and ink cannot clip, so it draws over the buttons rather than being trimmed.
-public func NCZDG_DescCap() -> Int32 { return 128; }
-
 // Tags are ONE LINE, ALWAYS. The widget has no wrap position set, so it does not wrap - it runs
 // straight off the right edge of the card, which ink will not clip. The cap is what keeps it on
 // the card, so it is a correctness bound rather than a tidiness one.
@@ -279,10 +264,18 @@ public func NCZDG_PhIconWidth() -> Float {
   return NCZDG_PhIconHeight() * 66.0 / 157.0;
 }
 
-// Description caps, one per layout. 140 was tuned empirically against the full width; the
-// narrow cap is that scaled by the width ratio and rounded down. BOTH are approximate - a
-// char cap against a proportional font varies ~20% by glyph mix, and there is no way to
-// query a wrapped text's rendered height to do better.
+// Description caps, one per layout. 140 is tuned against the full width; the narrow cap is that
+// scaled by the width ratio and rounded down. BOTH are approximate - a char cap against a
+// proportional font varies ~20% by glyph mix, and there is no way to query a wrapped text's
+// rendered height to do better.
+//
+// A CAP CANNOT BE DERIVED FROM ONE MEASURED LINE. Multiplying a measured first line by the line
+// count overshoots, because a proportional font gives a different count per line and per string.
+// The cap has to clear the WORST line, which means capping high, looking for overflow, and
+// counting what spilled.
+//
+// There is slack in the height budget because it assumes ~1.42x font size per rendered line where
+// the real figure is nearer 1.2.
 public func NCZDG_DescCap() -> Int32 { return 140; }
 public func NCZDG_DescCapThumb() -> Int32 { return 95; }
 
