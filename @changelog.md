@@ -24,7 +24,8 @@ Requires NC Zoning Board - Core 1.2.0.
   description lines at ~545 wide - and is gone with it; the rule it carried about deriving a cap
   from a single measured line moved onto the survivor. One declaration remains, at 140, which is
   the value that was already in force, so no card renders differently. `NCZDG_DescCapThumb()` (95)
-  is still declared and still unused.
+  went with it - it was declared for a narrower cap on a card carrying a thumbnail, and no call
+  site was ever written.
 
 - Every area name on screen is translated. A registry district or subdistrict name is English data,
   and four sites rendered one raw: `NCZDGArea.Label()` (the left nav, and the `{area}` token in the

@@ -264,8 +264,7 @@ public func NCZDG_PhIconWidth() -> Float {
   return NCZDG_PhIconHeight() * 66.0 / 157.0;
 }
 
-// Description caps, one per layout. 140 is tuned against the full width; the narrow cap is that
-// scaled by the width ratio and rounded down. BOTH are approximate - a char cap against a
+// 140 is tuned against the card's full width, and it is approximate - a char cap against a
 // proportional font varies ~20% by glyph mix, and there is no way to query a wrapped text's
 // rendered height to do better.
 //
@@ -277,7 +276,6 @@ public func NCZDG_PhIconWidth() -> Float {
 // There is slack in the height budget because it assumes ~1.42x font size per rendered line where
 // the real figure is nearer 1.2.
 public func NCZDG_DescCap() -> Int32 { return 140; }
-public func NCZDG_DescCapThumb() -> Int32 { return 95; }
 
 public func NCZDG_IdxCardBase() -> Int32 { return 1000; }
 public func NCZDG_IdxWaypointBase() -> Int32 { return 2000; }
