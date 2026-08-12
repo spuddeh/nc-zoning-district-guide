@@ -182,14 +182,16 @@ Already additive; listed so the bar is not confused about them.
 ## H. Guide fixes the fork found, to land regardless of the API
 
 - [x] **H1** `NCZDG_DescCap()` was declared twice, 128 and 140, the later winning
-- [ ] **H2** **Every `Refresh` hides and re-fetches every visible thumbnail.** `BindCard` calls
-      `SetCardImageState` unconditionally, which hides `slot.image`, then re-queues the fetch —
-      and an applied fetch has already been erased from the pending queue, so nothing dedupes it.
-      `Refresh` runs on every search keystroke. The fix is the fork's: remember `locId` and
-      `thumbUrl` on the slot and skip both calls when neither changed.
-- [ ] **H3** The install badge should test `NCZDG_InstallDetection()` before claiming a location is
-      installed
-- [ ] **H4** Search input max length 64 is short for a query with field prefixes and quoted phrases
+- [x] **H2** Every `Refresh` hid and re-fetched every visible thumbnail. `BindCard` called
+      `SetCardImageState` unconditionally, which clears `slot.image`, then re-queued the fetch —
+      and an applied fetch has already been erased from the pending queue, so nothing deduped it.
+      `Refresh` runs on every search keystroke. Fixed the fork's way: the slot remembers `locId`
+      and `thumbUrl`, and skips both calls when neither changed.
+- [x] **H3** ~~The install badge should test `NCZDG_InstallDetection()`~~ — **not a bug.** The
+      Core's `GetInstallState` returns `Unknown` whenever the registry is absent or the scan has
+      not run, so `Installed` cannot come back early. The fork's extra check is redundant.
+- [ ] **H4** Search input max length 64 is short for a query with field prefixes and quoted
+      phrases. Only worth changing alongside the grammar.
 
 ## Needs Akiway's agreement, not just his review
 
