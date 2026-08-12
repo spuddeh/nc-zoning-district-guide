@@ -1339,13 +1339,28 @@ public class NCZDGGuidePopup extends InGamePopup {
     // the instant the record binds, and 296 of 297 records have one - so the narrow layout is
     // chosen up front and nothing reflows later. A card only widens again if the fetch
     // actually FAILS, which is rare enough that the reflow is acceptable.
+    // THE SLOT IDENTITY GUARD. Refresh runs on every search keystroke, every page turn and every
+    // nav click, and it re-binds every visible card. Without this, each of those hides the
+    // thumbnail (SetCardImageState clears slot.image whether or not the location has one) and
+    // queues the fetch again - and an applied fetch has already been erased from m_pending, so
+    // nothing there dedupes it. Skipping both when the slot is still showing the same picture is
+    // what keeps a keystroke from blinking every card on the page.
+    //
+    // A FAILED FETCH IS ALSO REMEMBERED, because OnImagePoll leaves the placeholder showing and
+    // the guard then refuses to ask for it a second time.
     let thumbUrl = loc.ThumbnailUrl();
     let hasImage = NCZDG_Img.Available() && StrLen(thumbUrl) > 0;
-    this.SetCardImageState(slot, hasImage);
-    slot.picUrl = hasImage ? loc.PictureUrl() : "";
-    if hasImage {
-      this.QueueImage(thumbUrl, slot.image, NCZDG_ImageWidth(), NCZDG_ImageHeight(), slot.slotIdx);
+    let sameThumb = UnicodeStringEqual(slot.locId, loc.Id())
+                    && UnicodeStringEqual(slot.thumbUrl, thumbUrl);
+    if !sameThumb {
+      this.SetCardImageState(slot, hasImage);
+      slot.locId = loc.Id();
+      slot.thumbUrl = thumbUrl;
+      if hasImage {
+        this.QueueImage(thumbUrl, slot.image, NCZDG_ImageWidth(), NCZDG_ImageHeight(), slot.slotIdx);
+      }
     }
+    slot.picUrl = hasImage ? loc.PictureUrl() : "";
 
     // Capped: at ~545 wide a long mod name wraps to three lines and pushes the tags out of the
     // bottom of the card. Ink cannot clip, so they draw over the card below rather than trimming.
@@ -2432,6 +2447,10 @@ public class NCZDGCardSlot {
   // The full-size image for this card's location, for the lightbox. Empty means the card is
   // not clickable - the click handler checks this rather than trusting the box's visibility.
   public let picUrl: String;
+  // What is currently bound here. A re-bind that lands the same record back on the same slot
+  // leaves the thumbnail alone instead of hiding it and fetching it again - see BindCard.
+  public let locId: String;
+  public let thumbUrl: String;
   // This slot's own index, so a pending fetch can be matched back to the card that wanted it
   // and dropped when a page turn rebinds the slot to a different location.
   public let slotIdx: Int32;
