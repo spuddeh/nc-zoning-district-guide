@@ -1,4 +1,5 @@
 // ======================================================================================
+// ABANDONED EXPERIMENT - see docs/EXTENSION-API-REQUIREMENTS.md for the status note.
 // NOT SHIPPED. NOT COMPILED. This file sits outside r6/ on purpose.
 //
 // The extension API as the Location Tracker port needs it. Every declaration carries the

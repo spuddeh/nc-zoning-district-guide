@@ -1,4 +1,5 @@
 // ======================================================================================
+// ABANDONED EXPERIMENT - see docs/EXTENSION-API-REQUIREMENTS.md for the status note.
 // NOT SHIPPED. NOT COMPILED. This file sits outside r6/ on purpose.
 //
 // Akiway's forked GuideController.reds, re-expressed as an extension against API-SURFACE.reds.

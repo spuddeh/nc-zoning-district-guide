@@ -1,5 +1,17 @@
 # Extension API — requirements, traced from the Location Tracker addon
 
+> **STATUS: ABANDONED EXPERIMENT. Nothing here is implemented, and this branch is not going to
+> merge.** The design was taken as far as a checked requirements list and a compiling-shaped port
+> of the consumer, then shelved by agreement between Spuddeh and Akiway on 2026-08-13 — both had
+> other projects with a stronger claim on the time, and the addon works today as a fork.
+>
+> It is kept because the expensive part is done: the requirement list is complete, the port
+> proves the surface would have been sufficient, and the compile probes recording what redscript
+> 0.5.31 does and does not allow are not obvious and cost a day to establish. Anyone restarting
+> this starts from the findings, not from the diff.
+>
+> The two guide bugs this work turned up were fixed on `main` and are not part of the experiment.
+
 Akiway's *Location Tracker - District Guide addon* (Nexus 32539) ships twelve files. Eleven are
 purely additive and need nothing from the guide. The twelfth is a fork of `GuideController.reds`,
 and this document is the list of everything that fork does, so the API can be measured against it
